@@ -38,10 +38,26 @@ def register_view(request):
     return render(request, 'accounts/register.html', {'form': form})
 
 
+PROFILE_VIEW_TEMPLATES = {
+    'patient': 'accounts/profile_view_patient.html',
+    'doctor': 'accounts/profile_view_doctor.html',
+    'secretary': 'accounts/profile_view_secretary.html',
+    'admin': 'accounts/profile_view_admin.html',
+}
+
+PROFILE_EDIT_TEMPLATES = {
+    'patient': 'accounts/profile_edit_patient.html',
+    'doctor': 'accounts/profile_edit_doctor.html',
+    'secretary': 'accounts/profile_edit_secretary.html',
+    'admin': 'accounts/profile_edit_admin.html',
+}
+
+
 @role_required('patient', 'doctor', 'secretary', 'admin')
 def profile_view(request):
     profile = _get_profile(request.user)
-    return render(request, 'accounts/profile_view.html', {'profile': profile})
+    template = PROFILE_VIEW_TEMPLATES.get(request.user.role, 'accounts/profile_view_patient.html')
+    return render(request, template, {'profile': profile})
 
 
 @role_required('patient', 'doctor', 'secretary', 'admin')
@@ -49,12 +65,13 @@ def profile_edit_view(request):
     profile = _get_profile(request.user)
     FormClass = _get_profile_form(request.user)
     pic_form = ProfilePictureForm(request.POST or None, request.FILES or None, instance=request.user)
+    template = PROFILE_EDIT_TEMPLATES.get(request.user.role, 'accounts/profile_edit_patient.html')
     if FormClass is None:
         if request.method == 'POST' and pic_form.is_valid():
             pic_form.save()
             messages.success(request, 'Profile picture updated.')
             return redirect('accounts:profile_view')
-        return render(request, 'accounts/profile_edit.html', {'form': None, 'pic_form': pic_form})
+        return render(request, template, {'form': None, 'pic_form': pic_form})
     form = FormClass(request.POST or None, instance=profile)
     if request.method == 'POST' and form.is_valid() and pic_form.is_valid():
         # Also update first/last name on the user object
@@ -69,7 +86,7 @@ def profile_edit_view(request):
         pic_form.save()
         messages.success(request, 'Profile updated.')
         return redirect('accounts:profile_view')
-    return render(request, 'accounts/profile_edit.html', {'form': form, 'pic_form': pic_form})
+    return render(request, template, {'form': form, 'pic_form': pic_form})
 
 
 def _role_redirect(user):

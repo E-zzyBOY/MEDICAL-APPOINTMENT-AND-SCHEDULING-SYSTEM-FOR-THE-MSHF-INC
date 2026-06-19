@@ -1,0 +1,7 @@
+{% if widget.is_initial and not widget.required %}
+<label class="inline-flex items-center gap-1.5 text-xs text-gray-500 mb-1 cursor-pointer">
+  <input type="checkbox" name="{{ widget.checkbox_name }}" id="{{ widget.checkbox_id }}" class="rounded border-gray-300">
+  Remove current picture
+</label><br>
+{% endif %}
+{% include "django/forms/widgets/file.html" %}

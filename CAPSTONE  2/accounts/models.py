@@ -10,6 +10,7 @@ class CustomUser(AbstractUser):
         ('admin',     'Admin'),
     ]
     role = models.CharField(max_length=20, choices=ROLE_CHOICES, default='patient')
+    profile_picture = models.ImageField(upload_to='profile_pics/', blank=True, null=True)
 
     def is_patient(self):    return self.role == 'patient'
     def is_doctor(self):     return self.role == 'doctor'

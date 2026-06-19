@@ -1,7 +1,7 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import authenticate, login, logout
 from django.contrib import messages
-from .forms import PatientRegistrationForm, PatientProfileEditForm, DoctorProfileEditForm
+from .forms import PatientRegistrationForm, PatientProfileEditForm, DoctorProfileEditForm, ProfilePictureForm
 from .models import PatientProfile, DoctorProfile, SecretaryProfile
 from .decorators import role_required
 
@@ -48,11 +48,15 @@ def profile_view(request):
 def profile_edit_view(request):
     profile = _get_profile(request.user)
     FormClass = _get_profile_form(request.user)
+    pic_form = ProfilePictureForm(request.POST or None, request.FILES or None, instance=request.user)
     if FormClass is None:
-        messages.info(request, 'Profile editing is not available for your role.')
-        return redirect('accounts:profile_view')
+        if request.method == 'POST' and pic_form.is_valid():
+            pic_form.save()
+            messages.success(request, 'Profile picture updated.')
+            return redirect('accounts:profile_view')
+        return render(request, 'accounts/profile_edit.html', {'form': None, 'pic_form': pic_form})
     form = FormClass(request.POST or None, instance=profile)
-    if request.method == 'POST' and form.is_valid():
+    if request.method == 'POST' and form.is_valid() and pic_form.is_valid():
         # Also update first/last name on the user object
         first = request.POST.get('first_name', '').strip()
         last  = request.POST.get('last_name', '').strip()
@@ -62,9 +66,10 @@ def profile_edit_view(request):
             request.user.last_name = last
         request.user.save()
         form.save()
+        pic_form.save()
         messages.success(request, 'Profile updated.')
         return redirect('accounts:profile_view')
-    return render(request, 'accounts/profile_edit.html', {'form': form})
+    return render(request, 'accounts/profile_edit.html', {'form': form, 'pic_form': pic_form})
 
 
 def _role_redirect(user):

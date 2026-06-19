@@ -122,3 +122,19 @@ class UserEditForm(forms.ModelForm):
     class Meta:
         model  = CustomUser
         fields = ['first_name', 'last_name', 'email', 'is_active']
+
+
+class ProfilePictureWidget(forms.ClearableFileInput):
+    template_name = 'accounts/widgets/profile_picture_input.html'
+
+
+class ProfilePictureForm(forms.ModelForm):
+    class Meta:
+        model  = CustomUser
+        fields = ['profile_picture']
+        widgets = {
+            'profile_picture': ProfilePictureWidget(attrs={
+                'class': 'block text-sm text-gray-600',
+                'accept': 'image/*',
+            }),
+        }

@@ -3,10 +3,19 @@ from django.contrib.auth.decorators import login_required
 from .models import Notification
 
 
+ROLE_TEMPLATES = {
+    'patient': 'notifications/notification_list_patient.html',
+    'doctor': 'notifications/notification_list_doctor.html',
+    'secretary': 'notifications/notification_list_secretary.html',
+    'admin': 'notifications/notification_list_admin.html',
+}
+
+
 @login_required(login_url='/accounts/login/')
 def notification_list(request):
     notifications = Notification.objects.filter(user=request.user)
-    return render(request, 'notifications/notification_list.html', {
+    template = ROLE_TEMPLATES.get(request.user.role, 'notifications/notification_list_patient.html')
+    return render(request, template, {
         'notifications': notifications
     })
 

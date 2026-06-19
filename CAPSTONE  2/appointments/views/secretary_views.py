@@ -12,12 +12,19 @@ def _notify(user, message):
     Notification.objects.create(user=user, message=message)
 
 
+def _assigned_doctor(user):
+    profile = getattr(user, 'secretary_profile', None)
+    return profile.assigned_doctor if profile else None
+
+
 @role_required('secretary')
 def secretary_dashboard(request):
+    doctor = _assigned_doctor(request.user)
     today_appts = Appointment.objects.filter(
+        doctor=doctor,
         appointment_date=date.today(),
         status__in=['Scheduled', 'Rescheduled']
-    ).select_related('patient', 'doctor').order_by('appointment_time')
+    ).select_related('patient', 'doctor').order_by('appointment_time') if doctor else Appointment.objects.none()
     total_today = today_appts.count()
 
     dashboard_data = {
@@ -39,7 +46,7 @@ def secretary_dashboard(request):
         'quickActions': [
             {'title': 'Appointments', 'description': 'Approve or cancel requests', 'href': '/secretary/appointments/'},
             {'title': 'Walk-In Registration', 'description': 'Register a walk-in patient', 'href': '/secretary/walk-in/register/'},
-            {'title': 'Schedules', 'description': 'View doctor schedules', 'href': '/secretary/schedules/'},
+            {'title': 'Doctor Profile', 'description': "View your doctor's info & availability", 'href': '/secretary/schedules/'},
             {'title': 'Patients', 'description': 'View patient list', 'href': '/secretary/patients/'},
         ],
     }
@@ -48,9 +55,10 @@ def secretary_dashboard(request):
 
 @role_required('secretary')
 def secretary_appointment_list(request):
+    doctor = _assigned_doctor(request.user)
     status_filter = request.GET.get('status', '')
     date_filter   = request.GET.get('date', '')
-    qs = Appointment.objects.all().select_related('patient', 'doctor')
+    qs = Appointment.objects.filter(doctor=doctor).select_related('patient', 'doctor') if doctor else Appointment.objects.none()
     if status_filter:
         qs = qs.filter(status=status_filter)
     if date_filter:
@@ -58,12 +66,14 @@ def secretary_appointment_list(request):
     return render(request, 'secretary/appointment_list.html', {
         'appointments': qs.order_by('appointment_date', 'appointment_time'),
         'status_filter': status_filter, 'date_filter': date_filter,
+        'assigned_doctor': doctor,
     })
 
 
 @role_required('secretary')
 def appointment_approve(request, pk):
-    appt = get_object_or_404(Appointment, pk=pk, status='Scheduled')
+    doctor = _assigned_doctor(request.user)
+    appt = get_object_or_404(Appointment, pk=pk, status='Scheduled', doctor=doctor)
     if request.method == 'POST':
         appt.secretary = request.user
         appt.save()
@@ -79,7 +89,8 @@ def appointment_approve(request, pk):
 
 @role_required('secretary')
 def appointment_cancel(request, pk):
-    appt = get_object_or_404(Appointment, pk=pk, status__in=['Scheduled', 'Rescheduled'])
+    doctor = _assigned_doctor(request.user)
+    appt = get_object_or_404(Appointment, pk=pk, status__in=['Scheduled', 'Rescheduled'], doctor=doctor)
     if request.method == 'POST':
         reason = request.POST.get('reason', '')
         appt.status = 'Cancelled'
@@ -131,10 +142,10 @@ def vitals_add(request, patient_id):
 
 @role_required('secretary')
 def view_all_schedules(request):
-    schedules = Schedule.objects.all().select_related('doctor').order_by('doctor', 'day_of_week', 'start_time')
-    doctors   = CustomUser.objects.filter(role='doctor')
+    doctor = _assigned_doctor(request.user)
+    schedules = Schedule.objects.filter(doctor=doctor).order_by('day_of_week', 'start_time') if doctor else Schedule.objects.none()
     return render(request, 'secretary/schedules.html', {
-        'schedules': schedules, 'doctors': doctors
+        'schedules': schedules, 'doctor': doctor
     })
 
 

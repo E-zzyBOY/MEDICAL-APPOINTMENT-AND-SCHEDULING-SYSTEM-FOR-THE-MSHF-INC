@@ -1,0 +1,51 @@
+{% extends "patient/base_patient.html" %}
+{% load static %}
+{% block page_title %}Doctor Profile{% endblock %}
+
+{% block patient_content %}
+<div class="max-w-3xl">
+  <a href="/patient/appointments/book/" class="text-sm text-blue-700 hover:underline mb-4 inline-block">&larr; Back to doctor list</a>
+
+  <div class="bg-white rounded-xl shadow p-6 mb-6">
+    <div class="flex items-center gap-4">
+      {% if doctor.profile_picture %}
+        <img src="{{ doctor.profile_picture.url }}" class="size-16 rounded-full object-cover" alt="">
+      {% else %}
+        <img src="{% static 'img/default-avatar.svg' %}" class="size-16 rounded-full object-cover" alt="">
+      {% endif %}
+      <div>
+        <p class="font-bold text-gray-800 text-lg">Dr. {{ doctor.get_full_name }}</p>
+        <p class="text-sm text-gray-500">{{ doctor.doctor_profile.specialization|default:"General Medicine" }}</p>
+      </div>
+      <a href="/patient/appointments/book/{{ doctor.pk }}/slots/"
+         class="ml-auto px-5 py-2.5 bg-blue-700 text-white rounded-lg text-sm font-medium hover:bg-blue-800 transition">
+        Book Appointment
+      </a>
+    </div>
+  </div>
+
+  <div class="bg-white rounded-xl shadow p-6">
+    <h2 class="text-lg font-bold text-gray-800 mb-4">Weekly Availability</h2>
+    {% if schedules %}
+    <div class="overflow-x-auto">
+      <table class="w-full text-sm">
+        <thead class="text-left text-gray-500 border-b border-gray-200">
+          <tr><th class="pb-3 font-semibold">Day</th><th class="pb-3 font-semibold">Start</th><th class="pb-3 font-semibold">End</th></tr>
+        </thead>
+        <tbody class="divide-y divide-gray-100">
+          {% for s in schedules %}
+          <tr>
+            <td class="py-3 font-medium">{{ s.get_day_of_week_display }}</td>
+            <td class="py-3 text-gray-600">{{ s.start_time|time:"g:i A" }}</td>
+            <td class="py-3 text-gray-600">{{ s.end_time|time:"g:i A" }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <p class="text-gray-400 text-center py-10">This doctor has no availability set yet.</p>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

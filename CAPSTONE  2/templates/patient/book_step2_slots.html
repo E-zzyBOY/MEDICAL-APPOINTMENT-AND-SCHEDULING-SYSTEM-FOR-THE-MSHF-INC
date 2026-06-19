@@ -1,4 +1,5 @@
 {% extends "patient/base_patient.html" %}
+{% load static %}
 {% block page_title %}Book Appointment — Choose Slot{% endblock %}
 
 {% block patient_content %}
@@ -14,13 +15,18 @@
 
   <div class="bg-white rounded-xl shadow p-6 mb-4">
     <div class="flex items-center gap-3 mb-6">
-      <div class="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-        <span class="text-blue-700 font-bold">{{ doctor.first_name.0 }}{{ doctor.last_name.0 }}</span>
-      </div>
+      {% if doctor.profile_picture %}
+        <img src="{{ doctor.profile_picture.url }}" class="w-12 h-12 rounded-full object-cover" alt="">
+      {% else %}
+        <div class="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
+          <span class="text-blue-700 font-bold">{{ doctor.first_name.0 }}{{ doctor.last_name.0 }}</span>
+        </div>
+      {% endif %}
       <div>
         <p class="font-bold text-gray-800">Dr. {{ doctor.get_full_name }}</p>
         <p class="text-sm text-gray-500">{% if doctor.doctor_profile.specialization %}{{ doctor.doctor_profile.specialization }}{% endif %}</p>
       </div>
+      <a href="/patient/doctors/{{ doctor.pk }}/" class="ml-auto text-sm text-blue-700 hover:underline">View Profile</a>
     </div>
 
     <!-- Date picker -->

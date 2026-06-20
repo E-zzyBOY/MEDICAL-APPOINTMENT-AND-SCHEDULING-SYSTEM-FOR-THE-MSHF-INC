@@ -2,6 +2,11 @@
 {% block page_title %}Manage Appointments{% endblock %}
 
 {% block secretary_content %}
+{% if not assigned_doctor %}
+<div class="bg-yellow-50 border border-yellow-200 text-yellow-700 rounded-lg p-3 text-sm mb-4">
+  You are not currently assigned to a doctor, so no appointments are shown. Please contact the administrator.
+</div>
+{% endif %}
 <div class="bg-white rounded-xl shadow p-6">
   <!-- Filters -->
   <form method="get" class="flex gap-3 mb-5 flex-wrap">
@@ -49,7 +54,7 @@
           <td class="py-3">
             {% if appt.status == 'Scheduled' or appt.status == 'Rescheduled' %}
             <div class="flex gap-1">
-              <a href="/secretary/appointments/{{ appt.pk }}/approve/" class="px-2 py-1 bg-green-100 text-green-700 rounded text-xs font-medium hover:bg-green-200">Approve</a>
+              <a href="/secretary/appointments/{{ appt.pk }}/approve/" class="px-2 py-1 bg-green-100 text-green-700 rounded text-xs font-medium hover:bg-green-200">Confirm</a>
               <a href="/secretary/appointments/{{ appt.pk }}/cancel/" class="px-2 py-1 bg-red-100 text-red-600 rounded text-xs font-medium hover:bg-red-200">Cancel</a>
             </div>
             {% else %}&mdash;{% endif %}

@@ -1,19 +1,39 @@
 {% extends "secretary/base_secretary.html" %}
-{% block page_title %}Doctor Schedules{% endblock %}
+{% load static %}
+{% block page_title %}Doctor Profile &amp; Schedule{% endblock %}
 {% block secretary_content %}
+{% if not doctor %}
+<div class="bg-white rounded-xl shadow p-10 text-center text-gray-400">
+  You are not currently assigned to a doctor. Please contact the administrator.
+</div>
+{% else %}
+<div class="bg-white rounded-xl shadow p-6 mb-6">
+  <div class="flex items-center gap-4">
+    {% if doctor.profile_picture %}
+      <img src="{{ doctor.profile_picture.url }}" class="size-16 rounded-full object-cover" alt="">
+    {% else %}
+      <img src="{% static 'img/default-avatar.svg' %}" class="size-16 rounded-full object-cover" alt="">
+    {% endif %}
+    <div>
+      <p class="font-bold text-gray-800 text-lg">Dr. {{ doctor.get_full_name }}</p>
+      <p class="text-sm text-gray-500">{{ doctor.doctor_profile.specialization|default:"General Medicine" }}</p>
+      <p class="text-sm text-gray-400">{{ doctor.email }}</p>
+    </div>
+  </div>
+</div>
+
 <div class="bg-white rounded-xl shadow p-6">
-  <h2 class="text-lg font-bold text-gray-800 mb-4">All Doctor Schedules</h2>
+  <h2 class="text-lg font-bold text-gray-800 mb-4">Weekly Availability</h2>
   {% if schedules %}
   <div class="overflow-x-auto">
     <table class="w-full text-sm">
       <thead class="text-left text-gray-500 border-b border-gray-200">
-        <tr><th class="pb-3 font-semibold">Doctor</th><th class="pb-3 font-semibold">Day</th><th class="pb-3 font-semibold">Start</th><th class="pb-3 font-semibold">End</th></tr>
+        <tr><th class="pb-3 font-semibold">Day</th><th class="pb-3 font-semibold">Start</th><th class="pb-3 font-semibold">End</th></tr>
       </thead>
       <tbody class="divide-y divide-gray-100">
         {% for s in schedules %}
         <tr>
-          <td class="py-3 font-medium">Dr. {{ s.doctor.get_full_name }}</td>
-          <td class="py-3 text-gray-600">{{ s.get_day_of_week_display }}</td>
+          <td class="py-3 font-medium">{{ s.get_day_of_week_display }}</td>
           <td class="py-3 text-gray-600">{{ s.start_time|time:"g:i A" }}</td>
           <td class="py-3 text-gray-600">{{ s.end_time|time:"g:i A" }}</td>
         </tr>
@@ -22,7 +42,8 @@
     </table>
   </div>
   {% else %}
-  <p class="text-gray-400 text-center py-10">No schedules found.</p>
+  <p class="text-gray-400 text-center py-10">No schedule slots found for this doctor.</p>
   {% endif %}
 </div>
+{% endif %}
 {% endblock %}

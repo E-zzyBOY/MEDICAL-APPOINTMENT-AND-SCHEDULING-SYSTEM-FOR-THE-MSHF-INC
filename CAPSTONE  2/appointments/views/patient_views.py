@@ -89,6 +89,15 @@ def book_step1(request):
 
 
 @role_required('patient')
+def doctor_profile_view(request, doctor_id):
+    doctor = get_object_or_404(CustomUser, pk=doctor_id, role='doctor')
+    schedules = Schedule.objects.filter(doctor=doctor).order_by('day_of_week', 'start_time')
+    return render(request, 'patient/doctor_profile.html', {
+        'doctor': doctor, 'schedules': schedules
+    })
+
+
+@role_required('patient')
 def book_step2_slots(request, doctor_id):
     doctor = get_object_or_404(CustomUser, pk=doctor_id, role='doctor')
     selected_date_str = request.GET.get('date', '')

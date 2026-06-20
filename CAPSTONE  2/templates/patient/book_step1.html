@@ -1,4 +1,5 @@
 {% extends "patient/base_patient.html" %}
+{% load static %}
 {% block page_title %}Book Appointment — Choose Doctor{% endblock %}
 
 {% block patient_content %}
@@ -17,12 +18,15 @@
     {% if doctors %}
     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
       {% for doctor in doctors %}
-      <a href="/patient/appointments/book/{{ doctor.pk }}/slots/"
-         class="flex items-center gap-4 p-5 border-2 border-gray-100 rounded-xl hover:border-blue-500 hover:bg-blue-50 transition group">
-        <div class="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
-          <span class="text-blue-700 font-bold text-lg">{{ doctor.first_name.0 }}{{ doctor.last_name.0 }}</span>
-        </div>
-        <div>
+      <div class="flex items-center gap-4 p-5 border-2 border-gray-100 rounded-xl hover:border-blue-500 hover:bg-blue-50 transition group">
+        {% if doctor.profile_picture %}
+          <img src="{{ doctor.profile_picture.url }}" class="w-12 h-12 rounded-full object-cover flex-shrink-0" alt="">
+        {% else %}
+          <div class="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
+            <span class="text-blue-700 font-bold text-lg">{{ doctor.first_name.0 }}{{ doctor.last_name.0 }}</span>
+          </div>
+        {% endif %}
+        <div class="flex-1">
           <p class="font-bold text-gray-800 group-hover:text-blue-700">Dr. {{ doctor.get_full_name }}</p>
           <p class="text-sm text-gray-500">
             {% if doctor.doctor_profile.specialization %}
@@ -32,10 +36,17 @@
             {% endif %}
           </p>
         </div>
-        <svg class="w-5 h-5 text-gray-300 group-hover:text-blue-500 ml-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
-        </svg>
-      </a>
+        <div class="flex items-center gap-2 flex-shrink-0">
+          <a href="/patient/doctors/{{ doctor.pk }}/"
+             class="px-3 py-1.5 text-sm font-medium text-blue-700 border border-blue-200 rounded-lg hover:bg-blue-100 transition">
+            View Profile
+          </a>
+          <a href="/patient/appointments/book/{{ doctor.pk }}/slots/"
+             class="px-3 py-1.5 text-sm font-medium bg-blue-700 text-white rounded-lg hover:bg-blue-800 transition">
+            Book
+          </a>
+        </div>
+      </div>
       {% endfor %}
     </div>
     {% else %}

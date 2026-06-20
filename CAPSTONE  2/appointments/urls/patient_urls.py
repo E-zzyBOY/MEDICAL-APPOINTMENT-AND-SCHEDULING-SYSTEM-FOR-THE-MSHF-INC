@@ -7,6 +7,7 @@ urlpatterns = [
     path('',                                    v.patient_dashboard,      name='dashboard'),
     path('appointments/',                        v.appointment_list,       name='appointment_list'),
     path('appointments/book/',                   v.book_step1,             name='book_step1'),
+    path('doctors/<int:doctor_id>/',              v.doctor_profile_view,    name='doctor_profile'),
     path('appointments/book/<int:doctor_id>/slots/', v.book_step2_slots,  name='book_step2'),
     path('appointments/book/confirm/',           v.book_step3_confirm,     name='book_confirm'),
     path('appointments/<int:pk>/reschedule/',    v.reschedule_appointment, name='reschedule'),

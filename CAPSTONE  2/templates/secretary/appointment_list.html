@@ -54,8 +54,8 @@
           <td class="py-3">
             {% if appt.status == 'Scheduled' or appt.status == 'Rescheduled' %}
             <div class="flex gap-1">
-              <a href="/secretary/appointments/{{ appt.pk }}/approve/" class="px-2 py-1 bg-green-100 text-green-700 rounded text-xs font-medium hover:bg-green-200">Confirm</a>
-              <a href="/secretary/appointments/{{ appt.pk }}/cancel/" class="px-2 py-1 bg-red-100 text-red-600 rounded text-xs font-medium hover:bg-red-200">Cancel</a>
+              <a hx-get="/secretary/appointments/{{ appt.pk }}/approve/" hx-target="#modal-root" hx-swap="innerHTML" class="px-2 py-1 bg-green-100 text-green-700 rounded text-xs font-medium hover:bg-green-200 cursor-pointer">Confirm</a>
+              <a hx-get="/secretary/appointments/{{ appt.pk }}/cancel/" hx-target="#modal-root" hx-swap="innerHTML" class="px-2 py-1 bg-red-100 text-red-600 rounded text-xs font-medium hover:bg-red-200 cursor-pointer">Cancel</a>
             </div>
             {% else %}&mdash;{% endif %}
           </td>

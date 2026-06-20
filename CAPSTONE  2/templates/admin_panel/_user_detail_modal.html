@@ -1,0 +1,38 @@
+{% extends "components/modal.html" %}
+{% block modal_content %}
+<div class="space-y-4">
+  <div class="grid grid-cols-2 gap-4 text-sm">
+    <div><span class="font-semibold text-gray-600">Name:</span> {{ detail_user.get_full_name|default:detail_user.username }}</div>
+    <div><span class="font-semibold text-gray-600">Username:</span> {{ detail_user.username }}</div>
+    <div><span class="font-semibold text-gray-600">Role:</span> <span class="capitalize">{{ detail_user.role }}</span></div>
+    <div><span class="font-semibold text-gray-600">Status:</span> {% if detail_user.is_active %}<span class="text-green-600">Active</span>{% else %}<span class="text-red-500">Inactive</span>{% endif %}</div>
+    <div class="col-span-2"><span class="font-semibold text-gray-600">Email:</span> {{ detail_user.email }}</div>
+  </div>
+  {% if profile %}
+  <div class="border-t border-gray-100 pt-4 grid grid-cols-2 gap-4 text-sm">
+    {% if detail_user.role == 'patient' %}
+    <div><span class="font-semibold text-gray-600">Contact:</span> {{ profile.contact_number|default:"—" }}</div>
+    <div><span class="font-semibold text-gray-600">Gender:</span> {{ profile.get_gender_display|default:"—" }}</div>
+    <div><span class="font-semibold text-gray-600">Date of Birth:</span> {{ profile.date_of_birth|default:"—" }}</div>
+    <div><span class="font-semibold text-gray-600">Place of Birth:</span> {{ profile.place_of_birth|default:"—" }}</div>
+    <div class="col-span-2"><span class="font-semibold text-gray-600">Address:</span> {{ profile.address|default:"—" }}</div>
+    <div class="col-span-2"><span class="font-semibold text-gray-600">Guardian:</span> {{ profile.guardian|default:"—" }}</div>
+    {% elif detail_user.role == 'doctor' %}
+    <div class="col-span-2"><span class="font-semibold text-gray-600">Specialization:</span> {{ profile.specialization|default:"—" }}</div>
+    {% elif detail_user.role == 'secretary' %}
+    <div><span class="font-semibold text-gray-600">Assigned Doctor:</span> {{ profile.assigned_doctor.get_full_name|default:"—" }}</div>
+    <div><span class="font-semibold text-gray-600">Date Assigned:</span> {{ profile.date_assigned|default:"—" }}</div>
+    {% endif %}
+  </div>
+  {% endif %}
+  <div class="flex gap-3 pt-4">
+    <a hx-get="{% url 'admin_panel:user_edit' pk=detail_user.pk %}" hx-target="#modal-root" hx-swap="innerHTML"
+       class="flex-1 text-center bg-blue-700 text-white font-bold py-3 rounded-lg hover:bg-blue-800 transition cursor-pointer">
+      Edit
+    </a>
+    <button type="button" onclick="closeModal()" class="flex-1 border border-gray-300 text-gray-700 font-bold py-3 rounded-lg hover:bg-gray-50 transition">
+      Close
+    </button>
+  </div>
+</div>
+{% endblock %}

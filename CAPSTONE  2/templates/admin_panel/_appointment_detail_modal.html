@@ -1,0 +1,23 @@
+{% extends "components/modal.html" %}
+{% block modal_content %}
+<div class="space-y-4">
+  <div class="bg-gray-50 rounded-lg p-4 text-sm space-y-2">
+    <div class="flex justify-between"><span class="text-gray-500">Patient</span><span class="font-medium">{{ appt.patient.get_full_name }}</span></div>
+    <div class="flex justify-between"><span class="text-gray-500">Doctor</span><span class="font-medium">Dr. {{ appt.doctor.get_full_name }}</span></div>
+    <div class="flex justify-between"><span class="text-gray-500">Secretary</span><span class="font-medium">{{ appt.secretary.get_full_name|default:"—" }}</span></div>
+    <div class="flex justify-between"><span class="text-gray-500">Date</span><span class="font-medium">{{ appt.appointment_date|date:"F j, Y" }}</span></div>
+    <div class="flex justify-between"><span class="text-gray-500">Time</span><span class="font-medium">{{ appt.appointment_time|time:"g:i A" }}</span></div>
+    <div class="flex justify-between"><span class="text-gray-500">Status</span><span class="font-medium">{{ appt.status }}</span></div>
+    <div class="flex justify-between"><span class="text-gray-500">Reason</span><span class="font-medium">{{ appt.reason|default:"—" }}</span></div>
+  </div>
+  <div class="flex gap-3 pt-2">
+    <a hx-get="{% url 'admin_panel:appointment_edit' pk=appt.pk %}" hx-target="#modal-root" hx-swap="innerHTML"
+       class="flex-1 text-center bg-blue-700 text-white font-bold py-3 rounded-lg hover:bg-blue-800 transition cursor-pointer">
+      Edit
+    </a>
+    <button type="button" onclick="closeModal()" class="flex-1 border border-gray-300 text-gray-700 font-bold py-3 rounded-lg hover:bg-gray-50 transition">
+      Close
+    </button>
+  </div>
+</div>
+{% endblock %}

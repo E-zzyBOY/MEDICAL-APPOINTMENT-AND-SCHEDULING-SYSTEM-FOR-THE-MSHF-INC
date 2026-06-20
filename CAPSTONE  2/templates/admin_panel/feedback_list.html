@@ -17,26 +17,22 @@
   <div class="bg-white rounded-xl shadow p-6">
     <h2 class="text-lg font-bold text-gray-800 mb-4">Patient Feedback</h2>
     {% if feedbacks %}
-    <div class="space-y-4">
+    <div class="divide-y divide-gray-100">
       {% for fb in feedbacks %}
-      <div class="border border-gray-200 rounded-xl p-5">
-        <div class="flex items-start justify-between mb-2">
-          <div>
-            <p class="font-semibold text-gray-800">{{ fb.patient.get_full_name }}</p>
-            <p class="text-xs text-gray-400">{{ fb.date_submitted|date:"F j, Y" }}</p>
-          </div>
+      <div hx-get="{% url 'admin_panel:feedback_detail' pk=fb.pk %}" hx-target="#modal-root" hx-swap="innerHTML"
+           class="flex items-center justify-between gap-4 py-3 cursor-pointer hover:bg-gray-50 rounded-lg px-2">
+        <div class="min-w-0">
+          <p class="font-semibold text-gray-800">{{ fb.patient.get_full_name }}</p>
+          <p class="text-sm text-gray-500 truncate">{{ fb.comment|truncatechars:80|default:"No comment" }}</p>
+        </div>
+        <div class="flex items-center gap-3 flex-shrink-0">
           <div class="flex gap-0.5">
             {% for i in "12345" %}
-            <span class="text-lg {% if forloop.counter <= fb.rating %}text-yellow-400{% else %}text-gray-200{% endif %}">★</span>
+            <span class="text-sm {% if forloop.counter <= fb.rating %}text-yellow-400{% else %}text-gray-200{% endif %}">★</span>
             {% endfor %}
           </div>
+          <p class="text-xs text-gray-400">{{ fb.date_submitted|date:"M j, Y" }}</p>
         </div>
-        {% if fb.comment %}
-        <p class="text-gray-600 text-sm">{{ fb.comment }}</p>
-        {% endif %}
-        {% if fb.appointment %}
-        <p class="text-xs text-gray-400 mt-2">Appointment with Dr. {{ fb.appointment.doctor.get_full_name }} on {{ fb.appointment.appointment_date|date:"M j, Y" }}</p>
-        {% endif %}
       </div>
       {% endfor %}
     </div>

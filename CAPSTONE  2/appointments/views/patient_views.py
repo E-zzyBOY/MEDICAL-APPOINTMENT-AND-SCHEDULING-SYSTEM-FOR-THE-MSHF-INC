@@ -277,7 +277,13 @@ def cancel_appointment(request, pk):
                 f"Your appointment with Dr. {appointment.doctor.get_full_name()} on "
                 f"{appointment.appointment_date.strftime('%B %d, %Y')} has been cancelled.")
         messages.success(request, 'Appointment cancelled.')
+        if request.htmx:
+            response = render(request, 'patient/_cancel_confirm_modal.html', {'appointment': appointment})
+            response['HX-Redirect'] = '/patient/appointments/'
+            return response
         return redirect('patient:appointment_list')
+    if request.htmx:
+        return render(request, 'patient/_cancel_confirm_modal.html', {'appointment': appointment})
     return render(request, 'patient/cancel_confirm.html', {'appointment': appointment})
 
 

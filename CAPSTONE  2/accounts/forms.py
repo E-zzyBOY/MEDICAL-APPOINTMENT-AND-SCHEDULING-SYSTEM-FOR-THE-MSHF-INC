@@ -44,7 +44,10 @@ class PatientProfileEditForm(forms.ModelForm):
 
     class Meta:
         model  = PatientProfile
-        fields = ['contact_number', 'gender', 'date_of_birth', 'place_of_birth', 'address', 'guardian']
+        fields = [
+            'contact_number', 'gender', 'date_of_birth', 'place_of_birth', 'address', 'guardian',
+            'emergency_contact_name', 'emergency_contact_number', 'blood_type',
+        ]
         widgets = {
             'date_of_birth': forms.DateInput(attrs={'type': 'date'}),
             'address': forms.Textarea(attrs={'rows': 3}),
@@ -60,7 +63,7 @@ class PatientProfileEditForm(forms.ModelForm):
 class DoctorProfileEditForm(forms.ModelForm):
     class Meta:
         model  = DoctorProfile
-        fields = ['specialization']
+        fields = ['specialization', 'years_of_experience', 'license_number']
 
 
 class DoctorCreationForm(UserCreationForm):
@@ -122,6 +125,12 @@ class UserEditForm(forms.ModelForm):
     class Meta:
         model  = CustomUser
         fields = ['first_name', 'last_name', 'email', 'is_active']
+
+
+class EmailNotificationSettingsForm(forms.ModelForm):
+    class Meta:
+        model  = CustomUser
+        fields = ['email_notifications_enabled']
 
 
 class ProfilePictureWidget(forms.ClearableFileInput):

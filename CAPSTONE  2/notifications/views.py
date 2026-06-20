@@ -1,5 +1,6 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
+from django.http import HttpResponse
 from .models import Notification
 
 
@@ -21,10 +22,33 @@ def notification_list(request):
 
 
 @login_required(login_url='/accounts/login/')
+def notification_detail(request, pk):
+    notif = get_object_or_404(Notification, pk=pk, user=request.user)
+    return render(request, 'notifications/_notification_detail_modal.html', {
+        'notification': notif, 'title': 'Notification',
+    })
+
+
+@login_required(login_url='/accounts/login/')
 def mark_read(request, pk):
     notif = get_object_or_404(Notification, pk=pk, user=request.user)
     notif.is_read = True
     notif.save()
+    if request.htmx:
+        response = render(request, 'notifications/_notification_detail_modal.html', {'notification': notif})
+        response['HX-Redirect'] = '/notifications/'
+        return response
+    return redirect('notifications:list')
+
+
+@login_required(login_url='/accounts/login/')
+def notification_dismiss(request, pk):
+    notif = get_object_or_404(Notification, pk=pk, user=request.user)
+    notif.delete()
+    if request.htmx:
+        response = HttpResponse(status=204)
+        response['HX-Redirect'] = '/notifications/'
+        return response
     return redirect('notifications:list')
 
 

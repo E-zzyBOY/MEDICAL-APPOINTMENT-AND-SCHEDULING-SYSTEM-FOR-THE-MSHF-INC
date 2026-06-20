@@ -11,8 +11,8 @@
       <a href="?role=secretary" class="px-3 py-1.5 rounded-full text-sm font-medium {% if role_filter == 'secretary' %}bg-rose-700 text-white{% else %}bg-gray-100 text-gray-600 hover:bg-gray-200{% endif %}">Secretaries</a>
     </div>
     <div class="flex gap-2">
-      <a href="/admin-panel/users/create/?role=doctor" class="px-4 py-2 bg-emerald-700 text-white text-sm font-medium rounded-lg hover:bg-emerald-800 transition">+ Doctor</a>
-      <a href="/admin-panel/users/create/?role=secretary" class="px-4 py-2 bg-purple-700 text-white text-sm font-medium rounded-lg hover:bg-purple-800 transition">+ Secretary</a>
+      <a hx-get="/admin-panel/users/create/?role=doctor" hx-target="#modal-root" hx-swap="innerHTML" class="px-4 py-2 bg-emerald-700 text-white text-sm font-medium rounded-lg hover:bg-emerald-800 transition cursor-pointer">+ Doctor</a>
+      <a hx-get="/admin-panel/users/create/?role=secretary" hx-target="#modal-root" hx-swap="innerHTML" class="px-4 py-2 bg-purple-700 text-white text-sm font-medium rounded-lg hover:bg-purple-800 transition cursor-pointer">+ Secretary</a>
     </div>
   </div>
 
@@ -25,7 +25,11 @@
       <tbody class="divide-y divide-gray-100">
         {% for user in users %}
         <tr>
-          <td class="py-3 font-medium text-gray-800">{{ user.get_full_name|default:user.username }}</td>
+          <td class="py-3 font-medium text-gray-800">
+            <a hx-get="{% url 'admin_panel:user_detail' pk=user.pk %}" hx-target="#modal-root" hx-swap="innerHTML" class="hover:underline cursor-pointer">
+              {{ user.get_full_name|default:user.username }}
+            </a>
+          </td>
           <td class="py-3 text-gray-500">{{ user.username }}</td>
           <td class="py-3">
             <span class="px-2 py-0.5 rounded-full text-xs font-semibold capitalize
@@ -45,8 +49,8 @@
           </td>
           <td class="py-3">
             <div class="flex gap-1">
-              <a href="/admin-panel/users/{{ user.pk }}/edit/" class="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs font-medium hover:bg-blue-200">Edit</a>
-              <a href="/admin-panel/users/{{ user.pk }}/delete/" class="px-2 py-1 bg-red-100 text-red-600 rounded text-xs font-medium hover:bg-red-200">Delete</a>
+              <a hx-get="/admin-panel/users/{{ user.pk }}/edit/" hx-target="#modal-root" hx-swap="innerHTML" class="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs font-medium hover:bg-blue-200 cursor-pointer">Edit</a>
+              <a hx-get="/admin-panel/users/{{ user.pk }}/delete/" hx-target="#modal-root" hx-swap="innerHTML" class="px-2 py-1 bg-red-100 text-red-600 rounded text-xs font-medium hover:bg-red-200 cursor-pointer">Delete</a>
             </div>
           </td>
         </tr>

@@ -88,10 +88,20 @@ def schedule_add(request):
         ).exists()
         if overlap:
             messages.error(request, 'This schedule overlaps with an existing one.')
+            if request.htmx:
+                return render(request, 'doctor/_schedule_modal.html', {'form': form, 'action': 'Add'})
         else:
             schedule.save()
             messages.success(request, 'Schedule slot added.')
+            if request.htmx:
+                # On htmx: use HX-Redirect header to redirect after success
+                response = render(request, 'doctor/_schedule_modal.html', {'form': form, 'action': 'Add'})
+                response['HX-Redirect'] = '/doctor/schedule/'
+                return response
             return redirect('doctor:schedule_list')
+    
+    if request.htmx:
+        return render(request, 'doctor/_schedule_modal.html', {'form': form, 'action': 'Add'})
     return render(request, 'doctor/schedule_form.html', {'form': form, 'action': 'Add'})
 
 
@@ -109,10 +119,19 @@ def schedule_edit(request, pk):
         ).exclude(pk=pk).exists()
         if overlap:
             messages.error(request, 'This schedule overlaps with an existing one.')
+            if request.htmx:
+                return render(request, 'doctor/_schedule_modal.html', {'form': form, 'action': 'Edit'})
         else:
             updated.save()
             messages.success(request, 'Schedule updated.')
+            if request.htmx:
+                response = render(request, 'doctor/_schedule_modal.html', {'form': form, 'action': 'Edit'})
+                response['HX-Redirect'] = '/doctor/schedule/'
+                return response
             return redirect('doctor:schedule_list')
+    
+    if request.htmx:
+        return render(request, 'doctor/_schedule_modal.html', {'form': form, 'action': 'Edit'})
     return render(request, 'doctor/schedule_form.html', {'form': form, 'action': 'Edit'})
 
 
@@ -122,7 +141,14 @@ def schedule_delete(request, pk):
     if request.method == 'POST':
         schedule.delete()
         messages.success(request, 'Schedule slot removed.')
+        if request.htmx:
+            response = render(request, 'doctor/_schedule_delete_modal.html', {'schedule': schedule})
+            response['HX-Redirect'] = '/doctor/schedule/'
+            return response
         return redirect('doctor:schedule_list')
+    
+    if request.htmx:
+        return render(request, 'doctor/_schedule_delete_modal.html', {'schedule': schedule})
     return render(request, 'doctor/schedule_confirm_delete.html', {'schedule': schedule})
 
 
@@ -145,7 +171,13 @@ def appointment_accept(request, pk):
                 f"Dr. {request.user.get_full_name()} has confirmed your appointment on "
                 f"{appt.appointment_date.strftime('%B %d, %Y')} at {appt.appointment_time.strftime('%I:%M %p')}.")
         messages.success(request, 'Appointment confirmed.')
+        if request.htmx:
+            response = render(request, 'doctor/_appointment_action_modal.html', {'appointment': appt, 'action': 'accept'})
+            response['HX-Redirect'] = '/doctor/appointments/'
+            return response
         return redirect('doctor:appointment_list')
+    if request.htmx:
+        return render(request, 'doctor/_appointment_action_modal.html', {'appointment': appt, 'action': 'accept'})
     return render(request, 'doctor/appointment_confirm_action.html', {
         'appointment': appt, 'action': 'accept'
     })
@@ -166,7 +198,13 @@ def appointment_decline(request, pk):
                 f"Dr. {request.user.get_full_name()} has cancelled your appointment on "
                 f"{appt.appointment_date.strftime('%B %d, %Y')}.")
         messages.success(request, 'Appointment declined and patient notified.')
+        if request.htmx:
+            response = render(request, 'doctor/_appointment_action_modal.html', {'appointment': appt, 'action': 'decline'})
+            response['HX-Redirect'] = '/doctor/appointments/'
+            return response
         return redirect('doctor:appointment_list')
+    if request.htmx:
+        return render(request, 'doctor/_appointment_action_modal.html', {'appointment': appt, 'action': 'decline'})
     return render(request, 'doctor/appointment_confirm_action.html', {
         'appointment': appt, 'action': 'decline'
     })

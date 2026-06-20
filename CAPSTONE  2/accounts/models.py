@@ -11,6 +11,7 @@ class CustomUser(AbstractUser):
     ]
     role = models.CharField(max_length=20, choices=ROLE_CHOICES, default='patient')
     profile_picture = models.ImageField(upload_to='profile_pics/', blank=True, null=True)
+    email_notifications_enabled = models.BooleanField(default=True)
 
     def is_patient(self):    return self.role == 'patient'
     def is_doctor(self):     return self.role == 'doctor'
@@ -23,6 +24,10 @@ class CustomUser(AbstractUser):
 
 class PatientProfile(models.Model):
     GENDER_CHOICES = [('M', 'Male'), ('F', 'Female'), ('O', 'Other')]
+    BLOOD_TYPE_CHOICES = [
+        ('A+', 'A+'), ('A-', 'A-'), ('B+', 'B+'), ('B-', 'B-'),
+        ('AB+', 'AB+'), ('AB-', 'AB-'), ('O+', 'O+'), ('O-', 'O-'),
+    ]
     user           = models.OneToOneField(CustomUser, on_delete=models.CASCADE, related_name='patient_profile')
     contact_number = models.CharField(max_length=20, blank=True)
     age            = models.PositiveIntegerField(null=True, blank=True)
@@ -31,14 +36,19 @@ class PatientProfile(models.Model):
     place_of_birth = models.CharField(max_length=150, blank=True)
     address        = models.TextField(blank=True)
     guardian       = models.CharField(max_length=150, blank=True)
+    emergency_contact_name   = models.CharField(max_length=150, blank=True)
+    emergency_contact_number = models.CharField(max_length=20, blank=True)
+    blood_type     = models.CharField(max_length=3, choices=BLOOD_TYPE_CHOICES, blank=True)
 
     def __str__(self):
         return f"Profile: {self.user.get_full_name()}"
 
 
 class DoctorProfile(models.Model):
-    user           = models.OneToOneField(CustomUser, on_delete=models.CASCADE, related_name='doctor_profile')
-    specialization = models.CharField(max_length=150, blank=True)
+    user                = models.OneToOneField(CustomUser, on_delete=models.CASCADE, related_name='doctor_profile')
+    specialization      = models.CharField(max_length=150, blank=True)
+    years_of_experience = models.PositiveIntegerField(null=True, blank=True)
+    license_number      = models.CharField(max_length=100, blank=True)
 
     def __str__(self):
         return f"Dr. {self.user.get_full_name()} — {self.specialization}"

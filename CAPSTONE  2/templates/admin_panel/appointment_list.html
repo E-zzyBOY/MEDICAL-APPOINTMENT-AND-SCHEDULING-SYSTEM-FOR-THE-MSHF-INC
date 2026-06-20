@@ -16,7 +16,7 @@
       </thead>
       <tbody class="divide-y divide-gray-100">
         {% for appt in appointments %}
-        <tr>
+        <tr hx-get="{% url 'admin_panel:appointment_detail' pk=appt.pk %}" hx-target="#modal-root" hx-swap="innerHTML" class="cursor-pointer hover:bg-gray-50">
           <td class="py-3 font-medium">{{ appt.patient.get_full_name }}</td>
           <td class="py-3 text-gray-600">Dr. {{ appt.doctor.get_full_name }}</td>
           <td class="py-3 text-gray-500">{{ appt.appointment_date|date:"M j, Y" }}</td>

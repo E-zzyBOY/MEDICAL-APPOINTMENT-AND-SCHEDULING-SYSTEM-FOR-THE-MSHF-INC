@@ -81,7 +81,13 @@ def appointment_approve(request, pk):
                 f"Your appointment with Dr. {appt.doctor.get_full_name()} on "
                 f"{appt.appointment_date.strftime('%B %d, %Y')} has been confirmed by the secretary.")
         messages.success(request, 'Appointment approved.')
+        if request.htmx:
+            response = render(request, 'secretary/_appointment_action_modal.html', {'appointment': appt, 'action': 'approve'})
+            response['HX-Redirect'] = '/secretary/appointments/'
+            return response
         return redirect('secretary:appointment_list')
+    if request.htmx:
+        return render(request, 'secretary/_appointment_action_modal.html', {'appointment': appt, 'action': 'approve'})
     return render(request, 'secretary/appointment_confirm_action.html', {
         'appointment': appt, 'action': 'approve'
     })
@@ -104,7 +110,13 @@ def appointment_cancel(request, pk):
                 f"Your appointment with Dr. {appt.doctor.get_full_name()} on "
                 f"{appt.appointment_date.strftime('%B %d, %Y')} was cancelled.")
         messages.success(request, 'Appointment cancelled and patient notified.')
+        if request.htmx:
+            response = render(request, 'secretary/_appointment_action_modal.html', {'appointment': appt, 'action': 'cancel'})
+            response['HX-Redirect'] = '/secretary/appointments/'
+            return response
         return redirect('secretary:appointment_list')
+    if request.htmx:
+        return render(request, 'secretary/_appointment_action_modal.html', {'appointment': appt, 'action': 'cancel'})
     return render(request, 'secretary/appointment_confirm_action.html', {
         'appointment': appt, 'action': 'cancel'
     })
@@ -117,7 +129,13 @@ def walkin_register(request):
     if request.method == 'POST' and form.is_valid():
         user = form.save()
         messages.success(request, f'Walk-in patient {user.get_full_name()} registered.')
+        if request.htmx:
+            response = render(request, 'secretary/_walkin_register_modal.html', {'form': form})
+            response['HX-Redirect'] = f'/secretary/vitals/add/{user.pk}/'
+            return response
         return redirect('secretary:vitals_add', patient_id=user.pk)
+    if request.htmx:
+        return render(request, 'secretary/_walkin_register_modal.html', {'form': form})
     return render(request, 'secretary/walkin_register.html', {'form': form})
 
 

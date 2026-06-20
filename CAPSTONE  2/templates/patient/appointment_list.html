@@ -40,8 +40,8 @@
                    class="px-3 py-1 bg-blue-100 text-blue-700 rounded text-xs font-medium hover:bg-blue-200 transition">
                   Reschedule
                 </a>
-                <a href="/patient/appointments/{{ appt.pk }}/cancel/"
-                   class="px-3 py-1 bg-red-100 text-red-700 rounded text-xs font-medium hover:bg-red-200 transition">
+                <a hx-get="/patient/appointments/{{ appt.pk }}/cancel/" hx-target="#modal-root" hx-swap="innerHTML"
+                   class="px-3 py-1 bg-red-100 text-red-700 rounded text-xs font-medium hover:bg-red-200 transition cursor-pointer">
                   Cancel
                 </a>
               </div>

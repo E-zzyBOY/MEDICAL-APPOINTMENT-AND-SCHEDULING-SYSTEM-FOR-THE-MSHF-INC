@@ -20,6 +20,14 @@ def feedback_list(request):
 
 
 @role_required('patient')
+def feedback_detail(request, pk):
+    fb = get_object_or_404(Feedback.objects.select_related('appointment', 'appointment__doctor'), pk=pk, patient=request.user)
+    return render(request, 'feedback/_feedback_detail_modal.html', {
+        'fb': fb, 'title': 'Feedback Details',
+    })
+
+
+@role_required('patient')
 def submit_feedback(request, appointment_id):
     appointment = get_object_or_404(Appointment, pk=appointment_id, patient=request.user, status='Completed')
     existing = Feedback.objects.filter(patient=request.user, appointment=appointment).first()

@@ -1,0 +1,28 @@
+{% extends "components/modal.html" %}
+{% block modal_content %}
+<div class="space-y-4">
+  <div class="flex items-start justify-between">
+    <div>
+      {% if fb.appointment %}
+      <p class="font-semibold text-gray-800">Dr. {{ fb.appointment.doctor.get_full_name }}</p>
+      <p class="text-xs text-gray-400">{{ fb.appointment.appointment_date|date:"F j, Y" }}</p>
+      {% else %}
+      <p class="font-semibold text-gray-800">General Feedback</p>
+      {% endif %}
+    </div>
+    <div class="flex gap-0.5">
+      {% for i in "12345" %}
+      <span class="text-lg {% if forloop.counter <= fb.rating %}text-yellow-400{% else %}text-gray-200{% endif %}">★</span>
+      {% endfor %}
+    </div>
+  </div>
+  <div class="bg-gray-50 rounded-lg p-4 text-sm text-gray-700">
+    {{ fb.comment|default:"No comment provided." }}
+  </div>
+  <div class="flex gap-3 pt-2">
+    <button type="button" onclick="closeModal()" class="flex-1 border border-gray-300 text-gray-700 font-bold py-3 rounded-lg hover:bg-gray-50 transition">
+      Close
+    </button>
+  </div>
+</div>
+{% endblock %}

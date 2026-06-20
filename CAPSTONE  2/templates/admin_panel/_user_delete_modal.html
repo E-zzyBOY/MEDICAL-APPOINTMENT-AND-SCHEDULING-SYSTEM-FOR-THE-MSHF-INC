@@ -1,0 +1,42 @@
+{# Modal for confirming user deletion — non-extending partial #}
+<div id="modal-overlay" class="fixed inset-0 bg-black/50 z-40 transition-opacity opacity-0" style="transition-duration: 300ms;" role="dialog" aria-modal="true" aria-labelledby="modal-title" tabindex="-1">
+  <div class="fixed inset-0 z-40 overflow-y-auto flex items-center justify-center">
+    <div class="w-full max-w-md mx-4 my-8">
+      <div class="bg-white rounded-xl shadow-xl">
+        <!-- Header -->
+        <div class="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+          <h2 id="modal-title" class="text-lg font-bold text-gray-800">Delete User?</h2>
+          <button type="button" onclick="closeModal()" aria-label="Close" class="w-8 h-8 flex items-center justify-center rounded-full text-gray-400 hover:text-gray-600 hover:bg-gray-100 text-2xl leading-none">&times;</button>
+        </div>
+        <!-- Content -->
+        <div class="px-6 py-6">
+          <div class="flex justify-center mb-4">
+            <div class="w-14 h-14 bg-red-100 rounded-full flex items-center justify-center">
+              <svg class="w-7 h-7 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+              </svg>
+            </div>
+          </div>
+          <p class="text-center text-gray-700 font-medium mb-1">{{ edited_user.get_full_name|default:edited_user.username }}</p>
+          <p class="text-center text-gray-500 text-sm capitalize mb-2">{{ edited_user.role }} &bull; {{ edited_user.email }}</p>
+          <p class="text-center text-red-500 text-sm mb-6">This action cannot be undone. All associated data will be affected.</p>
+          <form method="post" class="flex gap-3">
+            {% csrf_token %}
+            <button type="submit" class="flex-1 px-4 py-3 bg-red-600 text-white font-bold rounded-lg hover:bg-red-700 transition">
+              Delete
+            </button>
+            <button type="button" onclick="closeModal()" class="flex-1 px-4 py-3 border border-gray-300 text-gray-700 font-bold rounded-lg hover:bg-gray-50 transition">
+              Cancel
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  #modal-overlay.open {
+    opacity: 1 !important;
+  }
+</style>

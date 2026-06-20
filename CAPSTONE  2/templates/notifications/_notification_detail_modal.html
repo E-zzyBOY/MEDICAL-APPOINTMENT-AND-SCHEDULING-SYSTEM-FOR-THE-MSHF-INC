@@ -1,0 +1,21 @@
+{% extends "components/modal.html" %}
+{% block modal_content %}
+<div class="space-y-4">
+  <p class="text-gray-700 text-sm">{{ notification.message }}</p>
+  <p class="text-gray-400 text-xs">{{ notification.created_at|date:"F j, Y g:i A" }}</p>
+  <div class="flex gap-3 pt-2">
+    <form method="post" action="{% url 'notifications:mark_read' pk=notification.pk %}" class="flex-1">
+      {% csrf_token %}
+      <button type="submit" class="w-full bg-blue-700 text-white font-bold py-3 rounded-lg hover:bg-blue-800 transition">
+        Okay
+      </button>
+    </form>
+    <form method="post" action="{% url 'notifications:dismiss' pk=notification.pk %}" class="flex-1">
+      {% csrf_token %}
+      <button type="submit" class="w-full border border-gray-300 text-gray-700 font-bold py-3 rounded-lg hover:bg-gray-50 transition">
+        Clear
+      </button>
+    </form>
+  </div>
+</div>
+{% endblock %}

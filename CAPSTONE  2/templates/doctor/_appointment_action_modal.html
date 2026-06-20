@@ -1,0 +1,59 @@
+{# Modal for appointment confirmation actions (accept, decline) — non-extending partial #}
+<div id="modal-overlay" class="fixed inset-0 bg-black/50 z-40 transition-opacity opacity-0" style="transition-duration: 300ms;" role="dialog" aria-modal="true" aria-labelledby="modal-title" tabindex="-1">
+  <div class="fixed inset-0 z-40 overflow-y-auto flex items-center justify-center">
+    <div class="w-full max-w-md mx-4 my-8">
+      <div class="bg-white rounded-xl shadow-xl">
+        <!-- Header -->
+        <div class="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+          <h2 id="modal-title" class="text-lg font-bold text-gray-800">{{ action|capfirst }} Appointment</h2>
+          <button type="button" onclick="closeModal()" aria-label="Close" class="w-8 h-8 flex items-center justify-center rounded-full text-gray-400 hover:text-gray-600 hover:bg-gray-100 text-2xl leading-none">&times;</button>
+        </div>
+        <!-- Content -->
+        <div class="px-6 py-6 space-y-4">
+          <div class="bg-gray-50 rounded-lg p-4 text-sm space-y-2">
+            <div class="flex justify-between">
+              <span class="text-gray-500">Patient</span>
+              <span class="font-medium">{{ appointment.patient.get_full_name }}</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-gray-500">Date</span>
+              <span class="font-medium">{{ appointment.appointment_date|date:"F j, Y" }}</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-gray-500">Time</span>
+              <span class="font-medium">{{ appointment.appointment_time|time:"g:i A" }}</span>
+            </div>
+          </div>
+          <form method="post" class="space-y-4">
+            {% csrf_token %}
+            {% if action == 'decline' %}
+            <div>
+              <label class="block text-sm font-semibold text-gray-700 mb-1">Reason (optional)</label>
+              <textarea name="reason" rows="3"
+                        class="w-full border border-gray-300 rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="Reason for cancellation..."></textarea>
+            </div>
+            {% endif %}
+            <div class="flex gap-3 pt-2">
+              <button type="submit"
+                      class="flex-1 font-bold py-3 rounded-lg transition
+                        {% if action == 'accept' %}bg-emerald-700 text-white hover:bg-emerald-800
+                        {% else %}bg-red-600 text-white hover:bg-red-700{% endif %}">
+                Confirm {{ action|capfirst }}
+              </button>
+              <button type="button" onclick="closeModal()" class="flex-1 border border-gray-300 text-gray-700 font-bold py-3 rounded-lg hover:bg-gray-50 transition">
+                Cancel
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  #modal-overlay.open {
+    opacity: 1 !important;
+  }
+</style>

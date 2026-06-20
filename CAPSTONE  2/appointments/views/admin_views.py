@@ -6,6 +6,7 @@ from accounts.decorators import role_required
 from accounts.models import CustomUser, PatientProfile, DoctorProfile, SecretaryProfile
 from accounts.forms import DoctorCreationForm, SecretaryCreationForm, UserEditForm
 from appointments.models import Appointment
+from appointments.forms import AdminAppointmentEditForm
 from feedback.models import Feedback
 
 
@@ -84,6 +85,16 @@ def user_list(request):
 
 
 @role_required('admin')
+def user_detail(request, pk):
+    from accounts.views import _get_profile
+    detail_user = get_object_or_404(CustomUser, pk=pk)
+    profile = _get_profile(detail_user)
+    return render(request, 'admin_panel/_user_detail_modal.html', {
+        'detail_user': detail_user, 'profile': profile, 'title': 'User Details',
+    })
+
+
+@role_required('admin')
 def user_create(request):
     role = request.GET.get('role', 'doctor')
     FormClass = DoctorCreationForm if role == 'doctor' else SecretaryCreationForm
@@ -91,10 +102,14 @@ def user_create(request):
     if request.method == 'POST' and form.is_valid():
         user = form.save()
         messages.success(request, f'{user.get_full_name()} ({user.role}) account created.')
+        if request.htmx:
+            response = render(request, 'admin_panel/_user_create_modal.html', {'form': form, 'role': role})
+            response['HX-Redirect'] = '/admin-panel/users/'
+            return response
         return redirect('admin_panel:user_list')
-    return render(request, 'admin_panel/user_create.html', {
-        'form': form, 'role': role
-    })
+    if request.htmx:
+        return render(request, 'admin_panel/_user_create_modal.html', {'form': form, 'role': role})
+    return render(request, 'admin_panel/user_create.html', {'form': form, 'role': role})
 
 
 @role_required('admin')
@@ -104,7 +119,13 @@ def user_edit(request, pk):
     if request.method == 'POST' and form.is_valid():
         form.save()
         messages.success(request, 'User updated.')
+        if request.htmx:
+            response = render(request, 'admin_panel/_user_edit_modal.html', {'form': form, 'edited_user': user})
+            response['HX-Redirect'] = '/admin-panel/users/'
+            return response
         return redirect('admin_panel:user_list')
+    if request.htmx:
+        return render(request, 'admin_panel/_user_edit_modal.html', {'form': form, 'edited_user': user})
     return render(request, 'admin_panel/user_edit.html', {'form': form, 'edited_user': user})
 
 
@@ -115,7 +136,13 @@ def user_delete(request, pk):
         name = user.get_full_name()
         user.delete()
         messages.success(request, f'User {name} deleted.')
+        if request.htmx:
+            response = render(request, 'admin_panel/_user_delete_modal.html', {'edited_user': user})
+            response['HX-Redirect'] = '/admin-panel/users/'
+            return response
         return redirect('admin_panel:user_list')
+    if request.htmx:
+        return render(request, 'admin_panel/_user_delete_modal.html', {'edited_user': user})
     return render(request, 'admin_panel/user_confirm_delete.html', {'edited_user': user})
 
 
@@ -132,9 +159,42 @@ def admin_appointment_list(request):
 
 
 @role_required('admin')
+def admin_appointment_detail(request, pk):
+    appt = get_object_or_404(Appointment.objects.select_related('patient', 'doctor', 'secretary'), pk=pk)
+    return render(request, 'admin_panel/_appointment_detail_modal.html', {
+        'appt': appt, 'title': 'Appointment Details',
+    })
+
+
+@role_required('admin')
+def admin_appointment_edit(request, pk):
+    appt = get_object_or_404(Appointment, pk=pk)
+    form = AdminAppointmentEditForm(request.POST or None, instance=appt)
+    if request.method == 'POST' and form.is_valid():
+        form.save()
+        messages.success(request, 'Appointment updated.')
+        if request.htmx:
+            response = render(request, 'admin_panel/_appointment_edit_modal.html', {'form': form, 'appt': appt, 'title': 'Edit Appointment'})
+            response['HX-Redirect'] = '/admin-panel/appointments/'
+            return response
+        return redirect('admin_panel:appointment_list')
+    return render(request, 'admin_panel/_appointment_edit_modal.html', {
+        'form': form, 'appt': appt, 'title': 'Edit Appointment',
+    })
+
+
+@role_required('admin')
 def admin_feedback_list(request):
     feedbacks = Feedback.objects.all().select_related('patient', 'appointment').order_by('-date_submitted')
     avg_rating = feedbacks.aggregate(avg=Avg('rating'))['avg']
     return render(request, 'admin_panel/feedback_list.html', {
         'feedbacks': feedbacks, 'avg_rating': avg_rating
+    })
+
+
+@role_required('admin')
+def admin_feedback_detail(request, pk):
+    fb = get_object_or_404(Feedback.objects.select_related('patient', 'appointment', 'appointment__doctor'), pk=pk)
+    return render(request, 'admin_panel/_feedback_detail_modal.html', {
+        'fb': fb, 'title': 'Feedback Details',
     })

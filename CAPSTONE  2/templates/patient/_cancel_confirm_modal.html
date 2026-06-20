@@ -1,0 +1,40 @@
+{# Modal for patient cancel appointment confirmation — non-extending partial #}
+<div id="modal-overlay" class="fixed inset-0 bg-black/50 z-40 transition-opacity opacity-0" style="transition-duration: 300ms;" role="dialog" aria-modal="true" aria-labelledby="modal-title" tabindex="-1">
+  <div class="fixed inset-0 z-40 overflow-y-auto flex items-center justify-center">
+    <div class="w-full max-w-md mx-4 my-8">
+      <div class="bg-white rounded-xl shadow-xl">
+        <!-- Header (implicit from icon) -->
+        <div class="px-6 py-6 text-center">
+          <div class="flex justify-center mb-4">
+            <div class="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center">
+              <svg class="w-8 h-8 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+              </svg>
+            </div>
+          </div>
+          <h2 id="modal-title" class="text-lg font-bold text-gray-800 mb-2">Cancel Appointment?</h2>
+          <p class="text-gray-500 text-sm mb-2">
+            Dr. {{ appointment.doctor.get_full_name }}<br/>
+            {{ appointment.appointment_date|date:"F j, Y" }} at {{ appointment.appointment_time|time:"g:i A" }}
+          </p>
+          <p class="text-sm text-gray-400 mb-6">A cancellation notice will be sent to your email.</p>
+          <form method="post" class="flex gap-3 justify-center">
+            {% csrf_token %}
+            <button type="submit" class="px-8 py-3 bg-red-600 text-white font-bold rounded-lg hover:bg-red-700 transition">
+              Yes, Cancel
+            </button>
+            <button type="button" onclick="closeModal()" class="px-8 py-3 border border-gray-300 text-gray-700 font-bold rounded-lg hover:bg-gray-50 transition">
+              Keep It
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  #modal-overlay.open {
+    opacity: 1 !important;
+  }
+</style>

@@ -1,7 +1,10 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import authenticate, login, logout
 from django.contrib import messages
-from .forms import PatientRegistrationForm, PatientProfileEditForm, DoctorProfileEditForm, ProfilePictureForm
+from .forms import (
+    PatientRegistrationForm, PatientProfileEditForm, DoctorProfileEditForm, ProfilePictureForm,
+    EmailNotificationSettingsForm,
+)
 from .models import PatientProfile, DoctorProfile, SecretaryProfile
 from .decorators import role_required
 
@@ -66,11 +69,18 @@ def profile_edit_view(request):
     FormClass = _get_profile_form(request.user)
     pic_form = ProfilePictureForm(request.POST or None, request.FILES or None, instance=request.user)
     template = PROFILE_EDIT_TEMPLATES.get(request.user.role, 'accounts/profile_edit_patient.html')
+    modal_template = 'accounts/_profile_edit_modal.html'
     if FormClass is None:
         if request.method == 'POST' and pic_form.is_valid():
             pic_form.save()
             messages.success(request, 'Profile picture updated.')
+            if request.htmx:
+                response = render(request, modal_template, {'form': None, 'pic_form': pic_form, 'title': 'Edit Profile'})
+                response['HX-Redirect'] = '/accounts/profile/'
+                return response
             return redirect('accounts:profile_view')
+        if request.htmx:
+            return render(request, modal_template, {'form': None, 'pic_form': pic_form, 'title': 'Edit Profile'})
         return render(request, template, {'form': None, 'pic_form': pic_form})
     form = FormClass(request.POST or None, instance=profile)
     if request.method == 'POST' and form.is_valid() and pic_form.is_valid():
@@ -85,8 +95,49 @@ def profile_edit_view(request):
         form.save()
         pic_form.save()
         messages.success(request, 'Profile updated.')
+        if request.htmx:
+            response = render(request, modal_template, {'form': form, 'pic_form': pic_form, 'title': 'Edit Profile'})
+            response['HX-Redirect'] = '/accounts/profile/'
+            return response
         return redirect('accounts:profile_view')
+    if request.htmx:
+        return render(request, modal_template, {'form': form, 'pic_form': pic_form, 'title': 'Edit Profile'})
     return render(request, template, {'form': form, 'pic_form': pic_form})
+
+
+SETTINGS_TEMPLATES = {
+    'patient': 'accounts/settings_patient.html',
+    'doctor': 'accounts/settings_doctor.html',
+    'secretary': 'accounts/settings_secretary.html',
+    'admin': 'accounts/settings_admin.html',
+}
+
+HELP_TEMPLATES = {
+    'patient': 'accounts/help_patient.html',
+    'doctor': 'accounts/help_doctor.html',
+    'secretary': 'accounts/help_secretary.html',
+    'admin': 'accounts/help_admin.html',
+}
+
+
+@role_required('patient', 'doctor', 'secretary', 'admin')
+def settings_view(request):
+    if request.method == 'POST':
+        form = EmailNotificationSettingsForm(request.POST, instance=request.user)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Settings updated.')
+            return redirect('accounts:settings')
+    else:
+        form = EmailNotificationSettingsForm(instance=request.user)
+    template = SETTINGS_TEMPLATES.get(request.user.role, 'accounts/settings_patient.html')
+    return render(request, template, {'form': form})
+
+
+@role_required('patient', 'doctor', 'secretary', 'admin')
+def help_view(request):
+    template = HELP_TEMPLATES.get(request.user.role, 'accounts/help_patient.html')
+    return render(request, template)
 
 
 def _role_redirect(user):

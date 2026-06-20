@@ -21,11 +21,10 @@
       <p class="text-gray-800 text-sm">{{ notif.message }}</p>
       <p class="text-gray-400 text-xs mt-1">{{ notif.created_at|timesince }} ago</p>
     </div>
-    {% if not notif.is_read %}
-    <a href="/notifications/{{ notif.pk }}/read/" class="text-blue-600 text-xs font-medium hover:underline flex-shrink-0">
-      Mark read
+    <a hx-get="{% url 'notifications:detail' pk=notif.pk %}" hx-target="#modal-root" hx-swap="innerHTML"
+       class="text-blue-600 text-xs font-medium hover:underline flex-shrink-0 cursor-pointer">
+      View
     </a>
-    {% endif %}
   </div>
   {% endfor %}
 </div>

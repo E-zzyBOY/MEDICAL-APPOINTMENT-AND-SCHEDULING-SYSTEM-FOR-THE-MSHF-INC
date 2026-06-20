@@ -1,0 +1,22 @@
+<div class="max-w-2xl mx-auto">
+  <div class="bg-white rounded-2xl shadow p-8">
+    <h1 class="text-2xl font-bold text-gray-800 mb-6">Settings</h1>
+
+    <div class="grid grid-cols-2 gap-4 text-sm mb-8">
+      <div><span class="font-semibold text-gray-600">Username:</span> {{ request.user.username }}</div>
+      <div><span class="font-semibold text-gray-600">Email:</span> {{ request.user.email }}</div>
+      <div><span class="font-semibold text-gray-600">Role:</span> <span class="capitalize">{{ request.user.role }}</span></div>
+    </div>
+
+    <form method="post" class="space-y-4">
+      {% csrf_token %}
+      <label class="flex items-center gap-3">
+        {{ form.email_notifications_enabled }}
+        <span class="text-sm font-semibold text-gray-700">Email notifications</span>
+      </label>
+      <button type="submit" class="px-6 py-2.5 bg-blue-700 text-white font-semibold rounded-lg hover:bg-blue-800 transition text-sm">
+        Save
+      </button>
+    </form>
+  </div>
+</div>

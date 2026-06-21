@@ -1,6 +1,7 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.db import transaction
+from django.db.models import Q
 from datetime import date, datetime, timedelta
 from accounts.decorators import role_required
 from appointments.models import Appointment, Schedule
@@ -128,12 +129,19 @@ def book_step2_slots(request, doctor_id):
                         status__in=['Scheduled', 'Rescheduled']
                     ).values_list('appointment_time', flat=True)
                 )
+                patient_booked = set(
+                    Appointment.objects.filter(
+                        patient=request.user,
+                        appointment_date=selected_date,
+                        status__in=['Scheduled', 'Rescheduled']
+                    ).values_list('appointment_time', flat=True)
+                )
                 for block in schedule_blocks:
                     current = datetime.combine(selected_date, block.start_time)
                     end     = datetime.combine(selected_date, block.end_time)
                     while current < end:
                         t = current.time()
-                        slots.append({'time': t, 'available': t not in booked_times})
+                        slots.append({'time': t, 'available': t not in booked_times and t not in patient_booked})
                         current += timedelta(minutes=30)
 
     return render(request, 'patient/book_step2_slots.html', {
@@ -162,13 +170,14 @@ def book_step3_confirm(request):
 
         with transaction.atomic():
             conflict = Appointment.objects.select_for_update().filter(
-                doctor=doctor,
                 appointment_date=appointment_date,
                 appointment_time=appointment_time,
                 status__in=['Scheduled', 'Rescheduled']
+            ).filter(
+                Q(doctor=doctor) | Q(patient=request.user)
             ).exists()
             if conflict:
-                messages.error(request, 'This time slot was just taken. Please choose another.')
+                messages.error(request, 'You already have an appointment scheduled for this date and time. Please choose another.')
                 return redirect('patient:book_step2', doctor_id=doctor.pk)
 
             appointment = Appointment.objects.create(
@@ -228,13 +237,14 @@ def reschedule_appointment(request, pk):
 
         with transaction.atomic():
             conflict = Appointment.objects.select_for_update().filter(
-                doctor=appointment.doctor,
                 appointment_date=new_date,
                 appointment_time=new_time,
                 status__in=['Scheduled', 'Rescheduled']
-            ).exclude(pk=appointment.pk).exists()
+            ).exclude(pk=appointment.pk).filter(
+                Q(doctor=appointment.doctor) | Q(patient=request.user)
+            ).exists()
             if conflict:
-                messages.error(request, 'That slot is already taken. Choose another time.')
+                messages.error(request, 'You already have an appointment scheduled for this date and time. Please choose another.')
                 return render(request, 'patient/reschedule.html', {'appointment': appointment})
 
             appointment.status = 'Rescheduled'

@@ -3,7 +3,7 @@ Mobile slide-out nav drawer — replaces the desktop sidebar's content below md:
 Usage: {% include "components/_mobile_drawer.html" with nav_template="patient/_nav_links.html" role_label="PATIENT" role_badge_class="bg-brand-200 text-brand-900" %}
 {% endcomment %}
 {% load static %}
-<div id="mobile-drawer" class="md:hidden fixed inset-0 z-50 pointer-events-none" aria-hidden="true">
+<div id="mobile-drawer" class="md:!hidden fixed inset-0 z-50 pointer-events-none" aria-hidden="true">
   <div id="mobile-drawer-backdrop" class="absolute inset-0 bg-black/50 opacity-0 transition-opacity" style="transition-duration: 300ms;"></div>
   <div id="mobile-drawer-panel" class="absolute inset-y-0 left-0 w-72 max-w-[85%] bg-white shadow-xl flex flex-col -translate-x-full transition-transform" style="transition-duration: 300ms;" role="dialog" aria-modal="true" aria-label="Navigation menu">
     <div class="px-5 py-5 border-b border-slate-100 flex items-center gap-3">

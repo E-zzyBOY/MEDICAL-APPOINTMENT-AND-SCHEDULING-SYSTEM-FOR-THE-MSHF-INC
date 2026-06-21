@@ -1,8 +1,8 @@
 {# Modal for appointment confirmation actions (accept, decline) — non-extending partial #}
 <div id="modal-overlay" class="fixed inset-0 bg-black/50 z-40 transition-opacity opacity-0" style="transition-duration: 300ms;" role="dialog" aria-modal="true" aria-labelledby="modal-title" tabindex="-1">
   <div class="fixed inset-0 z-40 overflow-y-auto flex items-end md:items-center justify-center">
-    <div class="modal-panel w-full h-full md:h-auto md:w-full max-w-md md:mx-4 md:my-8 translate-y-full md:translate-y-0 transition-transform" style="transition-duration: 300ms;">
-      <div class="bg-white h-full md:h-auto max-h-full rounded-t-2xl md:rounded-xl shadow-xl flex flex-col">
+    <div class="modal-panel w-full h-full md:!h-auto md:w-full max-w-md md:mx-4 md:my-8 translate-y-full md:!translate-y-0 transition-transform" style="transition-duration: 300ms;">
+      <div class="bg-white h-full md:!h-auto max-h-full rounded-t-2xl md:!rounded-xl shadow-xl flex flex-col">
         <!-- Header -->
         <div class="flex items-center justify-between px-6 py-4 border-b border-gray-200 flex-shrink-0">
           <h2 id="modal-title" class="text-lg font-bold text-gray-800">{{ action|capfirst }} Appointment</h2>

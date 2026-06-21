@@ -247,19 +247,14 @@ def reschedule_appointment(request, pk):
                 messages.error(request, 'You already have an appointment scheduled for this date and time. Please choose another.')
                 return render(request, 'patient/reschedule.html', {'appointment': appointment})
 
+            appointment.appointment_date = new_date
+            appointment.appointment_time = new_time
+            appointment.reason = reason
             appointment.status = 'Rescheduled'
             appointment.save()
-            new_appt = Appointment.objects.create(
-                patient          = appointment.patient,
-                doctor           = appointment.doctor,
-                appointment_date = new_date,
-                appointment_time = new_time,
-                status           = 'Scheduled',
-                reason           = reason,
-            )
 
         try:
-            send_reschedule_email(new_appt)
+            send_reschedule_email(appointment)
         except Exception:
             pass
         _notify(request.user,

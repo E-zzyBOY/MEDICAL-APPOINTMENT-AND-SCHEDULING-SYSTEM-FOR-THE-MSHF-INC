@@ -1,0 +1,776 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MSHFI — Doctor Portal</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* ============================================================
+   MSHFI — Shared Dashboard Theme
+   Base: dark clinical navy/teal, DM Sans + DM Mono
+   ============================================================ */
+
+:root {
+  --bg: #0b0f14;
+  --surface: #11161d;
+  --surface2: #182029;
+  --border: #232b37;
+  --border2: #2c3645;
+  --accent: #2dd4bf;
+  --accent2: #14b8a6;
+  --accent-glow: rgba(45, 212, 191, .12);
+  --blue: #4f8ef7;
+  --text: #e9edf1;
+  --text2: #8b94a3;
+  --text3: #555f70;
+  --success: #34d399;
+  --warning: #f5a623;
+  --danger: #f0625f;
+  --purple: #a78bfa;
+  --font: 'DM Sans', sans-serif;
+  --mono: 'DM Mono', monospace;
+  --radius: 10px;
+  --radius-lg: 16px;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: var(--font);
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  display: flex;
+  font-size: 14px;
+}
+
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 8px; }
+
+/* ── Sidebar ── */
+.sidebar {
+  width: 226px;
+  min-height: 100vh;
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  position: fixed;
+  top: 0; left: 0; bottom: 0;
+  z-index: 100;
+}
+
+.logo { padding: 22px 20px 18px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 10px; }
+.logo-mark {
+  width: 34px; height: 34px; border-radius: 9px;
+  background: linear-gradient(135deg, var(--accent), var(--blue));
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 700; font-size: 14px; color: #06241f; flex-shrink: 0;
+}
+.logo-text-wrap { line-height: 1.25; }
+.logo-name { font-size: 14.5px; font-weight: 600; letter-spacing: -.2px; }
+.logo-sub { font-size: 10.5px; color: var(--text3); }
+
+.role-badge {
+  font-size: 10px; font-weight: 600; letter-spacing: .05em;
+  text-transform: uppercase;
+  background: var(--accent-glow); color: var(--accent);
+  border: 1px solid rgba(45,212,191,.25);
+  border-radius: 99px; padding: 3px 10px;
+  margin: 14px 20px 4px; display: inline-block;
+}
+
+.nav { flex: 1; padding: 10px 10px; overflow-y: auto; }
+.nav-section {
+  font-size: 10px; font-weight: 600; color: var(--text3);
+  letter-spacing: .1em; text-transform: uppercase;
+  padding: 14px 10px 6px;
+}
+.nav-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 9px 10px; border-radius: var(--radius);
+  cursor: pointer; color: var(--text2); font-size: 13px;
+  transition: all .15s; margin-bottom: 1px; user-select: none;
+}
+.nav-item:hover { background: var(--surface2); color: var(--text); }
+.nav-item.active { background: var(--accent-glow); color: var(--accent); font-weight: 500; }
+.nav-item svg { width: 16px; height: 16px; flex-shrink: 0; }
+.nav-badge {
+  margin-left: auto; font-size: 10px; font-family: var(--mono);
+  background: var(--danger); color: #fff; border-radius: 99px; padding: 1px 6px;
+}
+
+.sidebar-user {
+  padding: 14px 16px; border-top: 1px solid var(--border);
+  display: flex; align-items: center; gap: 10px;
+}
+.avatar {
+  width: 32px; height: 32px; border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent), var(--purple));
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px; font-weight: 600; color: #06241f; flex-shrink: 0;
+}
+.user-name { font-size: 13px; font-weight: 500; }
+.user-role { font-size: 11px; color: var(--text3); }
+.logout-icon { margin-left: auto; color: var(--text3); cursor: pointer; }
+.logout-icon:hover { color: var(--danger); }
+
+/* ── Main ── */
+.main { margin-left: 226px; flex: 1; padding: 26px 32px 60px; min-height: 100vh; max-width: 1240px; }
+.section { display: none; }
+.section.active { display: block; animation: fadeIn .2s ease; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+
+.page-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 24px; gap: 16px; flex-wrap: wrap; }
+.page-title { font-size: 21px; font-weight: 600; letter-spacing: -.4px; }
+.page-sub { font-size: 13px; color: var(--text2); margin-top: 3px; }
+
+/* ── Buttons ── */
+.btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 8px 16px; border-radius: var(--radius);
+  font-size: 13px; font-weight: 500; cursor: pointer; border: none;
+  font-family: var(--font); transition: all .15s; white-space: nowrap;
+}
+.btn-primary { background: var(--accent); color: #06241f; }
+.btn-primary:hover { background: var(--accent2); }
+.btn-ghost { background: var(--surface2); color: var(--text2); border: 1px solid var(--border2); }
+.btn-ghost:hover { color: var(--text); }
+.btn-danger { background: rgba(240,98,95,.1); color: var(--danger); border: 1px solid rgba(240,98,95,.2); }
+.btn-danger:hover { background: rgba(240,98,95,.2); }
+.btn-sm { padding: 5px 11px; font-size: 12px; }
+.btn:disabled { opacity: .45; cursor: not-allowed; }
+
+/* ── Stat cards ── */
+.stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 24px; }
+.stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 18px 20px; }
+.stat-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+.stat-label { font-size: 11px; color: var(--text3); text-transform: uppercase; letter-spacing: .08em; font-weight: 500; }
+.stat-icon { width: 28px; height: 28px; border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.stat-icon svg { width: 14px; height: 14px; }
+.stat-value { font-size: 26px; font-weight: 600; letter-spacing: -.5px; }
+.stat-delta { font-size: 11.5px; margin-top: 4px; color: var(--text3); }
+.stat-delta.up { color: var(--success); }
+.stat-delta.warn { color: var(--warning); }
+
+/* ── Cards / panels ── */
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 20px 22px; margin-bottom: 18px; }
+.card-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; gap: 10px; flex-wrap: wrap; }
+.card-title { font-size: 14.5px; font-weight: 600; }
+.card-title-sub { font-size: 12px; color: var(--text3); margin-top: 2px; font-weight: 400; }
+
+.grid-2 { display: grid; grid-template-columns: 1.3fr .9fr; gap: 18px; }
+.grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+
+/* ── Table ── */
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+thead th {
+  text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: .06em;
+  color: var(--text3); font-weight: 600; padding: 0 12px 10px; border-bottom: 1px solid var(--border);
+}
+tbody td { padding: 12px 12px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+tbody tr:last-child td { border-bottom: none; }
+tbody tr:hover { background: var(--surface2); }
+.cell-strong { font-weight: 500; color: var(--text); }
+.cell-muted { color: var(--text3); font-size: 12px; }
+.table-wrap { overflow-x: auto; }
+
+/* ── Badges / pills ── */
+.pill { display: inline-flex; align-items: center; gap: 5px; font-size: 11.5px; font-weight: 500; padding: 3px 10px; border-radius: 99px; }
+.pill-dot { width: 6px; height: 6px; border-radius: 50%; }
+.pill-confirmed, .pill-active, .pill-completed { background: rgba(52,211,153,.12); color: var(--success); }
+.pill-confirmed .pill-dot, .pill-active .pill-dot, .pill-completed .pill-dot { background: var(--success); }
+.pill-pending { background: rgba(245,166,35,.12); color: var(--warning); }
+.pill-pending .pill-dot { background: var(--warning); }
+.pill-cancelled, .pill-declined { background: rgba(240,98,95,.12); color: var(--danger); }
+.pill-cancelled .pill-dot, .pill-declined .pill-dot { background: var(--danger); }
+.pill-rescheduled { background: rgba(167,139,250,.12); color: var(--purple); }
+.pill-rescheduled .pill-dot { background: var(--purple); }
+.pill-neutral { background: var(--surface2); color: var(--text2); border: 1px solid var(--border2); }
+
+/* ── Forms ── */
+.field { margin-bottom: 14px; }
+.field label { display: block; font-size: 12px; color: var(--text2); margin-bottom: 6px; font-weight: 500; }
+.field input, .field select, .field textarea {
+  width: 100%; background: var(--surface2); border: 1px solid var(--border2);
+  border-radius: var(--radius); padding: 9px 12px; color: var(--text);
+  font-family: var(--font); font-size: 13px; outline: none; transition: border-color .15s;
+}
+.field input:focus, .field select:focus, .field textarea:focus { border-color: var(--accent); }
+.field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.field-hint { font-size: 11px; color: var(--text3); margin-top: 4px; }
+
+/* ── Misc ── */
+.divider { height: 1px; background: var(--border); margin: 16px 0; }
+.empty-state { text-align: center; padding: 40px 20px; color: var(--text3); }
+.empty-state svg { width: 40px; height: 40px; margin-bottom: 10px; opacity: .5; }
+.list-row { display: flex; align-items: center; gap: 12px; padding: 11px 0; border-bottom: 1px solid var(--border); }
+.list-row:last-child { border-bottom: none; }
+.list-row-icon { width: 34px; height: 34px; border-radius: 9px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.list-row-icon svg { width: 16px; height: 16px; }
+.list-row-main { flex: 1; min-width: 0; }
+.list-row-title { font-size: 13px; font-weight: 500; }
+.list-row-sub { font-size: 11.5px; color: var(--text3); margin-top: 1px; }
+.list-row-time { font-size: 11.5px; color: var(--text3); flex-shrink: 0; white-space: nowrap; }
+
+.modal-overlay {
+  position: fixed; inset: 0; background: rgba(5,8,12,.6); backdrop-filter: blur(3px);
+  display: none; align-items: center; justify-content: center; z-index: 1000;
+}
+.modal-overlay.active { display: flex; }
+.modal {
+  background: var(--surface); border: 1px solid var(--border2); border-radius: var(--radius-lg);
+  width: 420px; max-width: 92vw; padding: 22px; max-height: 86vh; overflow-y: auto;
+}
+.modal-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+.modal-head h3 { font-size: 15px; font-weight: 600; }
+.modal-close { cursor: pointer; color: var(--text3); font-size: 18px; line-height: 1; }
+.modal-close:hover { color: var(--text); }
+
+.toast-stack { position: fixed; bottom: 22px; right: 22px; z-index: 2000; display: flex; flex-direction: column; gap: 8px; }
+.toast {
+  background: var(--surface); border: 1px solid var(--border2); border-left: 3px solid var(--accent);
+  border-radius: var(--radius); padding: 11px 16px; font-size: 12.5px; box-shadow: 0 8px 24px rgba(0,0,0,.35);
+  animation: slideIn .2s ease;
+}
+@keyframes slideIn { from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: translateX(0); } }
+
+.icon-btn {
+  width: 30px; height: 30px; border-radius: 8px; display: flex; align-items: center; justify-content: center;
+  background: var(--surface2); border: 1px solid var(--border2); color: var(--text2); cursor: pointer; transition: all .15s;
+}
+.icon-btn:hover { color: var(--text); border-color: var(--accent); }
+.icon-btn svg { width: 14px; height: 14px; }
+
+.search-box { display: flex; align-items: center; gap: 8px; background: var(--surface2); border: 1px solid var(--border2); border-radius: var(--radius); padding: 7px 12px; min-width: 220px; }
+.search-box svg { width: 14px; height: 14px; color: var(--text3); flex-shrink: 0; }
+.search-box input { background: transparent; border: none; outline: none; color: var(--text); font-size: 13px; width: 100%; font-family: var(--font); }
+
+.tabs { display: flex; gap: 4px; background: var(--surface2); border: 1px solid var(--border2); border-radius: var(--radius); padding: 4px; width: fit-content; margin-bottom: 18px; }
+.tab { padding: 6px 14px; font-size: 12.5px; font-weight: 500; border-radius: 7px; cursor: pointer; color: var(--text2); transition: all .15s; }
+.tab.active { background: var(--accent); color: #06241f; }
+
+.bar-track { height: 7px; background: var(--surface2); border-radius: 99px; overflow: hidden; }
+.bar-fill { height: 100%; border-radius: 99px; }
+
+@media (max-width: 980px) {
+  .sidebar { transform: translateX(-100%); transition: transform .2s ease; }
+  .sidebar.open { transform: translateX(0); }
+  .main { margin-left: 0; padding: 20px 16px 60px; }
+  .stats-grid, .grid-3 { grid-template-columns: 1fr 1fr; }
+  .grid-2 { grid-template-columns: 1fr; }
+  .field-row { grid-template-columns: 1fr; }
+  .mobile-toggle { display: flex !important; }
+}
+.mobile-toggle {
+  display: none; position: fixed; top: 16px; left: 16px; z-index: 200;
+  width: 38px; height: 38px; border-radius: 9px; background: var(--surface);
+  border: 1px solid var(--border2); align-items: center; justify-content: center; color: var(--text); cursor: pointer;
+}
+
+
+.stat-icon.t-teal { background: rgba(45,212,191,.12); color: var(--accent); }
+.stat-icon.t-blue { background: rgba(79,142,247,.12); color: var(--blue); }
+.stat-icon.t-purple { background: rgba(167,139,250,.12); color: var(--purple); }
+.stat-icon.t-warn { background: rgba(245,166,35,.12); color: var(--warning); }
+
+.day-col { background: var(--surface2); border: 1px solid var(--border2); border-radius: var(--radius); padding: 12px; min-height: 220px; }
+.day-col-head { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: var(--text3); margin-bottom: 10px; display:flex; justify-content:space-between; }
+.day-slot { background: var(--surface); border: 1px solid var(--border); border-radius: 7px; padding: 7px 9px; font-size: 11.5px; margin-bottom: 6px; }
+.day-slot.busy { border-left: 3px solid var(--accent); }
+.day-slot.free { color: var(--text3); border-style: dashed; }
+.day-slot .pname { font-weight: 600; color: var(--text); font-size: 12px; }
+
+.req-card { display: flex; align-items: center; gap: 14px; border: 1px solid var(--border); border-radius: var(--radius); padding: 13px 16px; margin-bottom: 10px; }
+.req-card .avatar { background: linear-gradient(135deg,var(--blue),var(--purple)); }
+.req-main { flex: 1; }
+.req-name { font-size: 13.5px; font-weight: 600; }
+.req-meta { font-size: 11.5px; color: var(--text3); margin-top: 2px; }
+.req-actions { display: flex; gap: 8px; }
+
+.avail-row { display: flex; align-items: center; justify-content: space-between; padding: 11px 0; border-bottom: 1px solid var(--border); }
+.avail-row:last-child { border-bottom: none; }
+.toggle { width: 38px; height: 22px; border-radius: 99px; background: var(--border2); position: relative; cursor: pointer; transition: background .15s; flex-shrink:0; }
+.toggle.on { background: var(--accent); }
+.toggle .knob { width: 16px; height: 16px; border-radius: 50%; background: #fff; position: absolute; top: 3px; left: 3px; transition: left .15s; }
+.toggle.on .knob { left: 19px; }
+
+.record-item { border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 16px; margin-bottom: 10px; }
+.record-item-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 6px; }
+.record-date { font-size: 11px; color: var(--text3); font-family: var(--mono); }
+.record-patient { font-size: 13px; font-weight: 600; }
+.record-diagnosis { font-size: 12.5px; color: var(--text2); margin-top: 4px; }
+.patient-list-item { display:flex; align-items:center; gap:12px; padding:11px 0; border-bottom:1px solid var(--border); cursor:pointer; }
+.patient-list-item:last-child{ border-bottom:none; }
+.patient-list-item:hover{ background:var(--surface2); }
+</style>
+</head>
+
+<body>
+
+<div class="mobile-toggle" onclick="document.querySelector('.sidebar').classList.toggle('open')">
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12h18M3 6h18M3 18h18"/></svg>
+</div>
+
+<aside class="sidebar">
+  <div class="logo">
+    <div class="logo-mark">M</div>
+    <div class="logo-text-wrap">
+      <div class="logo-name">MSHFI</div>
+      <div class="logo-sub">Mindalano Specialist Hospital</div>
+    </div>
+  </div>
+  <span class="role-badge">Doctor Portal</span>
+
+  <nav class="nav">
+    <div class="nav-section">Menu</div>
+    <div class="nav-item active" data-section="overview">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg>
+      Overview
+    </div>
+    <div class="nav-item" data-section="appointments">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+      My Appointments
+      <span class="nav-badge" id="reqBadge">3</span>
+    </div>
+    <div class="nav-item" data-section="schedule">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+      My Schedule
+    </div>
+    <div class="nav-item" data-section="patients">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M9 13h6M9 17h6"/></svg>
+      Patient Records
+    </div>
+    <div class="nav-section">Account</div>
+    <div class="nav-item" data-section="profile">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21v-2a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v2"/></svg>
+      My Profile
+    </div>
+    <div class="nav-item" data-section="notifications">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 8a6 6 0 1 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
+      Notifications
+      <span class="nav-badge" id="notifBadge">2</span>
+    </div>
+  </nav>
+
+  <div class="sidebar-user">
+    <div class="avatar">AM</div>
+    <div>
+      <div class="user-name">Dr. Amer Macatotong</div>
+      <div class="user-role">Internal Medicine</div>
+    </div>
+    <div class="logout-icon" title="Log out">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5M21 12H9"/></svg>
+    </div>
+  </div>
+</aside>
+
+<main class="main">
+
+  <!-- OVERVIEW -->
+  <section class="section active" id="overview">
+    <div class="page-header">
+      <div>
+        <div class="page-title">Good morning, Dr. Macatotong 👋</div>
+        <div class="page-sub">You have 7 consultations scheduled today.</div>
+      </div>
+      <button class="btn btn-primary" onclick="goTo('schedule')">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/></svg>
+        View Schedule
+      </button>
+    </div>
+
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-top"><span class="stat-label">Today's Patients</span><div class="stat-icon t-teal"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21v-2a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v2"/></svg></div></div>
+        <div class="stat-value">7</div>
+        <div class="stat-delta">scheduled consultations</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-top"><span class="stat-label">Pending Requests</span><div class="stat-icon t-warn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 6v6l4 2"/><circle cx="12" cy="12" r="10"/></svg></div></div>
+        <div class="stat-value">3</div>
+        <div class="stat-delta warn">awaiting your confirmation</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-top"><span class="stat-label">This Week</span><div class="stat-icon t-blue"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/></svg></div></div>
+        <div class="stat-value">34</div>
+        <div class="stat-delta up">completed appointments</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-top"><span class="stat-label">Total Patients</span><div class="stat-icon t-purple"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/></svg></div></div>
+        <div class="stat-value">218</div>
+        <div class="stat-delta">under your care</div>
+      </div>
+    </div>
+
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-head">
+          <div><div class="card-title">Today's queue</div><div class="card-title-sub">Thursday, June 25</div></div>
+          <button class="btn btn-ghost btn-sm" onclick="goTo('appointments')">View all</button>
+        </div>
+        <div class="list-row">
+          <div class="list-row-icon" style="background:rgba(52,211,153,.12);color:var(--success);"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21v-2a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v2"/></svg></div>
+          <div class="list-row-main"><div class="list-row-title">Saripa Jalal</div><div class="list-row-sub">Follow-up · Hypertension monitoring</div></div>
+          <div><span class="pill pill-confirmed"><span class="pill-dot"></span>Confirmed</span></div>
+          <div class="list-row-time">10:00 AM</div>
+        </div>
+        <div class="list-row">
+          <div class="list-row-icon" style="background:rgba(52,211,153,.12);color:var(--success);"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21v-2a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v2"/></svg></div>
+          <div class="list-row-main"><div class="list-row-title">Hadji Romato</div><div class="list-row-sub">Initial consultation · Chest pain</div></div>
+          <div><span class="pill pill-confirmed"><span class="pill-dot"></span>Confirmed</span></div>
+          <div class="list-row-time">10:30 AM</div>
+        </div>
+        <div class="list-row">
+          <div class="list-row-icon" style="background:rgba(245,166,35,.12);color:var(--warning);"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21v-2a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v2"/></svg></div>
+          <div class="list-row-main"><div class="list-row-title">Bae Norhaya Disumimba</div><div class="list-row-sub">Lab result review</div></div>
+          <div><span class="pill pill-pending"><span class="pill-dot"></span>Pending</span></div>
+          <div class="list-row-time">11:15 AM</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head"><div class="card-title">Appointment requests</div></div>
+        <div class="req-card">
+          <div class="avatar">BN</div>
+          <div class="req-main"><div class="req-name">Bae Norhaya Disumimba</div><div class="req-meta">Jun 25 · 11:15 AM · Lab result review</div></div>
+          <div class="req-actions">
+            <button class="btn btn-primary btn-sm" onclick="acceptReq(this)">Accept</button>
+          </div>
+        </div>
+        <div class="req-card">
+          <div class="avatar">YT</div>
+          <div class="req-main"><div class="req-name">Yusop Tomawis</div><div class="req-meta">Jun 27 · 9:00 AM · Initial consultation</div></div>
+          <div class="req-actions">
+            <button class="btn btn-primary btn-sm" onclick="acceptReq(this)">Accept</button>
+          </div>
+        </div>
+        <div class="req-card">
+          <div class="avatar">FK</div>
+          <div class="req-main"><div class="req-name">Farida Kalim</div><div class="req-meta">Jun 28 · 1:30 PM · Follow-up</div></div>
+          <div class="req-actions">
+            <button class="btn btn-primary btn-sm" onclick="acceptReq(this)">Accept</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- APPOINTMENTS -->
+  <section class="section" id="appointments">
+    <div class="page-header">
+      <div>
+        <div class="page-title">My Appointments</div>
+        <div class="page-sub">Accept, decline, or reschedule patient requests.</div>
+      </div>
+    </div>
+    <div class="tabs">
+      <div class="tab active" data-tab="pending">Pending (3)</div>
+      <div class="tab" data-tab="confirmed">Confirmed</div>
+      <div class="tab" data-tab="completed">Completed</div>
+    </div>
+    <div class="card" style="padding:0;">
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Patient</th><th>Date &amp; Time</th><th>Reason</th><th>Status</th><th></th></tr></thead>
+          <tbody>
+            <tr>
+              <td><span class="cell-strong">Bae Norhaya Disumimba</span><br><span class="cell-muted">Returning patient</span></td>
+              <td>Jun 25, 2026 · 11:15 AM</td>
+              <td>Lab result review</td>
+              <td><span class="pill pill-pending"><span class="pill-dot"></span>Pending</span></td>
+              <td style="text-align:right;">
+                <button class="btn btn-primary btn-sm" onclick="rowAccept(this)">Accept</button>
+                <button class="btn btn-ghost btn-sm" onclick="openReschedule(this)">Reschedule</button>
+                <button class="btn btn-danger btn-sm" onclick="rowDecline(this)">Decline</button>
+              </td>
+            </tr>
+            <tr>
+              <td><span class="cell-strong">Yusop Tomawis</span><br><span class="cell-muted">New patient</span></td>
+              <td>Jun 27, 2026 · 9:00 AM</td>
+              <td>Initial consultation</td>
+              <td><span class="pill pill-pending"><span class="pill-dot"></span>Pending</span></td>
+              <td style="text-align:right;">
+                <button class="btn btn-primary btn-sm" onclick="rowAccept(this)">Accept</button>
+                <button class="btn btn-ghost btn-sm" onclick="openReschedule(this)">Reschedule</button>
+                <button class="btn btn-danger btn-sm" onclick="rowDecline(this)">Decline</button>
+              </td>
+            </tr>
+            <tr>
+              <td><span class="cell-strong">Farida Kalim</span><br><span class="cell-muted">Returning patient</span></td>
+              <td>Jun 28, 2026 · 1:30 PM</td>
+              <td>Follow-up consultation</td>
+              <td><span class="pill pill-pending"><span class="pill-dot"></span>Pending</span></td>
+              <td style="text-align:right;">
+                <button class="btn btn-primary btn-sm" onclick="rowAccept(this)">Accept</button>
+                <button class="btn btn-ghost btn-sm" onclick="openReschedule(this)">Reschedule</button>
+                <button class="btn btn-danger btn-sm" onclick="rowDecline(this)">Decline</button>
+              </td>
+            </tr>
+            <tr>
+              <td><span class="cell-strong">Saripa Jalal</span><br><span class="cell-muted">Returning patient</span></td>
+              <td>Jun 25, 2026 · 10:00 AM</td>
+              <td>Follow-up · Hypertension</td>
+              <td><span class="pill pill-confirmed"><span class="pill-dot"></span>Confirmed</span></td>
+              <td style="text-align:right;"><button class="btn btn-ghost btn-sm" onclick="goTo('patients')">View record</button></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- SCHEDULE -->
+  <section class="section" id="schedule">
+    <div class="page-header">
+      <div>
+        <div class="page-title">My Schedule</div>
+        <div class="page-sub">Manage your weekly availability and consultation hours.</div>
+      </div>
+      <button class="btn btn-primary" onclick="saveAvailability()">Save Changes</button>
+    </div>
+
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-head"><div class="card-title">This week — Jun 22 to Jun 28</div></div>
+        <div class="grid-3" style="grid-template-columns:repeat(5,1fr);">
+          <div class="day-col">
+            <div class="day-col-head"><span>MON</span><span>22</span></div>
+            <div class="day-slot busy"><div class="pname">S. Jalal</div>10:00 AM</div>
+            <div class="day-slot busy"><div class="pname">H. Romato</div>10:30 AM</div>
+            <div class="day-slot free">11:00 AM — Open</div>
+          </div>
+          <div class="day-col">
+            <div class="day-col-head"><span>TUE</span><span>23</span></div>
+            <div class="day-slot free">All slots open</div>
+          </div>
+          <div class="day-col">
+            <div class="day-col-head"><span>WED</span><span>24</span></div>
+            <div class="day-slot busy"><div class="pname">Y. Tomawis</div>9:00 AM</div>
+            <div class="day-slot free">9:30 AM — Open</div>
+          </div>
+          <div class="day-col">
+            <div class="day-col-head"><span>THU</span><span>25</span></div>
+            <div class="day-slot busy"><div class="pname">S. Jalal</div>10:00 AM</div>
+            <div class="day-slot busy"><div class="pname">H. Romato</div>10:30 AM</div>
+            <div class="day-slot busy"><div class="pname">B. Disumimba</div>11:15 AM</div>
+          </div>
+          <div class="day-col">
+            <div class="day-col-head"><span>FRI</span><span>26</span></div>
+            <div class="day-slot free">All slots open</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head"><div class="card-title">Weekly availability</div></div>
+        <div class="avail-row"><span>Monday</span><div class="toggle on" onclick="this.classList.toggle('on')"><div class="knob"></div></div></div>
+        <div class="avail-row"><span>Tuesday</span><div class="toggle on" onclick="this.classList.toggle('on')"><div class="knob"></div></div></div>
+        <div class="avail-row"><span>Wednesday</span><div class="toggle on" onclick="this.classList.toggle('on')"><div class="knob"></div></div></div>
+        <div class="avail-row"><span>Thursday</span><div class="toggle on" onclick="this.classList.toggle('on')"><div class="knob"></div></div></div>
+        <div class="avail-row"><span>Friday</span><div class="toggle on" onclick="this.classList.toggle('on')"><div class="knob"></div></div></div>
+        <div class="avail-row"><span>Saturday</span><div class="toggle" onclick="this.classList.toggle('on')"><div class="knob"></div></div></div>
+        <div class="avail-row"><span>Sunday</span><div class="toggle" onclick="this.classList.toggle('on')"><div class="knob"></div></div></div>
+        <div class="divider"></div>
+        <div class="field"><label>Clinic hours</label>
+          <div class="field-row"><input type="time" value="08:00"><input type="time" value="16:00"></div>
+        </div>
+        <div class="field"><label>Room assignment</label><input type="text" value="Room 2, MSHFI Marawi"></div>
+        <button class="btn btn-danger" style="width:100%;justify-content:center;" onclick="markUnavailable()">Mark Today Unavailable (Emergency)</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- PATIENTS / RECORDS -->
+  <section class="section" id="patients">
+    <div class="page-header">
+      <div>
+        <div class="page-title">Patient Records</div>
+        <div class="page-sub">Search patients and review their consultation history.</div>
+      </div>
+      <div class="search-box">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.3-4.3"/></svg>
+        <input type="text" placeholder="Search patient name…">
+      </div>
+    </div>
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-head"><div class="card-title">Your patients</div><div class="card-title-sub" style="margin-left:auto;">218 total</div></div>
+        <div class="patient-list-item" onclick="selectPatient(this)">
+          <div class="avatar" style="background:linear-gradient(135deg,var(--blue),var(--purple));">SJ</div>
+          <div class="req-main"><div class="req-name">Saripa Jalal</div><div class="req-meta">Hypertension · Last visit Mar 2, 2026</div></div>
+          <span class="pill pill-active"><span class="pill-dot"></span>Returning</span>
+        </div>
+        <div class="patient-list-item" onclick="selectPatient(this)">
+          <div class="avatar" style="background:linear-gradient(135deg,var(--blue),var(--purple));">HR</div>
+          <div class="req-main"><div class="req-name">Hadji Romato</div><div class="req-meta">Chest pain · Last visit Jun 25, 2026</div></div>
+          <span class="pill pill-active"><span class="pill-dot"></span>Returning</span>
+        </div>
+        <div class="patient-list-item" onclick="selectPatient(this)">
+          <div class="avatar" style="background:linear-gradient(135deg,var(--blue),var(--purple));">YT</div>
+          <div class="req-main"><div class="req-name">Yusop Tomawis</div><div class="req-meta">No prior records</div></div>
+          <span class="pill pill-neutral">New</span>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head"><div class="card-title" id="recordPatientName">Saripa Jalal — Consultation history</div></div>
+        <div class="record-item">
+          <div class="record-item-head"><div class="record-patient">Hypertension follow-up</div><div class="record-date">Mar 2, 2026</div></div>
+          <div class="record-diagnosis">BP 138/89. Continue Losartan 50mg, low-sodium diet, weekly self-monitoring.</div>
+        </div>
+        <div class="record-item">
+          <div class="record-item-head"><div class="record-patient">Initial consultation</div><div class="record-date">Nov 8, 2025</div></div>
+          <div class="record-diagnosis">Diagnosed with stage 1 hypertension. Started on Losartan 50mg.</div>
+        </div>
+        <button class="btn btn-ghost btn-sm" style="margin-top:6px;">+ Add consultation note</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- PROFILE -->
+  <section class="section" id="profile">
+    <div class="page-header">
+      <div>
+        <div class="page-title">My Profile</div>
+        <div class="page-sub">Your professional information as shown to patients and staff.</div>
+      </div>
+      <button class="btn btn-ghost">Edit Profile</button>
+    </div>
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-head"><div class="card-title">Professional information</div></div>
+        <div class="profile-row" style="display:flex;justify-content:space-between;padding:11px 0;border-bottom:1px solid var(--border);"><span style="color:var(--text3);">Full name</span><span style="font-weight:500;">Amer Hussien T. Macatotong</span></div>
+        <div class="profile-row" style="display:flex;justify-content:space-between;padding:11px 0;border-bottom:1px solid var(--border);"><span style="color:var(--text3);">Specialization</span><span style="font-weight:500;">Internal Medicine</span></div>
+        <div class="profile-row" style="display:flex;justify-content:space-between;padding:11px 0;border-bottom:1px solid var(--border);"><span style="color:var(--text3);">Department</span><span style="font-weight:500;">Medical Services</span></div>
+        <div class="profile-row" style="display:flex;justify-content:space-between;padding:11px 0;"><span style="color:var(--text3);">Years at MSHFI</span><span style="font-weight:500;">6 years</span></div>
+      </div>
+      <div class="card">
+        <div class="card-head"><div class="card-title">Account &amp; contact</div></div>
+        <div class="profile-row" style="display:flex;justify-content:space-between;padding:11px 0;border-bottom:1px solid var(--border);"><span style="color:var(--text3);">Username</span><span style="font-weight:500;">dr.macatotong</span></div>
+        <div class="profile-row" style="display:flex;justify-content:space-between;padding:11px 0;border-bottom:1px solid var(--border);"><span style="color:var(--text3);">Email</span><span style="font-weight:500;">a.macatotong@mshfi.ph</span></div>
+        <div class="profile-row" style="display:flex;justify-content:space-between;padding:11px 0;"><span style="color:var(--text3);">Assigned room</span><span style="font-weight:500;">Room 2</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- NOTIFICATIONS -->
+  <section class="section" id="notifications">
+    <div class="page-header">
+      <div>
+        <div class="page-title">Notifications</div>
+        <div class="page-sub">Booking requests, cancellations, and system alerts.</div>
+      </div>
+      <button class="btn btn-ghost btn-sm" onclick="markAllRead()">Mark all as read</button>
+    </div>
+    <div class="card">
+      <div class="list-row">
+        <div class="list-row-icon" style="background:rgba(245,166,35,.12);color:var(--warning);"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 6v6l4 2"/><circle cx="12" cy="12" r="10"/></svg></div>
+        <div class="list-row-main"><div class="list-row-title">New appointment request</div><div class="list-row-sub">Bae Norhaya Disumimba requested Jun 25, 11:15 AM</div></div>
+        <div class="list-row-time">1h ago</div>
+      </div>
+      <div class="list-row">
+        <div class="list-row-icon" style="background:rgba(240,98,95,.12);color:var(--danger);"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg></div>
+        <div class="list-row-main"><div class="list-row-title">Appointment cancelled</div><div class="list-row-sub">Patient cancelled the Jun 24, 3:00 PM slot</div></div>
+        <div class="list-row-time">5h ago</div>
+      </div>
+      <div class="list-row">
+        <div class="list-row-icon" style="background:rgba(45,212,191,.12);color:var(--accent);"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/></svg></div>
+        <div class="list-row-main"><div class="list-row-title">Schedule updated</div><div class="list-row-sub">Admin confirmed your Room 2 assignment for next week</div></div>
+        <div class="list-row-time">2d ago</div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<div class="toast-stack" id="toastStack"></div>
+
+<div class="modal-overlay" id="rescheduleModal">
+  <div class="modal">
+    <div class="modal-head"><h3>Reschedule Appointment</h3><span class="modal-close" onclick="closeModal()">&times;</span></div>
+    <div class="field"><label>New date</label><input type="date" value="2026-06-29"></div>
+    <div class="field"><label>New time</label>
+      <select><option>9:00 AM</option><option>10:30 AM</option><option>1:00 PM</option><option>2:30 PM</option></select>
+    </div>
+    <button class="btn btn-primary" style="width:100%;justify-content:center;" onclick="confirmReschedule()">Propose New Time</button>
+  </div>
+</div>
+
+<script>
+function goTo(id){
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  const nav=document.querySelector(`.nav-item[data-section="${id}"]`);
+  if(nav) nav.classList.add('active');
+  document.querySelector('.sidebar').classList.remove('open');
+}
+document.querySelectorAll('.nav-item[data-section]').forEach(el=>{
+  el.addEventListener('click',()=>goTo(el.dataset.section));
+});
+
+function toast(msg){
+  const stack=document.getElementById('toastStack');
+  const t=document.createElement('div');
+  t.className='toast';
+  t.textContent=msg;
+  stack.appendChild(t);
+  setTimeout(()=>t.remove(),3200);
+}
+
+function acceptReq(btn){
+  const card = btn.closest('.req-card');
+  card.style.opacity=.4;
+  btn.textContent='Accepted';
+  btn.disabled=true;
+  toast('Appointment confirmed — patient has been notified.');
+}
+function rowAccept(btn){
+  const row = btn.closest('tr');
+  const pill = row.querySelector('.pill');
+  pill.className='pill pill-confirmed';
+  pill.innerHTML='<span class="pill-dot"></span>Confirmed';
+  row.querySelectorAll('td:last-child button').forEach(b=>b.remove());
+  toast('Appointment confirmed — patient has been notified.');
+}
+function rowDecline(btn){
+  const row = btn.closest('tr');
+  const pill = row.querySelector('.pill');
+  pill.className='pill pill-declined';
+  pill.innerHTML='<span class="pill-dot"></span>Declined';
+  row.querySelectorAll('td:last-child button').forEach(b=>b.remove());
+  toast('Appointment declined — patient has been notified.');
+}
+let rescheduleTarget=null;
+function openReschedule(btn){
+  rescheduleTarget=btn.closest('tr');
+  document.getElementById('rescheduleModal').classList.add('active');
+}
+function closeModal(){ document.getElementById('rescheduleModal').classList.remove('active'); }
+function confirmReschedule(){
+  if(rescheduleTarget){
+    const pill=rescheduleTarget.querySelector('.pill');
+    pill.className='pill pill-rescheduled';
+    pill.innerHTML='<span class="pill-dot"></span>Reschedule Proposed';
+  }
+  closeModal();
+  toast('New time proposed to patient.');
+}
+
+function selectPatient(el){
+  document.querySelectorAll('.patient-list-item').forEach(x=>x.style.background='');
+  el.style.background='var(--surface)';
+  const name = el.querySelector('.req-name').textContent;
+  document.getElementById('recordPatientName').textContent = name + ' — Consultation history';
+}
+
+function saveAvailability(){ toast('Availability and schedule changes saved.'); }
+function markUnavailable(){ toast('You are marked unavailable today — affected patients will be notified automatically.'); }
+function markAllRead(){ document.getElementById('notifBadge').style.display='none'; toast('All notifications marked as read.'); }
+</script>
+</body>
+</html>

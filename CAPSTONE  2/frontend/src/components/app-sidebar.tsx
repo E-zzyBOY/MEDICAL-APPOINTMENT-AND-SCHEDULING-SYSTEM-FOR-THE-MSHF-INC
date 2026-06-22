@@ -1,63 +1,65 @@
 "use client";
 
-import { LogoIcon } from "@/components/logo";
-import { Button } from "@/components/ui/button";
+import { Logo } from "@/components/logo";
 import {
 	Sidebar,
 	SidebarContent,
 	SidebarFooter,
 	SidebarGroup,
+	SidebarGroupLabel,
 	SidebarHeader,
 	SidebarMenu,
 	SidebarMenuButton,
 	SidebarMenuItem,
 } from "@/components/ui/sidebar";
-import { NavGroup } from "@/components/nav-group";
 import { footerNavLinks, navGroups } from "@/components/app-shared";
-import { LatestChange } from "@/components/latest-change";
-import { PlusIcon, SearchIcon } from "lucide-react";
+import { NavUser } from "@/components/nav-user";
 
 export function AppSidebar() {
 	return (
-		<Sidebar collapsible="icon" variant="floating">
-			<SidebarHeader className="h-14 justify-center">
-				<SidebarMenuButton asChild>
-					<a href="#link">
-						<LogoIcon />
-						<span className="font-medium">Efferd</span>
-					</a>
-				</SidebarMenuButton>
+		<Sidebar
+			className="static min-h-full *:data-[slot=sidebar-inner]:bg-background"
+			collapsible="offExamples"
+			variant="sidebar"
+		>
+			<SidebarHeader className="relative h-14 justify-center px-2 py-0">
+				<a
+					className="rounded-lg flex h-10 w-max items-center justify-center px-3 hover:bg-muted dark:hover:bg-muted/50"
+					href="#link"
+				>
+					<Logo className="h-4" />
+					<span className="sr-only">Efferd</span>
+				</a>
 			</SidebarHeader>
 			<SidebarContent>
-				<SidebarGroup>
-					<SidebarMenuItem className="flex items-center gap-2">
-						<SidebarMenuButton
-							className="min-w-8 bg-primary text-primary-foreground duration-200 ease-linear hover:bg-primary/90 hover:text-primary-foreground active:bg-primary/90 active:text-primary-foreground"
-							tooltip="Add product"
-						>
-							<PlusIcon
-							/>
-							<span>Add product</span>
-						</SidebarMenuButton>
-						<Button
-							aria-label="Search store"
-							className="size-8 group-data-[collapsible=icon]:opacity-0"
-							size="icon"
-							variant="outline"
-						>
-							<SearchIcon
-							/>
-							<span className="sr-only">Search store</span>
-						</Button>
-					</SidebarMenuItem>
-				</SidebarGroup>
 				{navGroups.map((group, index) => (
-					<NavGroup key={`sidebar-group-${index}`} {...group} />
+					<SidebarGroup key={`sidebar-group-${index}`}>
+						{group.label && (
+							<SidebarGroupLabel className="font-normal">
+								{group.label}
+							</SidebarGroupLabel>
+						)}
+						<SidebarMenu>
+							{group.items.map((item) => (
+								<SidebarMenuItem key={item.title}>
+									<SidebarMenuButton
+										asChild
+										isActive={item.isActive}
+										tooltip={item.title}
+									>
+										<a href={item.url}>
+											{item.icon}
+											<span>{item.title}</span>
+										</a>
+									</SidebarMenuButton>
+								</SidebarMenuItem>
+							))}
+						</SidebarMenu>
+					</SidebarGroup>
 				))}
 			</SidebarContent>
-			<SidebarFooter>
-				<LatestChange />
-				<SidebarMenu className="mt-2">
+			<SidebarFooter className="gap-0 p-0">
+				<SidebarMenu className="border-t p-2">
 					{footerNavLinks.map((item) => (
 						<SidebarMenuItem key={item.title}>
 							<SidebarMenuButton
@@ -66,7 +68,7 @@ export function AppSidebar() {
 								isActive={item.isActive}
 								size="sm"
 							>
-								<a href={item.path}>
+								<a href={item.url}>
 									{item.icon}
 									<span>{item.title}</span>
 								</a>
@@ -74,6 +76,7 @@ export function AppSidebar() {
 						</SidebarMenuItem>
 					))}
 				</SidebarMenu>
+				<NavUser />
 			</SidebarFooter>
 		</Sidebar>
 	);

@@ -7,7 +7,6 @@ export interface User {
   avatar?: string;
   initials: string;
   email: string;
-  phone?: string;
 }
 
 export type AppointmentStatus =
@@ -60,42 +59,4 @@ export interface QuickAction {
   title: string;
   description: string;
   icon: string;
-}
-
-export interface DashboardStat {
-  label: string;
-  value: string | number | null;
-  hint?: string;
-}
-
-export interface TrendPoint {
-  date: string;
-  value: number;
-}
-
-export interface AppointmentRow {
-  primary: string;
-  secondary?: string;
-  date: string;
-  time?: string;
-  status: string;
-}
-
-export interface QuickActionItem {
-  title: string;
-  description?: string;
-  href: string;
-}
-
-export interface DashboardData {
-  stats: DashboardStat[];
-  trend?: TrendPoint[];
-  trendLabel?: string;
-  appointmentsTitle: string;
-  appointmentsHref?: string;
-  appointments: AppointmentRow[];
-  pastAppointmentsTitle?: string;
-  pastAppointmentsHref?: string;
-  pastAppointments?: AppointmentRow[];
-  quickActions?: QuickActionItem[];
 }

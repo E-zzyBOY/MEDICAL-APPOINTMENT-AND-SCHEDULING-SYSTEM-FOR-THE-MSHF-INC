@@ -1,13 +1,12 @@
-"use client";
-
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { AppBreadcrumbs } from "@/components/app-breadcrumbs";
-import { CustomSidebarTrigger } from "@/components/custom-sidebar-trigger";
+import { DecorIcon } from "@/components/decor-icon";
+import { AppBreadcrumbs } from "@/components/1/app-breadcrumbs";
 import { navLinks } from "@/components/app-shared";
+import { CustomSidebarTrigger } from "@/components/custom-sidebar-trigger";
 import { NavUser } from "@/components/nav-user";
-import { BellIcon } from "lucide-react";
+import { SendIcon, BellIcon } from "lucide-react";
 
 const activeItem = navLinks.find((item) => item.isActive);
 
@@ -15,9 +14,11 @@ export function AppHeader() {
 	return (
 		<header
 			className={cn(
-				"pxx-4 mb-6 flex items-center justify-between gap-2 md:px-2"
+				"sticky top-0 z-50 flex h-14 shrink-0 items-center justify-between gap-2 border-b px-4 md:px-6",
+				"bg-background/95 backdrop-blur-sm supports-backdrop-filter:bg-background/50"
 			)}
 		>
+			<DecorIcon className="hidden md:block" position="bottom-left" />
 			<div className="flex items-center gap-3">
 				<CustomSidebarTrigger />
 				<Separator
@@ -27,7 +28,11 @@ export function AppHeader() {
 				<AppBreadcrumbs page={activeItem} />
 			</div>
 			<div className="flex items-center gap-3">
-				<Button aria-label="Notifications" size="icon" variant="ghost">
+				<Button size="icon-sm" variant="outline">
+					<SendIcon
+					/>
+				</Button>
+				<Button aria-label="Notifications" size="icon-sm" variant="outline">
 					<BellIcon
 					/>
 				</Button>

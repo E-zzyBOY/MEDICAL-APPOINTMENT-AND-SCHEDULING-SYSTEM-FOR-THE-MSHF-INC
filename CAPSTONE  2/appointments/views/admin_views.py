@@ -53,6 +53,7 @@ def _build_admin_dashboard_data(request):
                 'primary': a.patient.get_full_name(),
                 'secondary': f'Dr. {a.doctor.get_full_name()}',
                 'date': a.appointment_date.isoformat(),
+                'time': a.appointment_time.strftime('%H:%M'),
                 'status': a.status,
             }
             for a in recent_appts

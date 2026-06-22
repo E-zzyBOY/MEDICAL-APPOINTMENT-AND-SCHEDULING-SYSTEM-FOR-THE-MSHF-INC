@@ -1,6 +1,7 @@
 import { DashboardAppointments } from "@/components/dashboard-appointments";
 import { TrendChart } from "@/components/sales-chart";
 import { DashboardStats } from "@/components/stats";
+import { QuickActions } from "@/components/quick-actions";
 import { usePollingData } from "@/hooks/use-polling-data";
 import type { DashboardData } from "@/types";
 
@@ -46,6 +47,9 @@ export function Dashboard({
 					)}
 				</div>
 			</div>
+			{live.quickActions && live.quickActions.length > 0 && (
+				<QuickActions actions={live.quickActions} />
+			)}
 		</div>
 	);
 }

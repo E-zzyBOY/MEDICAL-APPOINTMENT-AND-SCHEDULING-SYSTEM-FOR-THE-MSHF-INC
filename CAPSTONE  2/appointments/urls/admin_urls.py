@@ -5,6 +5,7 @@ app_name = 'admin_panel'
 
 urlpatterns = [
     path('',                          v.admin_dashboard,    name='dashboard'),
+    path('dashboard/data/',           v.admin_dashboard_data, name='dashboard_data'),
     path('users/',                    v.user_list,          name='user_list'),
     path('users/create/',             v.user_create,        name='user_create'),
     path('users/<int:pk>/detail/',    v.user_detail,        name='user_detail'),

@@ -1,6 +1,7 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.db.models import Count, Avg
+from django.http import JsonResponse
 from datetime import date, timedelta
 from accounts.decorators import role_required
 from accounts.models import CustomUser, PatientProfile, DoctorProfile, SecretaryProfile
@@ -10,8 +11,7 @@ from appointments.forms import AdminAppointmentEditForm
 from feedback.models import Feedback
 
 
-@role_required('admin')
-def admin_dashboard(request):
+def _build_admin_dashboard_data(request):
     total_patients    = CustomUser.objects.filter(role='patient').count()
     total_doctors     = CustomUser.objects.filter(role='doctor').count()
     total_secretaries = CustomUser.objects.filter(role='secretary').count()
@@ -22,7 +22,7 @@ def admin_dashboard(request):
     avg_rating        = Feedback.objects.aggregate(avg=Avg('rating'))['avg']
     recent_appts      = Appointment.objects.select_related('patient', 'doctor').order_by('-created_at')[:10]
 
-    trend_start = date.today() - timedelta(days=13)
+    trend_start = date.today() - timedelta(days=29)
     counts_by_date = {
         row['appointment_date']: row['c']
         for row in Appointment.objects.filter(
@@ -32,10 +32,10 @@ def admin_dashboard(request):
     trend = [
         {'date': (trend_start + timedelta(days=i)).isoformat(),
          'value': counts_by_date.get(trend_start + timedelta(days=i), 0)}
-        for i in range(14)
+        for i in range(30)
     ]
 
-    dashboard_data = {
+    return {
         'stats': [
             {'label': 'Patients', 'value': total_patients},
             {'label': 'Doctors', 'value': total_doctors},
@@ -64,7 +64,17 @@ def admin_dashboard(request):
             {'title': 'View Feedback', 'href': '/admin-panel/feedback/'},
         ],
     }
+
+
+@role_required('admin')
+def admin_dashboard(request):
+    dashboard_data = _build_admin_dashboard_data(request)
     return render(request, 'admin_panel/dashboard.html', {'dashboard_data': dashboard_data})
+
+
+@role_required('admin')
+def admin_dashboard_data(request):
+    return JsonResponse(_build_admin_dashboard_data(request))
 
 
 @role_required('admin')

@@ -1,6 +1,7 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.db.models import Count
+from django.http import JsonResponse
 from datetime import date, timedelta
 from accounts.decorators import role_required
 from appointments.models import Appointment, Schedule
@@ -14,8 +15,7 @@ def _notify(user, message):
     Notification.objects.create(user=user, message=message)
 
 
-@role_required('doctor')
-def doctor_dashboard(request):
+def _build_doctor_dashboard_data(request):
     today_appts = Appointment.objects.filter(
         doctor=request.user,
         appointment_date=date.today(),
@@ -27,7 +27,7 @@ def doctor_dashboard(request):
         status__in=['Scheduled', 'Rescheduled']
     ).count()
 
-    trend_start = date.today() - timedelta(days=13)
+    trend_start = date.today() - timedelta(days=29)
     counts_by_date = {
         row['appointment_date']: row['c']
         for row in Appointment.objects.filter(
@@ -37,10 +37,10 @@ def doctor_dashboard(request):
     trend = [
         {'date': (trend_start + timedelta(days=i)).isoformat(),
          'value': counts_by_date.get(trend_start + timedelta(days=i), 0)}
-        for i in range(14)
+        for i in range(30)
     ]
 
-    dashboard_data = {
+    return {
         'stats': [
             {'label': "Today's Appointments", 'value': today_appts.count()},
             {'label': 'Upcoming Appointments', 'value': upcoming},
@@ -64,7 +64,17 @@ def doctor_dashboard(request):
             {'title': 'My Patients', 'description': 'View patient records', 'href': '/doctor/patients/'},
         ],
     }
+
+
+@role_required('doctor')
+def doctor_dashboard(request):
+    dashboard_data = _build_doctor_dashboard_data(request)
     return render(request, 'doctor/dashboard.html', {'dashboard_data': dashboard_data})
+
+
+@role_required('doctor')
+def doctor_dashboard_data(request):
+    return JsonResponse(_build_doctor_dashboard_data(request))
 
 
 @role_required('doctor')

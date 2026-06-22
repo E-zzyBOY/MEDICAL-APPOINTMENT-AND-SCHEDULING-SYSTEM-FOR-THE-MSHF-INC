@@ -1,5 +1,6 @@
 import { createRoot } from "react-dom/client";
-import { Dashboard, type DashboardData } from "@/components/dashboard";
+import { Dashboard } from "@/components/dashboard";
+import type { DashboardData } from "@/types";
 import "@/index.css";
 
 export function mountDashboard(role: string) {
@@ -9,5 +10,10 @@ export function mountDashboard(role: string) {
 
 	const data = JSON.parse(dataEl.textContent || "{}") as DashboardData;
 	root.setAttribute("data-role", role);
-	createRoot(root).render(<Dashboard data={data} />);
+
+	const rolePrefix =
+		role === "admin" ? "admin-panel" : role;
+	const dataUrl = `/${rolePrefix}/dashboard/data/`;
+
+	createRoot(root).render(<Dashboard data={data} dataUrl={dataUrl} />);
 }

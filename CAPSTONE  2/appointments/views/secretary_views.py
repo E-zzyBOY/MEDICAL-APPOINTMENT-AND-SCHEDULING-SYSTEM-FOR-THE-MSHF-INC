@@ -1,5 +1,6 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
+from django.http import JsonResponse
 from datetime import date
 from accounts.decorators import role_required
 from appointments.models import Appointment, Schedule
@@ -17,8 +18,7 @@ def _assigned_doctor(user):
     return profile.assigned_doctor if profile else None
 
 
-@role_required('secretary')
-def secretary_dashboard(request):
+def _build_secretary_dashboard_data(request):
     doctor = _assigned_doctor(request.user)
     today_appts = Appointment.objects.filter(
         doctor=doctor,
@@ -27,7 +27,7 @@ def secretary_dashboard(request):
     ).select_related('patient', 'doctor').order_by('appointment_time') if doctor else Appointment.objects.none()
     total_today = today_appts.count()
 
-    dashboard_data = {
+    return {
         'stats': [
             {'label': "Today's Appointments", 'value': total_today},
         ],
@@ -50,7 +50,17 @@ def secretary_dashboard(request):
             {'title': 'Patients', 'description': 'View patient list', 'href': '/secretary/patients/'},
         ],
     }
+
+
+@role_required('secretary')
+def secretary_dashboard(request):
+    dashboard_data = _build_secretary_dashboard_data(request)
     return render(request, 'secretary/dashboard.html', {'dashboard_data': dashboard_data})
+
+
+@role_required('secretary')
+def secretary_dashboard_data(request):
+    return JsonResponse(_build_secretary_dashboard_data(request))
 
 
 @role_required('secretary')

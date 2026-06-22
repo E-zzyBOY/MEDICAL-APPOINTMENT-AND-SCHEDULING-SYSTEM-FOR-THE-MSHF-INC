@@ -1,6 +1,7 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.db import transaction
+from django.http import JsonResponse
 from datetime import date, datetime, timedelta
 from accounts.decorators import role_required
 from appointments.models import Appointment, Schedule
@@ -15,8 +16,7 @@ def _notify(user, message):
     Notification.objects.create(user=user, message=message)
 
 
-@role_required('patient')
-def patient_dashboard(request):
+def _build_patient_dashboard_data(request):
     upcoming = Appointment.objects.filter(
         patient=request.user,
         status__in=['Scheduled', 'Rescheduled'],
@@ -27,7 +27,7 @@ def patient_dashboard(request):
         status__in=['Completed', 'Cancelled']
     ).select_related('doctor')[:5]
 
-    dashboard_data = {
+    return {
         'stats': [
             {'label': 'Upcoming Appointments', 'value': upcoming.count()},
             {'label': 'Past Appointments', 'value': past.count()},
@@ -60,7 +60,17 @@ def patient_dashboard(request):
             {'title': 'Medical Records', 'description': 'View your health history', 'href': '/patient/records/'},
         ],
     }
+
+
+@role_required('patient')
+def patient_dashboard(request):
+    dashboard_data = _build_patient_dashboard_data(request)
     return render(request, 'patient/dashboard.html', {'dashboard_data': dashboard_data})
+
+
+@role_required('patient')
+def patient_dashboard_data(request):
+    return JsonResponse(_build_patient_dashboard_data(request))
 
 
 @role_required('patient')

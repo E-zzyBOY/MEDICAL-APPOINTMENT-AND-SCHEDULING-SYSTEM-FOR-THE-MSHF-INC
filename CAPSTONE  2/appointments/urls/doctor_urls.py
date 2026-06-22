@@ -5,6 +5,7 @@ app_name = 'doctor'
 
 urlpatterns = [
     path('',                                        v.doctor_dashboard,          name='dashboard'),
+    path('dashboard/data/',                         v.doctor_dashboard_data,     name='dashboard_data'),
     path('schedule/',                               v.schedule_list,             name='schedule_list'),
     path('schedule/add/',                           v.schedule_add,              name='schedule_add'),
     path('schedule/<int:pk>/edit/',                 v.schedule_edit,             name='schedule_edit'),

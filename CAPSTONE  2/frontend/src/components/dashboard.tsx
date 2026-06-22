@@ -1,43 +1,51 @@
-import { DashboardStats, type Stat } from "@/components/stats";
-import { QuickActions, type QuickAction } from "@/components/quick-actions";
-import { TrendChart, type TrendPoint } from "@/components/trend-chart";
-import { AppointmentsTable, type AppointmentRow } from "@/components/appointments-table";
+import { DashboardAppointments } from "@/components/dashboard-appointments";
+import { TrendChart } from "@/components/sales-chart";
+import { DashboardStats } from "@/components/stats";
+import { usePollingData } from "@/hooks/use-polling-data";
+import type { DashboardData } from "@/types";
 
-export type DashboardData = {
-	stats: Stat[];
-	trend?: TrendPoint[];
-	trendLabel?: string;
-	appointmentsTitle?: string;
-	appointments?: AppointmentRow[];
-	appointmentsHref?: string;
-	pastAppointmentsTitle?: string;
-	pastAppointments?: AppointmentRow[];
-	pastAppointmentsHref?: string;
-	quickActions: QuickAction[];
-};
+export function Dashboard({
+	data,
+	dataUrl,
+}: {
+	data: DashboardData;
+	dataUrl: string;
+}) {
+	const live = usePollingData(data, dataUrl, 15000);
 
-export function Dashboard({ data }: { data: DashboardData }) {
 	return (
-		<div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4 lg:grid-flow-row-dense">
-			{data.trend && data.trend.length > 0 ? (
-				<TrendChart data={data.trend} title={data.trendLabel ?? "Trend"} valueLabel={data.trendLabel ?? "Value"} />
-			) : null}
-			<DashboardStats stats={data.stats} />
-			{data.appointments ? (
-				<AppointmentsTable
-					rows={data.appointments}
-					title={data.appointmentsTitle ?? "Appointments"}
-					viewAllHref={data.appointmentsHref}
-				/>
-			) : null}
-			{data.pastAppointments ? (
-				<AppointmentsTable
-					rows={data.pastAppointments}
-					title={data.pastAppointmentsTitle ?? "Past Appointments"}
-					viewAllHref={data.pastAppointmentsHref}
-				/>
-			) : null}
-			<QuickActions actions={data.quickActions} />
+		<div className="flex flex-1 flex-col gap-6 py-6">
+			<div className="flex flex-col gap-1">
+				<h1 className="font-semibold text-xl leading-tight">
+					Welcome back, Shaban!
+				</h1>
+				<p className="text-base text-muted-foreground">
+					let's get things done.
+				</p>
+			</div>
+			<div className="rounded-lg overflow-hidden border">
+				<div className="grid grid-cols-1 gap-px bg-border lg:grid-cols-3">
+					<DashboardStats stats={live.stats} />
+					{live.trend && (
+						<TrendChart
+							data={live.trend}
+							label={live.trendLabel || ""}
+						/>
+					)}
+					<DashboardAppointments
+						title={live.appointmentsTitle}
+						rows={live.appointments}
+						href={live.appointmentsHref}
+					/>
+					{live.pastAppointments && (
+						<DashboardAppointments
+							title={live.pastAppointmentsTitle || ""}
+							rows={live.pastAppointments}
+							href={live.pastAppointmentsHref}
+						/>
+					)}
+				</div>
+			</div>
 		</div>
 	);
 }

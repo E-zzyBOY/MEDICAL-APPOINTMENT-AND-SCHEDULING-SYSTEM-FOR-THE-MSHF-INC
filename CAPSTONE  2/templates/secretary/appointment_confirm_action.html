@@ -10,7 +10,7 @@
       <div class="flex justify-between"><span class="text-gray-500">Date</span><span class="font-medium">{{ appointment.appointment_date|date:"F j, Y" }}</span></div>
       <div class="flex justify-between"><span class="text-gray-500">Time</span><span class="font-medium">{{ appointment.appointment_time|time:"g:i A" }}</span></div>
     </div>
-    <form method="post" class="space-y-4">
+    <form method="post" action="{% if action == 'approve' %}{% url 'secretary:appointment_approve' pk=appointment.pk %}{% else %}{% url 'secretary:appointment_cancel' pk=appointment.pk %}{% endif %}" class="space-y-4">
       {% csrf_token %}
       {% if action == 'cancel' %}
       <div>

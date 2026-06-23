@@ -4,7 +4,10 @@
   Current: Dr. {{ appointment.doctor.get_full_name }} — {{ appointment.appointment_date|date:"F j, Y" }} at {{ appointment.appointment_time|time:"g:i A" }}
 </p>
 
-<form method="post" class="space-y-4">
+<form method="post" action="{% url 'patient:reschedule' pk=appointment.pk %}"
+      hx-post="{% url 'patient:reschedule' pk=appointment.pk %}"
+      hx-target="#modal-root" hx-swap="innerHTML"
+      class="space-y-4">
   {% csrf_token %}
   <div>
     <label class="block text-sm font-semibold text-gray-700 mb-1">New Date</label>

@@ -24,6 +24,8 @@ const statusStyles: Record<string, string> = {
 	Scheduled: "border-transparent bg-[#4382DF] text-white hover:bg-[#4382DF]/90",
 	Rescheduled:
 		"border-transparent bg-[#4647AE] text-white hover:bg-[#4647AE]/90",
+	"Pending Reschedule":
+		"border-transparent bg-purple-100 text-purple-700 hover:bg-purple-200",
 	Completed:
 		"border-transparent bg-[#AACCD6]/40 text-[#112E81] hover:bg-[#AACCD6]/55",
 	Cancelled:
@@ -51,9 +53,9 @@ export function DashboardAppointments({
 	const hasSecondary = rows.some((r) => r.secondary);
 
 	return (
-		<Card className="rounded-none bg-background shadow-none ring-0 lg:col-span-3">
+		<Card className="animate-fade-up border-border/70">
 			<CardHeader>
-				<CardTitle>{title}</CardTitle>
+				<CardTitle className="text-[#112E81]">{title}</CardTitle>
 				<CardDescription>
 					{rows.length} {rows.length === 1 ? "appointment" : "appointments"}
 				</CardDescription>

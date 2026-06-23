@@ -19,15 +19,16 @@ def _notify(user, message):
 def _build_patient_dashboard_data(request):
     upcoming = Appointment.objects.filter(
         patient=request.user,
-        status__in=['Scheduled', 'Rescheduled'],
+        status__in=['Scheduled', 'Rescheduled', 'Pending Reschedule'],
         appointment_date__gte=date.today()
     ).select_related('doctor')[:5]
     past = Appointment.objects.filter(
         patient=request.user,
         status__in=['Completed', 'Cancelled']
-    ).select_related('doctor')[:5]
+    ).select_related('doctor', 'results')[:5]
 
     return {
+        'userName': request.user.get_full_name() or request.user.username,
         'stats': [
             {'label': 'Upcoming Appointments', 'value': upcoming.count()},
             {'label': 'Past Appointments', 'value': past.count()},
@@ -49,6 +50,9 @@ def _build_patient_dashboard_data(request):
         'pastAppointments': [
             {
                 'primary': f'Dr. {a.doctor.get_full_name()}',
+                'secondary': (
+                    getattr(a.results, 'diagnosis', '') if a.status == 'Completed' else ''
+                ) or ('Pending' if a.status == 'Completed' else ''),
                 'date': a.appointment_date.isoformat(),
                 'status': a.status,
             }
@@ -82,7 +86,7 @@ def appointment_list(request):
     past = Appointment.objects.filter(
         patient=request.user,
         appointment_date__lt=date.today()
-    ).select_related('doctor').order_by('-appointment_date')
+    ).select_related('doctor', 'results').order_by('-appointment_date')
     cancelled = Appointment.objects.filter(
         patient=request.user,
         status='Cancelled'
@@ -288,25 +292,26 @@ def reschedule_appointment(request, pk):
                     return render(request, 'patient/_reschedule_modal.html', {'appointment': appointment, 'title': 'Reschedule Appointment'})
                 return render(request, 'patient/reschedule.html', {'appointment': appointment})
 
-            appointment.status = 'Rescheduled'
+            # Don't apply the new date/time yet — the original appointment is
+            # left untouched and flagged as pending until the secretary
+            # assigned to this doctor reviews and approves the request.
+            appointment.status            = 'Pending Reschedule'
+            appointment.requested_date    = new_date
+            appointment.requested_time    = new_time
+            appointment.requested_reason  = reason
             appointment.save()
-            new_appt = Appointment.objects.create(
-                patient          = appointment.patient,
-                doctor           = appointment.doctor,
-                appointment_date = new_date,
-                appointment_time = new_time,
-                status           = 'Scheduled',
-                reason           = reason,
-            )
 
-        try:
-            send_reschedule_email(new_appt)
-        except Exception:
-            pass
+        secretary_profile = appointment.doctor.assigned_secretaries.select_related('user').first()
+        secretary_user = secretary_profile.user if secretary_profile else None
+        if secretary_user:
+            _notify(secretary_user,
+                    f"{appointment.patient.get_full_name()} requested to reschedule their appointment with "
+                    f"Dr. {appointment.doctor.get_full_name()} to "
+                    f"{new_date.strftime('%B %d, %Y')} at {new_time.strftime('%I:%M %p')}. Awaiting your approval.")
         _notify(request.user,
-                f"Your appointment with Dr. {appointment.doctor.get_full_name()} has been rescheduled to "
-                f"{new_date.strftime('%B %d, %Y')} at {new_time.strftime('%I:%M %p')}.")
-        messages.success(request, 'Appointment rescheduled successfully.')
+                f"Your reschedule request for {new_date.strftime('%B %d, %Y')} at "
+                f"{new_time.strftime('%I:%M %p')} has been sent to the secretary for approval.")
+        messages.success(request, 'Reschedule request sent. It will take effect once the secretary approves it.')
         if request.htmx:
             response = render(request, 'patient/_reschedule_modal.html', {'appointment': appointment, 'title': 'Reschedule Appointment'})
             response['HX-Redirect'] = '/patient/appointments/'
@@ -321,7 +326,7 @@ def reschedule_appointment(request, pk):
 @role_required('patient')
 def appointment_detail(request, pk):
     appointment = get_object_or_404(
-        Appointment.objects.select_related('doctor', 'doctor__doctor_profile'), pk=pk, patient=request.user
+        Appointment.objects.select_related('doctor', 'doctor__doctor_profile', 'results'), pk=pk, patient=request.user
     )
     medical_record = None
     if appointment.status == 'Completed':

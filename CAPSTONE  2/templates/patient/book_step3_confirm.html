@@ -34,7 +34,7 @@
       </div>
     </div>
 
-    <form method="post">
+    <form method="post" action="{% url 'patient:book_confirm' %}">
       {% csrf_token %}
       <input type="hidden" name="doctor_id" value="{{ doctor.pk }}" />
       <input type="hidden" name="appointment_date" value="{{ appointment_date }}" />

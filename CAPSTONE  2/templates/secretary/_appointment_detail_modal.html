@@ -8,14 +8,35 @@
     <div class="flex justify-between"><span class="text-gray-500">Time</span><span class="font-medium">{{ appt.appointment_time|time:"g:i A" }}</span></div>
     <div class="flex justify-between"><span class="text-gray-500">Status</span><span class="font-medium">{{ appt.status }}</span></div>
   </div>
+  {% if appt.status == 'Pending Reschedule' %}
+  <div class="bg-purple-50 border border-purple-100 rounded-lg p-4 text-sm space-y-2">
+    <p class="font-semibold text-purple-900">Patient requested a reschedule</p>
+    <div class="flex justify-between"><span class="text-purple-500">Requested date</span><span class="font-medium text-purple-900">{{ appt.requested_date|date:"F j, Y" }}</span></div>
+    <div class="flex justify-between"><span class="text-purple-500">Requested time</span><span class="font-medium text-purple-900">{{ appt.requested_time|time:"g:i A" }}</span></div>
+    {% if appt.requested_reason %}
+    <p class="text-purple-700">{{ appt.requested_reason }}</p>
+    {% endif %}
+  </div>
+  {% endif %}
   <div>
     <p class="text-sm font-semibold text-gray-700 mb-1">Reason</p>
     <p class="text-sm text-gray-600">{{ appt.reason|default:"—" }}</p>
   </div>
   <div class="flex gap-3 pt-2">
+    {% if appt.status == 'Pending Reschedule' %}
+    <a hx-get="{% url 'secretary:reschedule_approve' pk=appt.pk %}" hx-target="#modal-root" hx-swap="innerHTML"
+       class="flex-1 text-center bg-purple-700 text-white font-bold py-3 rounded-lg hover:bg-purple-800 transition cursor-pointer">
+      Approve
+    </a>
+    <a hx-get="{% url 'secretary:reschedule_reject' pk=appt.pk %}" hx-target="#modal-root" hx-swap="innerHTML"
+       class="flex-1 text-center border border-gray-300 text-gray-700 font-bold py-3 rounded-lg hover:bg-gray-50 transition cursor-pointer">
+      Reject
+    </a>
+    {% else %}
     <button type="button" onclick="closeModal()" class="flex-1 border border-gray-300 text-gray-700 font-bold py-3 rounded-lg hover:bg-gray-50 transition">
       Close
     </button>
+    {% endif %}
   </div>
 </div>
 {% endblock %}

@@ -24,7 +24,7 @@ export type QuickAction = {
 
 export function QuickActions({ actions }: { actions: QuickAction[] }) {
 	return (
-		<Card className="animate-fade-up border-border/70 md:col-span-2" style={{ animationDelay: "320ms" }}>
+		<Card className="animate-fade-up border-border/70" style={{ animationDelay: "320ms" }}>
 			<CardHeader>
 				<CardTitle className="text-[#112E81]">Quick actions</CardTitle>
 				<CardDescription>Shortcuts to common tasks.</CardDescription>

@@ -103,7 +103,7 @@ export function TrendChart({
 	const idGrad = `trend-chart-grad-${chartUid}`;
 
 	return (
-		<Card className="rounded-none border-0 bg-background py-4 shadow-none ring-0 lg:col-span-3">
+		<Card className="animate-fade-up border-border/70 py-4 lg:col-span-3">
 			<CardHeader>
 				<div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
 					<div className="min-w-0 space-y-2">

@@ -33,12 +33,19 @@
             <td class="py-3">
               <span class="px-2 py-0.5 rounded-full text-xs font-semibold
                 {% if appt.status == 'Scheduled' %}bg-green-100 text-green-700
+                {% elif appt.status == 'Pending Reschedule' %}bg-purple-100 text-purple-700
                 {% else %}bg-yellow-100 text-yellow-700{% endif %}">
                 {{ appt.status }}
               </span>
+              {% if appt.status == 'Pending Reschedule' %}
+              <p class="text-[11px] text-purple-500 mt-1">Requested: {{ appt.requested_date|date:"M j" }} at {{ appt.requested_time|time:"g:i A" }}</p>
+              {% endif %}
             </td>
             <td class="py-3 text-gray-500">{{ appt.reason|truncatechars:40|default:"—" }}</td>
             <td class="py-3">
+              {% if appt.status == 'Pending Reschedule' %}
+              <p class="text-xs text-gray-400 italic">Awaiting secretary approval</p>
+              {% else %}
               <div class="flex gap-2">
                 <a hx-get="{% url 'patient:reschedule' pk=appt.pk %}" hx-target="#modal-root" hx-swap="innerHTML"
                    class="px-3 py-1 bg-blue-100 text-blue-700 rounded text-xs font-medium hover:bg-blue-200 transition cursor-pointer">
@@ -49,6 +56,7 @@
                   Cancel
                 </a>
               </div>
+              {% endif %}
             </td>
           </tr>
           {% endfor %}
@@ -65,6 +73,7 @@
           </a>
           <span class="shrink-0 px-2 py-0.5 rounded-full text-xs font-semibold
             {% if appt.status == 'Scheduled' %}bg-green-100 text-green-700
+            {% elif appt.status == 'Pending Reschedule' %}bg-purple-100 text-purple-700
             {% else %}bg-yellow-100 text-yellow-700{% endif %}">
             {{ appt.status }}
           </span>
@@ -73,7 +82,13 @@
           <div class="flex justify-between"><span class="text-gray-500">Date</span><span class="font-medium text-gray-800">{{ appt.appointment_date|date:"M j, Y" }}</span></div>
           <div class="flex justify-between"><span class="text-gray-500">Time</span><span class="font-medium text-gray-800">{{ appt.appointment_time|time:"g:i A" }}</span></div>
           <div class="flex justify-between gap-3"><span class="text-gray-500 shrink-0">Reason</span><span class="font-medium text-gray-800 text-right">{{ appt.reason|truncatechars:30|default:"—" }}</span></div>
+          {% if appt.status == 'Pending Reschedule' %}
+          <div class="flex justify-between gap-3 pt-1.5 border-t border-gray-200"><span class="text-purple-500 shrink-0">Requested</span><span class="font-semibold text-purple-700 text-right">{{ appt.requested_date|date:"M j, Y" }} · {{ appt.requested_time|time:"g:i A" }}</span></div>
+          {% endif %}
         </div>
+        {% if appt.status == 'Pending Reschedule' %}
+        <p class="mt-3 text-xs text-gray-400 italic text-center">Awaiting secretary approval</p>
+        {% else %}
         <div class="mt-3 flex gap-2">
           <a hx-get="{% url 'patient:reschedule' pk=appt.pk %}" hx-target="#modal-root" hx-swap="innerHTML"
              class="flex-1 text-center px-3 py-2 bg-blue-100 text-blue-700 rounded-lg text-xs font-medium hover:bg-blue-200 transition cursor-pointer">
@@ -84,6 +99,7 @@
             Cancel
           </a>
         </div>
+        {% endif %}
       </div>
       {% endfor %}
     </div>
@@ -105,6 +121,7 @@
             <th class="pb-3 font-semibold">Doctor</th>
             <th class="pb-3 font-semibold">Date</th>
             <th class="pb-3 font-semibold">Status</th>
+            <th class="pb-3 font-semibold">Result</th>
             <th class="pb-3 font-semibold">Feedback</th>
           </tr>
         </thead>
@@ -124,10 +141,17 @@
                 {{ appt.status }}
               </span>
             </td>
+            <td class="py-3 text-gray-500">
+              {% if appt.status == 'Completed' and appt.results.diagnosis %}
+              {{ appt.results.diagnosis|truncatechars:40 }}
+              {% elif appt.status == 'Completed' %}
+              <span class="text-gray-400 italic">Pending</span>
+              {% else %}—{% endif %}
+            </td>
             <td class="py-3">
               {% if appt.status == 'Completed' %}
-              <a href="/feedback/submit/{{ appt.pk }}/"
-                 class="text-blue-600 text-xs hover:underline">Leave feedback</a>
+              <a hx-get="{% url 'feedback:submit' appointment_id=appt.pk %}" hx-target="#modal-root" hx-swap="innerHTML"
+                 class="text-blue-600 text-xs hover:underline cursor-pointer">Leave feedback</a>
               {% else %}—{% endif %}
             </td>
           </tr>
@@ -149,12 +173,24 @@
             {{ appt.status }}
           </span>
         </div>
-        <div class="mt-3 flex items-center justify-between text-sm">
-          <span class="text-gray-500">{{ appt.appointment_date|date:"M j, Y" }}</span>
-          {% if appt.status == 'Completed' %}
-          <a href="/feedback/submit/{{ appt.pk }}/" class="text-blue-600 text-xs font-medium hover:underline">Leave feedback</a>
-          {% endif %}
+        <div class="mt-3 bg-gray-50 rounded-lg p-3 text-sm space-y-1.5">
+          <div class="flex justify-between"><span class="text-gray-500">Date</span><span class="font-medium text-gray-800">{{ appt.appointment_date|date:"M j, Y" }}</span></div>
+          <div class="flex justify-between gap-3"><span class="text-gray-500 shrink-0">Result</span>
+            <span class="font-medium text-gray-800 text-right">
+              {% if appt.status == 'Completed' and appt.results.diagnosis %}
+              {{ appt.results.diagnosis|truncatechars:30 }}
+              {% elif appt.status == 'Completed' %}
+              <span class="text-gray-400 italic">Pending</span>
+              {% else %}—{% endif %}
+            </span>
+          </div>
         </div>
+        {% if appt.status == 'Completed' %}
+        <div class="mt-3 flex justify-end">
+          <a hx-get="{% url 'feedback:submit' appointment_id=appt.pk %}" hx-target="#modal-root" hx-swap="innerHTML"
+             class="text-blue-600 text-xs font-medium hover:underline cursor-pointer">Leave feedback</a>
+        </div>
+        {% endif %}
       </div>
       {% endfor %}
     </div>

@@ -88,6 +88,7 @@ export interface QuickActionItem {
 }
 
 export interface DashboardData {
+  userName?: string;
   stats: DashboardStat[];
   trend?: TrendPoint[];
   trendLabel?: string;

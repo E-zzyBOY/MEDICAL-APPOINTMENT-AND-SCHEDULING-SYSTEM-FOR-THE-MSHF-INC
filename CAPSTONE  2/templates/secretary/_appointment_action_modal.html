@@ -28,7 +28,10 @@
               <span class="font-medium">{{ appointment.appointment_time|time:"g:i A" }}</span>
             </div>
           </div>
-          <form method="post" class="space-y-4">
+          <form method="post"
+                hx-post="{% if action == 'approve' %}{% url 'secretary:appointment_approve' pk=appointment.pk %}{% else %}{% url 'secretary:appointment_cancel' pk=appointment.pk %}{% endif %}"
+                hx-target="#modal-root" hx-swap="innerHTML"
+                class="space-y-4">
             {% csrf_token %}
             {% if action == 'cancel' %}
             <div>

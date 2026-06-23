@@ -1,0 +1,83 @@
+{% extends "components/modal.html" %}
+{% block modal_content %}
+<div class="text-center">
+  <p class="font-semibold text-gray-800">Dr. {{ appointment.doctor.get_full_name }}</p>
+  <p class="text-sm text-gray-400">{{ appointment.appointment_date|date:"F j, Y" }} at {{ appointment.appointment_time|time:"g:i A" }}</p>
+</div>
+
+<form method="post" action="{% url 'feedback:submit' appointment_id=appointment.pk %}"
+      hx-post="{% url 'feedback:submit' appointment_id=appointment.pk %}"
+      hx-target="#modal-root" hx-swap="innerHTML"
+      class="mt-5 space-y-5">
+  {% csrf_token %}
+
+  <!-- Play Store-style star rating -->
+  <div class="flex flex-col items-center gap-2">
+    <div id="feedback-star-rating" class="flex flex-row-reverse gap-1">
+      {% for choice in form.rating reversed %}
+      <label class="star-radio-label cursor-pointer">
+        {{ choice.tag }}
+        <svg class="star-icon w-10 h-10 text-gray-200 transition-colors" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+          <path d="M12 2.5l2.95 6.46 7.05.78-5.25 4.78 1.5 6.98L12 17.77l-6.25 3.73 1.5-6.98L2 9.74l7.05-.78L12 2.5z"/>
+        </svg>
+      </label>
+      {% endfor %}
+    </div>
+    <p id="feedback-star-label" class="text-sm font-medium text-gray-400 h-5">Tap a star to rate</p>
+    {% if form.rating.errors %}<p class="text-red-600 text-xs">{{ form.rating.errors.0 }}</p>{% endif %}
+  </div>
+
+  <div>
+    <label class="block text-sm font-semibold text-gray-700 mb-2">{{ form.comment.label }}</label>
+    {{ form.comment }}
+    {% if form.comment.errors %}<p class="text-red-600 text-xs mt-1">{{ form.comment.errors.0 }}</p>{% endif %}
+  </div>
+
+  <div class="flex gap-3 pt-1">
+    <button type="submit" class="flex-1 bg-blue-700 text-white font-bold py-3 rounded-lg hover:bg-blue-800 transition">
+      Submit Feedback
+    </button>
+    <button type="button" onclick="closeModal()" class="flex-1 border border-gray-300 text-gray-700 font-bold py-3 rounded-lg hover:bg-gray-50 transition">
+      Skip
+    </button>
+  </div>
+</form>
+
+<style>
+  /* Play Store-style stars: hide the native radio, use sibling selectors so
+     checking/hovering a star fills it and every star after it in DOM order.
+     The choices are looped in reverse (star 5 first in markup, star 1 last)
+     and the row uses flex-row-reverse to flip the visual order back to
+     1→5 left-to-right. That combination makes "this star's label and every
+     later DOM sibling label" equal "this star and every star to its visual
+     left" — i.e. checking star 3 fills stars 1, 2, and 3.
+     :has() targets the checked star's own icon; the sibling combinator
+     reaches every label that comes after it in markup (= every lower-
+     numbered, visually-earlier star) to fill those too. */
+  #feedback-star-rating .star-radio-label input { position: absolute; opacity: 0; width: 0; height: 0; }
+  #feedback-star-rating .star-radio-label:has(input:checked) .star-icon,
+  #feedback-star-rating .star-radio-label:has(input:checked) ~ .star-radio-label .star-icon,
+  #feedback-star-rating .star-radio-label:hover .star-icon,
+  #feedback-star-rating .star-radio-label:hover ~ .star-radio-label .star-icon {
+    color: #FBC02D;
+  }
+  #feedback-star-rating .star-radio-label:has(input:checked) .star-icon {
+    transform: scale(1.08);
+  }
+</style>
+
+<script>
+  (function () {
+    var labels = ['', 'Poor', 'Fair', 'Good', 'Very Good', 'Excellent'];
+    var container = document.getElementById('feedback-star-rating');
+    var caption = document.getElementById('feedback-star-label');
+    if (!container || !caption) return;
+    var inputs = container.querySelectorAll('input[type="radio"]');
+    inputs.forEach(function (input) {
+      input.addEventListener('change', function () {
+        caption.textContent = labels[Number(input.value)] || '';
+      });
+    });
+  })();
+</script>
+{% endblock %}

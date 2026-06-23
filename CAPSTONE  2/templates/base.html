@@ -229,6 +229,49 @@
         }
       }
     });
+
+    // Mobile account bottom sheet — same backdrop-click/Escape pattern as the
+    // nav drawer above, but slides up from the bottom instead of in from the side.
+    function openAccountSheet() {
+      const sheet = document.getElementById('account-sheet');
+      const backdrop = document.getElementById('account-sheet-backdrop');
+      const panel = document.getElementById('account-sheet-panel');
+      if (!sheet || !backdrop || !panel) return;
+      sheet.classList.remove('pointer-events-none');
+      sheet.setAttribute('aria-hidden', 'false');
+      backdrop.classList.add('opacity-100');
+      panel.classList.remove('translate-y-full');
+      document.body.classList.add('overflow-hidden');
+    }
+
+    function closeAccountSheet() {
+      const sheet = document.getElementById('account-sheet');
+      const backdrop = document.getElementById('account-sheet-backdrop');
+      const panel = document.getElementById('account-sheet-panel');
+      if (!sheet || !backdrop || !panel) return;
+      backdrop.classList.remove('opacity-100');
+      panel.classList.add('translate-y-full');
+      document.body.classList.remove('overflow-hidden');
+      setTimeout(() => {
+        sheet.classList.add('pointer-events-none');
+        sheet.setAttribute('aria-hidden', 'true');
+      }, 300);
+    }
+
+    document.addEventListener('click', function(event) {
+      if (event.target.id === 'account-sheet-backdrop') {
+        closeAccountSheet();
+      }
+    });
+
+    document.addEventListener('keydown', function(event) {
+      if (event.key === 'Escape') {
+        const panel = document.getElementById('account-sheet-panel');
+        if (panel && !panel.classList.contains('translate-y-full')) {
+          closeAccountSheet();
+        }
+      }
+    });
   </script>
 </body>
 </html>

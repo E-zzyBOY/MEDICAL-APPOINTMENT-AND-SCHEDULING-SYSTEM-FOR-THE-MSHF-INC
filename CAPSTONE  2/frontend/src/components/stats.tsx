@@ -12,8 +12,8 @@ import type { DashboardStat } from "@/types";
 export function DashboardStats({ stats }: { stats: DashboardStat[] }) {
 	return (
 		<>
-			{stats.map((s) => (
-				<StatCard key={s.label} stat={s} />
+			{stats.map((s, i) => (
+				<StatCard key={s.label} stat={s} style={{ animationDelay: `${i * 60}ms` }} />
 			))}
 		</>
 	);
@@ -28,7 +28,7 @@ function StatCard({
 	const displayValue = value ?? "—";
 	return (
 		<Card
-			className={cn("rounded-none bg-background shadow-none ring-0", className)}
+			className={cn("animate-fade-up border-border/70", className)}
 			{...props}
 		>
 			<CardHeader className="flex flex-row items-center justify-between">
@@ -42,7 +42,7 @@ function StatCard({
 				)}
 			</CardHeader>
 			<CardContent className="flex flex-row items-center gap-2">
-				<p className="font-medium text-xl tabular-nums">{displayValue}</p>
+				<p className="font-semibold text-2xl tabular-nums text-[#112E81]">{displayValue}</p>
 			</CardContent>
 		</Card>
 	);

@@ -25,10 +25,11 @@ class Schedule(models.Model):
 
 class Appointment(models.Model):
     STATUS_CHOICES = [
-        ('Scheduled',   'Scheduled'),
-        ('Completed',   'Completed'),
-        ('Cancelled',   'Cancelled'),
-        ('Rescheduled', 'Rescheduled'),
+        ('Scheduled',           'Scheduled'),
+        ('Completed',           'Completed'),
+        ('Cancelled',           'Cancelled'),
+        ('Rescheduled',         'Rescheduled'),
+        ('Pending Reschedule',  'Pending Reschedule'),
     ]
     patient          = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
@@ -47,6 +48,14 @@ class Appointment(models.Model):
     appointment_time = models.TimeField()
     status           = models.CharField(max_length=20, choices=STATUS_CHOICES, default='Scheduled')
     reason           = models.TextField(blank=True)
+
+    # When a patient requests a reschedule, the original date/time/reason stay
+    # untouched (status flips to 'Pending Reschedule') and the requested new
+    # values are held here until the secretary approves or rejects the request.
+    requested_date   = models.DateField(null=True, blank=True)
+    requested_time   = models.TimeField(null=True, blank=True)
+    requested_reason = models.TextField(blank=True)
+
     created_at       = models.DateTimeField(auto_now_add=True)
     updated_at       = models.DateTimeField(auto_now=True)
 

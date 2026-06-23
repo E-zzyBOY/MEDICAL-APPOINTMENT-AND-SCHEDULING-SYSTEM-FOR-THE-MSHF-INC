@@ -13,8 +13,8 @@
           <p class="font-medium text-gray-800">Dr. {{ appt.doctor.get_full_name }}</p>
           <p class="text-sm text-gray-500">{{ appt.appointment_date|date:"F j, Y" }}</p>
         </div>
-        <a href="/feedback/submit/{{ appt.pk }}/"
-           class="px-4 py-1.5 bg-yellow-400 text-yellow-900 text-sm font-semibold rounded-lg hover:bg-yellow-500 transition">
+        <a hx-get="{% url 'feedback:submit' appointment_id=appt.pk %}" hx-target="#modal-root" hx-swap="innerHTML"
+           class="px-4 py-1.5 bg-yellow-400 text-yellow-900 text-sm font-semibold rounded-lg hover:bg-yellow-500 transition cursor-pointer">
           Rate this visit
         </a>
       </div>

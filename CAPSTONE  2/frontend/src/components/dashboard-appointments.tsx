@@ -111,6 +111,12 @@ export function DashboardAppointments({
 												"border-border text-foreground"
 											}
 										>
+											{r.status === "Pending Reschedule" && (
+												<span className="relative mr-1.5 flex size-1.5">
+													<span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-purple-400 opacity-75" />
+													<span className="relative inline-flex size-1.5 rounded-full bg-purple-500" />
+												</span>
+											)}
 											{r.status}
 										</Badge>
 									</TableCell>

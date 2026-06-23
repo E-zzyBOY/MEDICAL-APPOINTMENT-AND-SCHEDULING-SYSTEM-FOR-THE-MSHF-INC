@@ -1,25 +1,41 @@
+{% comment %}
+Returned when a calendar day is clicked. Re-renders the calendar widget
+out-of-band (hx-swap-oob) so the newly picked day gets highlighted there,
+while the actual hx-target (#slot-grid) gets the time-slot list below.
+On the very first page/modal load, the calendar is already rendered
+directly by the including template, so this OOB copy is skipped then.
+{% endcomment %}
+{% if oob_calendar %}
+{% include "patient/_calendar_widget_fragment.html" with oob=True %}
+{% endif %}
+
 {% if error %}
 <div class="bg-red-50 border border-red-200 text-red-700 rounded-lg p-3 text-sm mb-4">{{ error }}</div>
 {% endif %}
 
 {% if slots %}
-<h3 class="text-sm font-semibold text-gray-700 mb-3">Available Time Slots on {{ selected_date }}</h3>
+<h3 class="text-sm font-semibold text-gray-700 mb-3">
+  Time Slots on {{ selected_date_display }}
+</h3>
 <div class="grid grid-cols-3 sm:grid-cols-4 gap-2">
   {% for slot in slots %}
     {% if slot.available %}
     <a hx-get="{% url 'patient:book_confirm' %}?doctor_id={{ doctor.pk }}&appointment_date={{ selected_date }}&appointment_time={{ slot.time|time:'H:i:s' }}"
        hx-target="#modal-root" hx-swap="innerHTML"
-       class="text-center py-2 px-3 border-2 border-blue-300 text-blue-700 rounded-lg text-sm font-medium hover:bg-blue-600 hover:text-white hover:border-blue-600 transition cursor-pointer">
+       class="text-center py-2 px-3 bg-green-100 border-2 border-green-200 text-green-700 rounded-lg text-sm font-semibold hover:bg-green-600 hover:text-white hover:border-green-600 transition cursor-pointer">
       {{ slot.time|time:"g:i A" }}
     </a>
     {% else %}
-    <span class="text-center py-2 px-3 bg-gray-100 text-gray-400 rounded-lg text-sm line-through cursor-not-allowed">
+    <span class="text-center py-2 px-3 bg-red-50 border-2 border-red-100 text-red-300 rounded-lg text-sm font-medium line-through cursor-not-allowed">
       {{ slot.time|time:"g:i A" }}
     </span>
     {% endif %}
   {% endfor %}
 </div>
-<p class="text-xs text-gray-400 mt-3">Strikethrough slots are already booked.</p>
+<div class="flex items-center gap-4 mt-3 text-[11px] text-gray-500">
+  <span class="flex items-center gap-1.5"><span class="size-2.5 rounded-full bg-green-400"></span> Open</span>
+  <span class="flex items-center gap-1.5"><span class="size-2.5 rounded-full bg-red-200"></span> Occupied</span>
+</div>
 {% elif selected_date and not error %}
 <p class="text-gray-400 text-center py-6">No time slots found. Try a different date.</p>
 {% endif %}

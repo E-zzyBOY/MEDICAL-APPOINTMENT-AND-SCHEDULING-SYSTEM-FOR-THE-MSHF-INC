@@ -3,6 +3,7 @@ from django.contrib import messages
 from django.db import transaction
 from django.http import JsonResponse
 from datetime import date, datetime, timedelta
+import calendar as calendar_module
 from accounts.decorators import role_required
 from appointments.models import Appointment, Schedule
 from accounts.models import CustomUser
@@ -14,6 +15,75 @@ from notifications.models import Notification
 
 def _notify(user, message):
     Notification.objects.create(user=user, message=message)
+
+
+def _compute_month_availability(doctor, year, month):
+    """Build a day-by-day availability map for one calendar month, used to
+    color the booking calendar green (open slots), red (no schedule that
+    weekday, or every slot already booked), or past (unselectable).
+
+    Returns a list of week rows; each cell is either None (padding outside
+    the month) or a dict: {day, date, status} where status is one of
+    'available', 'unavailable', 'past'.
+    """
+    today = date.today()
+
+    # Which weekdays does this doctor work, and how many 30-min slots does
+    # each of those weekdays offer in total (across all schedule blocks)?
+    schedule_blocks = list(Schedule.objects.filter(doctor=doctor))
+    slots_per_weekday = {}
+    for block in schedule_blocks:
+        count = 0
+        current = datetime.combine(date.today(), block.start_time)
+        end     = datetime.combine(date.today(), block.end_time)
+        while current < end:
+            count += 1
+            current += timedelta(minutes=30)
+        slots_per_weekday[block.day_of_week] = slots_per_weekday.get(block.day_of_week, 0) + count
+    working_weekdays = set(slots_per_weekday.keys())
+
+    first_weekday, days_in_month = calendar_module.monthrange(year, month)
+    month_start = date(year, month, 1)
+    month_end   = date(year, month, days_in_month)
+
+    # One query for every booked slot this month, bucketed by date, instead
+    # of a separate query per day.
+    booked_counts = {}
+    if working_weekdays:
+        booked_rows = (
+            Appointment.objects.filter(
+                doctor=doctor,
+                appointment_date__gte=month_start,
+                appointment_date__lte=month_end,
+                status__in=['Scheduled', 'Rescheduled'],
+            )
+            .values_list('appointment_date', flat=True)
+        )
+        for d in booked_rows:
+            booked_counts[d] = booked_counts.get(d, 0) + 1
+
+    weeks = []
+    week = [None] * first_weekday
+    for day_num in range(1, days_in_month + 1):
+        current_date = date(year, month, day_num)
+        weekday = current_date.weekday()
+        if current_date < today:
+            status = 'past'
+        elif weekday not in working_weekdays:
+            status = 'unavailable'
+        elif booked_counts.get(current_date, 0) >= slots_per_weekday[weekday]:
+            status = 'unavailable'
+        else:
+            status = 'available'
+        week.append({'day': day_num, 'date': current_date.isoformat(), 'status': status})
+        if len(week) == 7:
+            weeks.append(week)
+            week = []
+    if week:
+        week += [None] * (7 - len(week))
+        weeks.append(week)
+
+    return weeks
 
 
 def _build_patient_dashboard_data(request):
@@ -111,6 +181,21 @@ def doctor_profile_view(request, doctor_id):
     })
 
 
+def _format_date_str(selected_date_str):
+    """Safely turn a 'YYYY-MM-DD' string into a display-friendly date, e.g.
+    'Jun 29, 2026'. Django's |date template filter can't parse plain
+    strings, so this is done in Python before reaching the template.
+    Avoids the '%-d' / '%e' no-leading-zero strftime extensions since
+    they aren't supported on Windows, which this project also runs on."""
+    if not selected_date_str:
+        return ''
+    try:
+        d = datetime.strptime(selected_date_str, '%Y-%m-%d').date()
+        return f"{d.strftime('%b')} {d.day}, {d.year}"
+    except ValueError:
+        return selected_date_str
+
+
 def _compute_slots(doctor, selected_date_str):
     slots = []
     error = None
@@ -147,18 +232,47 @@ def _compute_slots(doctor, selected_date_str):
     return slots, error, selected_date_str
 
 
+def _resolve_calendar_month(request, selected_date_str):
+    """Decide which year/month the calendar grid should show: an explicit
+    ?year=&month= from month-navigation clicks takes priority, then the
+    month containing the currently selected date, then today's month."""
+    year_param  = request.GET.get('year')
+    month_param = request.GET.get('month')
+    if year_param and month_param:
+        try:
+            return int(year_param), int(month_param)
+        except ValueError:
+            pass
+    if selected_date_str:
+        try:
+            d = datetime.strptime(selected_date_str, '%Y-%m-%d').date()
+            return d.year, d.month
+        except ValueError:
+            pass
+    today = date.today()
+    return today.year, today.month
+
+
 @role_required('patient')
 def book_step2_slots(request, doctor_id):
     doctor = get_object_or_404(CustomUser, pk=doctor_id, role='doctor')
     selected_date_str = request.GET.get('date', '')
     slots, error, selected_date_str = _compute_slots(doctor, selected_date_str)
+    year, month = _resolve_calendar_month(request, selected_date_str)
+    calendar_weeks = _compute_month_availability(doctor, year, month)
 
     context = {
         'doctor': doctor,
         'slots': slots,
         'selected_date': selected_date_str,
+        'selected_date_display': _format_date_str(selected_date_str),
         'error': error,
         'title': 'Choose a Time Slot',
+        'calendar_weeks': calendar_weeks,
+        'calendar_year': year,
+        'calendar_month': month,
+        'calendar_month_name': calendar_module.month_name[month],
+        'today_iso': date.today().isoformat(),
     }
     if request.htmx:
         return render(request, 'patient/_book_step2_modal.html', context)
@@ -170,8 +284,36 @@ def book_step2_slots_partial(request, doctor_id):
     doctor = get_object_or_404(CustomUser, pk=doctor_id, role='doctor')
     selected_date_str = request.GET.get('date', '')
     slots, error, selected_date_str = _compute_slots(doctor, selected_date_str)
+    year, month = _resolve_calendar_month(request, selected_date_str)
+    calendar_weeks = _compute_month_availability(doctor, year, month)
     return render(request, 'patient/_slot_grid_fragment.html', {
-        'doctor': doctor, 'slots': slots, 'selected_date': selected_date_str, 'error': error,
+        'doctor': doctor, 'slots': slots, 'selected_date': selected_date_str,
+        'selected_date_display': _format_date_str(selected_date_str),
+        'error': error,
+        'calendar_weeks': calendar_weeks,
+        'calendar_year': year,
+        'calendar_month': month,
+        'calendar_month_name': calendar_module.month_name[month],
+        'today_iso': date.today().isoformat(),
+        'oob_calendar': True,
+    })
+
+
+@role_required('patient')
+def book_step2_calendar_partial(request, doctor_id):
+    """Re-renders just the calendar grid when the patient clicks the prev/next
+    month arrows, without touching the (now stale) time-slot grid below it."""
+    doctor = get_object_or_404(CustomUser, pk=doctor_id, role='doctor')
+    year, month = _resolve_calendar_month(request, '')
+    calendar_weeks = _compute_month_availability(doctor, year, month)
+    return render(request, 'patient/_calendar_widget_fragment.html', {
+        'doctor': doctor,
+        'calendar_weeks': calendar_weeks,
+        'calendar_year': year,
+        'calendar_month': month,
+        'calendar_month_name': calendar_module.month_name[month],
+        'today_iso': date.today().isoformat(),
+        'selected_date': request.GET.get('selected_date', ''),
     })
 
 

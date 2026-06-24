@@ -176,9 +176,10 @@ def book_step1(request):
 def doctor_profile_view(request, doctor_id):
     doctor = get_object_or_404(CustomUser, pk=doctor_id, role='doctor')
     schedules = Schedule.objects.filter(doctor=doctor).order_by('day_of_week', 'start_time')
-    return render(request, 'patient/doctor_profile.html', {
-        'doctor': doctor, 'schedules': schedules
-    })
+    context = {'doctor': doctor, 'schedules': schedules, 'title': 'Doctor Profile'}
+    if request.htmx:
+        return render(request, 'patient/_doctor_profile_modal.html', context)
+    return render(request, 'patient/doctor_profile.html', context)
 
 
 def _format_date_str(selected_date_str):

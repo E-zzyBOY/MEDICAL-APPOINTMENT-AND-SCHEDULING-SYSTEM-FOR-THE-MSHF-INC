@@ -26,7 +26,7 @@
         <p class="font-bold text-gray-800">Dr. {{ doctor.get_full_name }}</p>
         <p class="text-sm text-gray-500">{% if doctor.doctor_profile.specialization %}{{ doctor.doctor_profile.specialization }}{% endif %}</p>
       </div>
-      <a href="/patient/doctors/{{ doctor.pk }}/" class="ml-auto text-sm text-blue-700 hover:underline">View Profile</a>
+      <a hx-get="{% url 'patient:doctor_profile' doctor_id=doctor.pk %}" hx-target="#modal-root" hx-swap="innerHTML" class="ml-auto text-sm text-blue-700 hover:underline cursor-pointer">View Profile</a>
     </div>
 
     <!-- Date picker -->

@@ -19,12 +19,15 @@ def _build_doctor_dashboard_data(request):
     today_appts = Appointment.objects.filter(
         doctor=request.user,
         appointment_date=date.today(),
-        status__in=['Scheduled', 'Rescheduled']
+        status__in=['Scheduled', 'Rescheduled', 'Pending Reschedule']
     ).select_related('patient').order_by('appointment_time')
     upcoming = Appointment.objects.filter(
         doctor=request.user,
         appointment_date__gt=date.today(),
         status__in=['Scheduled', 'Rescheduled']
+    ).count()
+    pending_reschedules = Appointment.objects.filter(
+        doctor=request.user, status='Pending Reschedule'
     ).count()
 
     trend_start = date.today() - timedelta(days=29)
@@ -44,6 +47,7 @@ def _build_doctor_dashboard_data(request):
         'stats': [
             {'label': "Today's Appointments", 'value': today_appts.count()},
             {'label': 'Upcoming Appointments', 'value': upcoming},
+            {'label': 'Pending Reschedules', 'value': pending_reschedules},
         ],
         'trend': trend,
         'trendLabel': 'Appointments',
@@ -226,6 +230,85 @@ def appointment_decline(request, pk):
     return render(request, 'doctor/appointment_confirm_action.html', {
         'appointment': appt, 'action': 'decline'
     })
+
+
+@role_required('doctor')
+def appointment_reschedule_approve(request, pk):
+    """Doctor approves a patient's pending reschedule request: the new
+    date/time become the appointment's actual date/time and the status
+    returns to 'Rescheduled' (so the patient sees it reflected as such)."""
+    from django.db import transaction
+    appt = get_object_or_404(Appointment, pk=pk, status='Pending Reschedule', doctor=request.user)
+    if request.method == 'POST':
+        with transaction.atomic():
+            conflict = Appointment.objects.select_for_update().filter(
+                doctor=appt.doctor,
+                appointment_date=appt.requested_date,
+                appointment_time=appt.requested_time,
+                status__in=['Scheduled', 'Rescheduled']
+            ).exclude(pk=appt.pk).exists()
+            if conflict:
+                messages.error(request, 'That slot has since been taken. Ask the patient to choose another time.')
+                if request.htmx:
+                    return render(request, 'doctor/_reschedule_action_modal.html', {'appointment': appt, 'action': 'approve'})
+                return render(request, 'doctor/reschedule_confirm_action.html', {'appointment': appt, 'action': 'approve'})
+
+            appt.appointment_date    = appt.requested_date
+            appt.appointment_time    = appt.requested_time
+            if appt.requested_reason:
+                appt.reason = appt.requested_reason
+            appt.requested_date      = None
+            appt.requested_time      = None
+            appt.requested_reason    = ''
+            appt.status              = 'Rescheduled'
+            appt.save()
+
+        try:
+            send_reschedule_email(appt)
+        except Exception:
+            pass
+        _notify(appt.patient,
+                f"Dr. {appt.doctor.get_full_name()} approved your reschedule request. New schedule: "
+                f"{appt.appointment_date.strftime('%B %d, %Y')} at {appt.appointment_time.strftime('%I:%M %p')}.")
+        messages.success(request, 'Reschedule approved and patient notified.')
+        if request.htmx:
+            response = render(request, 'doctor/_reschedule_action_modal.html', {'appointment': appt, 'action': 'approve'})
+            response['HX-Redirect'] = '/doctor/appointments/'
+            return response
+        return redirect('doctor:appointment_list')
+    if request.htmx:
+        return render(request, 'doctor/_reschedule_action_modal.html', {'appointment': appt, 'action': 'approve'})
+    return render(request, 'doctor/reschedule_confirm_action.html', {'appointment': appt, 'action': 'approve'})
+
+
+@role_required('doctor')
+def appointment_reschedule_reject(request, pk):
+    """Doctor rejects a patient's pending reschedule request: the
+    appointment reverts to its original date/time/status, unchanged."""
+    appt = get_object_or_404(Appointment, pk=pk, status='Pending Reschedule', doctor=request.user)
+    if request.method == 'POST':
+        reason = request.POST.get('reason', '')
+        requested_date = appt.requested_date
+        requested_time = appt.requested_time
+        appt.requested_date   = None
+        appt.requested_time   = None
+        appt.requested_reason = ''
+        appt.status           = 'Scheduled'
+        appt.save()
+        _notify(appt.patient,
+                f"Dr. {appt.doctor.get_full_name()} declined your request to reschedule your appointment to "
+                f"{requested_date.strftime('%B %d, %Y') if requested_date else ''}. "
+                f"{('Reason: ' + reason) if reason else ''} Your original appointment on "
+                f"{appt.appointment_date.strftime('%B %d, %Y')} at {appt.appointment_time.strftime('%I:%M %p')} stays as is.")
+        messages.success(request, 'Reschedule request declined. Patient notified, original appointment kept.')
+        if request.htmx:
+            response = render(request, 'doctor/_reschedule_action_modal.html', {'appointment': appt, 'action': 'reject'})
+            response['HX-Redirect'] = '/doctor/appointments/'
+            return response
+        return redirect('doctor:appointment_list')
+    if request.htmx:
+        return render(request, 'doctor/_reschedule_action_modal.html', {'appointment': appt, 'action': 'reject'})
+    return render(request, 'doctor/reschedule_confirm_action.html', {'appointment': appt, 'action': 'reject'})
 
 
 @role_required('doctor')

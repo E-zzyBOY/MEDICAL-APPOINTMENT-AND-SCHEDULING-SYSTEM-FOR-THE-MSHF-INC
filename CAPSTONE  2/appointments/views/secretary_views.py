@@ -1,12 +1,11 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.http import JsonResponse
-from django.db import transaction
 from datetime import date
 from accounts.decorators import role_required
 from appointments.models import Appointment, Schedule
 from accounts.models import CustomUser, PatientProfile
-from notifications.email_utils import send_cancellation_email, send_reschedule_email
+from notifications.email_utils import send_cancellation_email
 from notifications.models import Notification
 
 
@@ -27,14 +26,10 @@ def _build_secretary_dashboard_data(request):
         status__in=['Scheduled', 'Rescheduled', 'Pending Reschedule']
     ).select_related('patient', 'doctor').order_by('appointment_time') if doctor else Appointment.objects.none()
     total_today = today_appts.count()
-    pending_reschedules = Appointment.objects.filter(
-        doctor=doctor, status='Pending Reschedule'
-    ).count() if doctor else 0
 
     return {
         'stats': [
             {'label': "Today's Appointments", 'value': total_today},
-            {'label': 'Pending Reschedules', 'value': pending_reschedules},
         ],
         'appointmentsTitle': "Today's Appointments",
         'appointmentsHref': '/secretary/appointments/',
@@ -50,7 +45,6 @@ def _build_secretary_dashboard_data(request):
         ],
         'quickActions': [
             {'title': 'Appointments', 'description': 'Approve or cancel requests', 'href': '/secretary/appointments/'},
-            {'title': 'Reschedule Requests', 'description': 'Review pending patient requests', 'href': '/secretary/appointments/?status=Pending+Reschedule'},
             {'title': 'Walk-In Registration', 'description': 'Register a walk-in patient', 'href': '/secretary/walk-in/register/'},
             {'title': 'Doctor Profile', 'description': "View your doctor's info & availability", 'href': '/secretary/schedules/'},
             {'title': 'Patients', 'description': 'View patient list', 'href': '/secretary/patients/'},
@@ -145,88 +139,6 @@ def appointment_cancel(request, pk):
     return render(request, 'secretary/appointment_confirm_action.html', {
         'appointment': appt, 'action': 'cancel'
     })
-
-
-@role_required('secretary')
-def reschedule_approve(request, pk):
-    """Secretary approves a patient's pending reschedule request: the new
-    date/time become the appointment's actual date/time and the status
-    returns to 'Rescheduled' (so the patient sees it reflected as such)."""
-    doctor = _assigned_doctor(request.user)
-    appt = get_object_or_404(Appointment, pk=pk, status='Pending Reschedule', doctor=doctor)
-    if request.method == 'POST':
-        with transaction.atomic():
-            conflict = Appointment.objects.select_for_update().filter(
-                doctor=appt.doctor,
-                appointment_date=appt.requested_date,
-                appointment_time=appt.requested_time,
-                status__in=['Scheduled', 'Rescheduled']
-            ).exclude(pk=appt.pk).exists()
-            if conflict:
-                messages.error(request, 'That slot has since been taken. Ask the patient to choose another time.')
-                if request.htmx:
-                    return render(request, 'secretary/_reschedule_action_modal.html', {'appointment': appt, 'action': 'approve'})
-                return render(request, 'secretary/reschedule_confirm_action.html', {'appointment': appt, 'action': 'approve'})
-
-            appt.appointment_date    = appt.requested_date
-            appt.appointment_time    = appt.requested_time
-            if appt.requested_reason:
-                appt.reason = appt.requested_reason
-            appt.requested_date      = None
-            appt.requested_time      = None
-            appt.requested_reason    = ''
-            appt.status              = 'Rescheduled'
-            appt.secretary           = request.user
-            appt.save()
-
-        try:
-            send_reschedule_email(appt)
-        except Exception:
-            pass
-        _notify(appt.patient,
-                f"Your reschedule request with Dr. {appt.doctor.get_full_name()} was approved. New schedule: "
-                f"{appt.appointment_date.strftime('%B %d, %Y')} at {appt.appointment_time.strftime('%I:%M %p')}.")
-        messages.success(request, 'Reschedule approved and patient notified.')
-        if request.htmx:
-            response = render(request, 'secretary/_reschedule_action_modal.html', {'appointment': appt, 'action': 'approve'})
-            response['HX-Redirect'] = '/secretary/appointments/'
-            return response
-        return redirect('secretary:appointment_list')
-    if request.htmx:
-        return render(request, 'secretary/_reschedule_action_modal.html', {'appointment': appt, 'action': 'approve'})
-    return render(request, 'secretary/reschedule_confirm_action.html', {'appointment': appt, 'action': 'approve'})
-
-
-@role_required('secretary')
-def reschedule_reject(request, pk):
-    """Secretary rejects a patient's pending reschedule request: the
-    appointment reverts to its original date/time/status, unchanged."""
-    doctor = _assigned_doctor(request.user)
-    appt = get_object_or_404(Appointment, pk=pk, status='Pending Reschedule', doctor=doctor)
-    if request.method == 'POST':
-        reason = request.POST.get('reason', '')
-        requested_date = appt.requested_date
-        requested_time = appt.requested_time
-        appt.requested_date   = None
-        appt.requested_time   = None
-        appt.requested_reason = ''
-        appt.status           = 'Scheduled'
-        appt.secretary         = request.user
-        appt.save()
-        _notify(appt.patient,
-                f"Your request to reschedule your appointment with Dr. {appt.doctor.get_full_name()} to "
-                f"{requested_date.strftime('%B %d, %Y') if requested_date else ''} was declined by the secretary. "
-                f"{('Reason: ' + reason) if reason else ''} Your original appointment on "
-                f"{appt.appointment_date.strftime('%B %d, %Y')} at {appt.appointment_time.strftime('%I:%M %p')} stays as is.")
-        messages.success(request, 'Reschedule request declined. Patient notified, original appointment kept.')
-        if request.htmx:
-            response = render(request, 'secretary/_reschedule_action_modal.html', {'appointment': appt, 'action': 'reject'})
-            response['HX-Redirect'] = '/secretary/appointments/'
-            return response
-        return redirect('secretary:appointment_list')
-    if request.htmx:
-        return render(request, 'secretary/_reschedule_action_modal.html', {'appointment': appt, 'action': 'reject'})
-    return render(request, 'secretary/reschedule_confirm_action.html', {'appointment': appt, 'action': 'reject'})
 
 
 @role_required('secretary')

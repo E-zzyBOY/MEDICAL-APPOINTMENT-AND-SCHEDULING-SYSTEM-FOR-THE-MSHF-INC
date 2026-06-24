@@ -43,20 +43,9 @@
     <p class="text-sm text-gray-600">{{ appt.reason|default:"—" }}</p>
   </div>
   <div class="flex gap-3 pt-2">
-    {% if appt.status == 'Pending Reschedule' %}
-    <a hx-get="{% url 'secretary:reschedule_approve' pk=appt.pk %}" hx-target="#modal-root" hx-swap="innerHTML"
-       class="flex-1 text-center bg-purple-700 text-white font-bold py-3 rounded-lg hover:bg-purple-800 transition cursor-pointer">
-      Approve
-    </a>
-    <a hx-get="{% url 'secretary:reschedule_reject' pk=appt.pk %}" hx-target="#modal-root" hx-swap="innerHTML"
-       class="flex-1 text-center border border-gray-300 text-gray-700 font-bold py-3 rounded-lg hover:bg-gray-50 transition cursor-pointer">
-      Reject
-    </a>
-    {% else %}
     <button type="button" onclick="closeModal()" class="flex-1 border border-gray-300 text-gray-700 font-bold py-3 rounded-lg hover:bg-gray-50 transition">
       Close
     </button>
-    {% endif %}
   </div>
 </div>
 {% endblock %}

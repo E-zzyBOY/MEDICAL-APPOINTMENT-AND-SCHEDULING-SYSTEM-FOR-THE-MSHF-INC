@@ -104,7 +104,7 @@ def _build_patient_dashboard_data(request):
             {'label': 'Past Appointments', 'value': past.count()},
         ],
         'appointmentsTitle': 'Upcoming Appointments',
-        'appointmentsHref': '/patient/appointments/',
+        'appointmentsHref': '/patient/appointments/#upcoming-appointments',
         'appointments': [
             {
                 'primary': f'Dr. {a.doctor.get_full_name()}',
@@ -116,7 +116,7 @@ def _build_patient_dashboard_data(request):
             for a in upcoming
         ],
         'pastAppointmentsTitle': 'Recent Past Appointments',
-        'pastAppointmentsHref': '/patient/appointments/',
+        'pastAppointmentsHref': '/patient/appointments/#past-appointments',
         'pastAppointments': [
             {
                 'primary': f'Dr. {a.doctor.get_full_name()}',
@@ -436,25 +436,21 @@ def reschedule_appointment(request, pk):
                 return render(request, 'patient/reschedule.html', {'appointment': appointment})
 
             # Don't apply the new date/time yet — the original appointment is
-            # left untouched and flagged as pending until the secretary
-            # assigned to this doctor reviews and approves the request.
+            # left untouched and flagged as pending until the doctor
+            # reviews and approves the request.
             appointment.status            = 'Pending Reschedule'
             appointment.requested_date    = new_date
             appointment.requested_time    = new_time
             appointment.requested_reason  = reason
             appointment.save()
 
-        secretary_profile = appointment.doctor.assigned_secretaries.select_related('user').first()
-        secretary_user = secretary_profile.user if secretary_profile else None
-        if secretary_user:
-            _notify(secretary_user,
-                    f"{appointment.patient.get_full_name()} requested to reschedule their appointment with "
-                    f"Dr. {appointment.doctor.get_full_name()} to "
-                    f"{new_date.strftime('%B %d, %Y')} at {new_time.strftime('%I:%M %p')}. Awaiting your approval.")
+        _notify(appointment.doctor,
+                f"{appointment.patient.get_full_name()} requested to reschedule their appointment to "
+                f"{new_date.strftime('%B %d, %Y')} at {new_time.strftime('%I:%M %p')}. Awaiting your approval.")
         _notify(request.user,
                 f"Your reschedule request for {new_date.strftime('%B %d, %Y')} at "
-                f"{new_time.strftime('%I:%M %p')} has been sent to the secretary for approval.")
-        messages.success(request, 'Reschedule request sent. It will take effect once the secretary approves it.')
+                f"{new_time.strftime('%I:%M %p')} has been sent to Dr. {appointment.doctor.get_full_name()} for approval.")
+        messages.success(request, 'Reschedule request sent. It will take effect once the doctor approves it.')
         if request.htmx:
             response = render(request, 'patient/_reschedule_modal.html', {'appointment': appointment, 'title': 'Reschedule Appointment'})
             response['HX-Redirect'] = '/patient/appointments/'

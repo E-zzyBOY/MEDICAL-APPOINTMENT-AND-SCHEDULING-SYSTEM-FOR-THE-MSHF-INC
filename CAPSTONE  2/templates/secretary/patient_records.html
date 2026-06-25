@@ -1,4 +1,5 @@
 {% extends "secretary/base_secretary.html" %}
+{% load record_extras %}
 {% block page_title %}Patient Records — {{ patient.get_full_name }}{% endblock %}
 {% block secretary_content %}
 <div class="max-w-3xl space-y-6">
@@ -38,6 +39,32 @@
       {% endfor %}
     </div>
     {% else %}<p class="text-gray-400 text-sm">No appointments.</p>{% endif %}
+  </div>
+
+  <!-- Medical Records (limited view for secretaries) -->
+  <div class="bg-white rounded-xl shadow p-6">
+    <h3 class="font-bold text-gray-800 mb-3">Medical Records</h3>
+    {% if records %}
+    <div class="space-y-2">
+      {% for record in records %}
+      {% with color=record.doctor_id|doctor_color %}
+      <div class="border-l-4 {{ color.border }} {{ color.bg }} rounded-r-lg p-3">
+        <div class="flex items-center gap-2 mb-1">
+          <span class="w-2 h-2 rounded-full {{ color.dot }}"></span>
+          <span class="font-medium {{ color.text }} text-sm">Dr. {{ record.doctor.get_full_name }}</span>
+        </div>
+        <p class="text-sm text-gray-500">
+          <span class="font-medium text-gray-700">Consultation Date:</span>
+          {{ record.visit_date|date:"F j, Y" }}
+        </p>
+        <p class="text-xs text-gray-400 mt-1">Medical record on file</p>
+      </div>
+      {% endwith %}
+      {% endfor %}
+    </div>
+    {% else %}
+    <p class="text-gray-400 text-sm">No medical records.</p>
+    {% endif %}
   </div>
 
   <!-- Vitals -->

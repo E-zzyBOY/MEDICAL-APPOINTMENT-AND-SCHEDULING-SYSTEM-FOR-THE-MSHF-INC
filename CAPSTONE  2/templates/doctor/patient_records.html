@@ -1,4 +1,5 @@
 {% extends "doctor/base_doctor.html" %}
+{% load record_extras %}
 {% block page_title %}Patient Records — {{ patient.get_full_name }}{% endblock %}
 {% block doctor_content %}
 <div class="max-w-3xl space-y-4">
@@ -16,12 +17,47 @@
     {% if records %}
     <h3 class="font-bold text-gray-700 mb-3">Medical Records</h3>
     {% for record in records %}
-    <div class="border border-gray-200 rounded-lg p-4 mb-3">
-      <p class="font-semibold text-gray-800">{{ record.visit_date|date:"F j, Y" }}</p>
-      {% if record.results %}
-      <p class="text-sm text-gray-600 mt-1"><span class="font-medium">Diagnosis:</span> {{ record.results.diagnosis }}</p>
-      {% endif %}
+    {% with color=record.doctor_id|doctor_color %}
+    <div class="border-l-4 {{ color.border }} {{ color.bg }} rounded-r-lg p-4 mb-3">
+      <div class="flex items-center gap-2 mb-3">
+        <span class="w-2 h-2 rounded-full {{ color.dot }}"></span>
+        <span class="font-semibold {{ color.text }}">Dr. {{ record.doctor.get_full_name }}</span>
+        <span class="text-xs {{ color.badge }} px-2 py-0.5 rounded-full font-medium">Attending Doctor</span>
+      </div>
+      <div class="space-y-2 text-sm">
+        <p class="text-gray-500">
+          <span class="font-medium text-gray-700">Consultation Date:</span>
+          {{ record.visit_date|date:"F j, Y" }}
+        </p>
+        {% if record.results %}
+        <div>
+          <p class="font-medium text-gray-700">Diagnosis</p>
+          <p class="text-gray-600 mt-0.5">{{ record.results.diagnosis }}</p>
+        </div>
+        {% with prescriptions=record.results.prescriptions.all %}
+        {% if prescriptions %}
+        <div>
+          <p class="font-medium text-gray-700">Treatment / Prescription</p>
+          <ul class="list-disc list-inside text-gray-600 mt-0.5 space-y-0.5">
+            {% for rx in prescriptions %}
+            <li>{{ rx.medication_names }}{% if rx.treatment %} — {{ rx.treatment }}{% endif %}</li>
+            {% endfor %}
+          </ul>
+        </div>
+        {% for rx in prescriptions %}
+        {% if rx.notes %}
+        <div>
+          <p class="font-medium text-gray-700">Notes</p>
+          <p class="text-gray-600 mt-0.5">{{ rx.notes }}</p>
+        </div>
+        {% endif %}
+        {% endfor %}
+        {% endif %}
+        {% endwith %}
+        {% endif %}
+      </div>
     </div>
+    {% endwith %}
     {% endfor %}
     {% else %}
     <p class="text-gray-400 text-sm">No medical records.</p>

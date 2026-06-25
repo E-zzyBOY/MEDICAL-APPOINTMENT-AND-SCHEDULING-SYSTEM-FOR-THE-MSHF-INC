@@ -20,6 +20,8 @@
     {% elif detail_user.role == 'doctor' %}
     <div class="col-span-2"><span class="font-semibold text-gray-600">Specialization:</span> {{ profile.specialization|default:"—" }}</div>
     {% elif detail_user.role == 'secretary' %}
+    <div><span class="font-semibold text-gray-600">Contact Number:</span> {{ profile.contact_number|default:"—" }}</div>
+    <div><span class="font-semibold text-gray-600">Employee/Staff ID:</span> {{ profile.employee_id|default:"—" }}</div>
     <div><span class="font-semibold text-gray-600">Assigned Doctor:</span> {{ profile.assigned_doctor.get_full_name|default:"—" }}</div>
     <div><span class="font-semibold text-gray-600">Date Assigned:</span> {{ profile.date_assigned|default:"—" }}</div>
     {% endif %}

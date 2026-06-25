@@ -2,8 +2,8 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import authenticate, login, logout
 from django.contrib import messages
 from .forms import (
-    PatientRegistrationForm, PatientProfileEditForm, DoctorProfileEditForm, ProfilePictureForm,
-    EmailNotificationSettingsForm,
+    PatientRegistrationForm, PatientProfileEditForm, DoctorProfileEditForm, SecretaryProfileEditForm,
+    ProfilePictureForm, EmailNotificationSettingsForm,
 )
 from .models import PatientProfile, DoctorProfile, SecretaryProfile
 from .decorators import role_required
@@ -166,4 +166,6 @@ def _get_profile_form(user):
         return PatientProfileEditForm
     if user.role == 'doctor':
         return DoctorProfileEditForm
+    if user.role == 'secretary':
+        return SecretaryProfileEditForm
     return None

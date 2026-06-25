@@ -90,29 +90,6 @@ def appointment_detail(request, pk):
 
 
 @role_required('secretary')
-def appointment_approve(request, pk):
-    doctor = _assigned_doctor(request.user)
-    appt = get_object_or_404(Appointment, pk=pk, status='Scheduled', doctor=doctor)
-    if request.method == 'POST':
-        appt.secretary = request.user
-        appt.save()
-        _notify(appt.patient,
-                f"Your appointment with Dr. {appt.doctor.get_full_name()} on "
-                f"{appt.appointment_date.strftime('%B %d, %Y')} has been confirmed by the secretary.")
-        messages.success(request, 'Appointment approved.')
-        if request.htmx:
-            response = render(request, 'secretary/_appointment_action_modal.html', {'appointment': appt, 'action': 'approve'})
-            response['HX-Redirect'] = '/secretary/appointments/'
-            return response
-        return redirect('secretary:appointment_list')
-    if request.htmx:
-        return render(request, 'secretary/_appointment_action_modal.html', {'appointment': appt, 'action': 'approve'})
-    return render(request, 'secretary/appointment_confirm_action.html', {
-        'appointment': appt, 'action': 'approve'
-    })
-
-
-@role_required('secretary')
 def appointment_cancel(request, pk):
     doctor = _assigned_doctor(request.user)
     appt = get_object_or_404(Appointment, pk=pk, status__in=['Scheduled', 'Rescheduled'], doctor=doctor)

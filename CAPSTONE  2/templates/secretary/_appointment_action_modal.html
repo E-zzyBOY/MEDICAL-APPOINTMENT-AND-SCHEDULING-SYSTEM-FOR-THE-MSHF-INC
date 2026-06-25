@@ -1,11 +1,11 @@
-{# Modal for secretary appointment actions (approve, cancel) — non-extending partial #}
+{# Modal for secretary appointment cancellation — non-extending partial #}
 <div id="modal-overlay" class="fixed inset-0 bg-black/50 z-40 transition-opacity opacity-0" style="transition-duration: 300ms;" role="dialog" aria-modal="true" aria-labelledby="modal-title" tabindex="-1">
   <div class="fixed inset-0 z-40 overflow-y-auto flex items-end md:items-center justify-center">
     <div class="modal-panel w-full h-full md:!h-auto md:w-full max-w-md md:mx-4 md:my-8 translate-y-full md:!translate-y-0 transition-transform" style="transition-duration: 300ms;">
       <div class="bg-white h-full md:!h-auto max-h-full rounded-t-2xl md:!rounded-xl shadow-xl flex flex-col">
         <!-- Header -->
         <div class="flex items-center justify-between px-6 py-4 border-b border-gray-200 flex-shrink-0">
-          <h2 id="modal-title" class="text-lg font-bold text-gray-800">{{ action|capfirst }} Appointment</h2>
+          <h2 id="modal-title" class="text-lg font-bold text-gray-800">Cancel Appointment</h2>
           <button type="button" onclick="closeModal()" aria-label="Close" class="w-8 h-8 flex items-center justify-center rounded-full text-gray-400 hover:text-gray-600 hover:bg-gray-100 text-2xl leading-none">&times;</button>
         </div>
         <!-- Content -->
@@ -29,24 +29,20 @@
             </div>
           </div>
           <form method="post"
-                hx-post="{% if action == 'approve' %}{% url 'secretary:appointment_approve' pk=appointment.pk %}{% else %}{% url 'secretary:appointment_cancel' pk=appointment.pk %}{% endif %}"
+                hx-post="{% url 'secretary:appointment_cancel' pk=appointment.pk %}"
                 hx-target="#modal-root" hx-swap="innerHTML"
                 class="space-y-4">
             {% csrf_token %}
-            {% if action == 'cancel' %}
             <div>
               <label class="block text-sm font-semibold text-gray-700 mb-1">Reason for Cancellation</label>
               <textarea name="reason" rows="3"
                         class="w-full border border-gray-300 rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
                         placeholder="Provide a reason..."></textarea>
             </div>
-            {% endif %}
             <div class="flex gap-3 pt-2">
               <button type="submit"
-                      class="flex-1 font-bold py-3 rounded-lg transition
-                        {% if action == 'approve' %}bg-purple-700 text-white hover:bg-purple-800
-                        {% else %}bg-red-600 text-white hover:bg-red-700{% endif %}">
-                Confirm {{ action|capfirst }}
+                      class="flex-1 font-bold py-3 rounded-lg transition bg-red-600 text-white hover:bg-red-700">
+                Confirm Cancel
               </button>
               <button type="button" onclick="closeModal()" class="flex-1 border border-gray-300 text-gray-700 font-bold py-3 rounded-lg hover:bg-gray-50 transition">
                 Cancel

@@ -15,6 +15,15 @@ def _notify(user, message):
     Notification.objects.create(user=user, message=message)
 
 
+def _notify_assigned_secretaries(doctor, message):
+    """Notify every secretary currently assigned to this doctor."""
+    secretary_users = CustomUser.objects.filter(
+        secretary_profile__assigned_doctor=doctor
+    )
+    for secretary_user in secretary_users:
+        _notify(secretary_user, message)
+
+
 def _build_doctor_dashboard_data(request):
     today_appts = Appointment.objects.filter(
         doctor=request.user,
@@ -106,6 +115,11 @@ def schedule_add(request):
                 return render(request, 'doctor/_schedule_modal.html', {'form': form, 'action': 'Add'})
         else:
             schedule.save()
+            _notify_assigned_secretaries(
+                request.user,
+                f"Dr. {request.user.get_full_name()} added a new schedule slot: "
+                f"{schedule.get_day_of_week_display()} {schedule.start_time.strftime('%I:%M %p')}–{schedule.end_time.strftime('%I:%M %p')}."
+            )
             messages.success(request, 'Schedule slot added.')
             if request.htmx:
                 # On htmx: use HX-Redirect header to redirect after success
@@ -122,6 +136,10 @@ def schedule_add(request):
 @role_required('doctor')
 def schedule_edit(request, pk):
     schedule = get_object_or_404(Schedule, pk=pk, doctor=request.user)
+    original_desc = (
+        f"{schedule.get_day_of_week_display()} {schedule.start_time.strftime('%I:%M %p')}"
+        f"–{schedule.end_time.strftime('%I:%M %p')}"
+    )
     form = ScheduleForm(request.POST or None, instance=schedule)
     if request.method == 'POST' and form.is_valid():
         updated = form.save(commit=False)
@@ -137,6 +155,15 @@ def schedule_edit(request, pk):
                 return render(request, 'doctor/_schedule_modal.html', {'form': form, 'action': 'Edit'})
         else:
             updated.save()
+            updated_desc = (
+                f"{updated.get_day_of_week_display()} {updated.start_time.strftime('%I:%M %p')}"
+                f"–{updated.end_time.strftime('%I:%M %p')}"
+            )
+            _notify_assigned_secretaries(
+                request.user,
+                f"Dr. {request.user.get_full_name()} updated a schedule slot: "
+                f"{original_desc} is now {updated_desc}."
+            )
             messages.success(request, 'Schedule updated.')
             if request.htmx:
                 response = render(request, 'doctor/_schedule_modal.html', {'form': form, 'action': 'Edit'})
@@ -153,7 +180,15 @@ def schedule_edit(request, pk):
 def schedule_delete(request, pk):
     schedule = get_object_or_404(Schedule, pk=pk, doctor=request.user)
     if request.method == 'POST':
+        deleted_desc = (
+            f"{schedule.get_day_of_week_display()} {schedule.start_time.strftime('%I:%M %p')}"
+            f"–{schedule.end_time.strftime('%I:%M %p')}"
+        )
         schedule.delete()
+        _notify_assigned_secretaries(
+            request.user,
+            f"Dr. {request.user.get_full_name()} removed a schedule slot: {deleted_desc}."
+        )
         messages.success(request, 'Schedule slot removed.')
         if request.htmx:
             response = render(request, 'doctor/_schedule_delete_modal.html', {'schedule': schedule})

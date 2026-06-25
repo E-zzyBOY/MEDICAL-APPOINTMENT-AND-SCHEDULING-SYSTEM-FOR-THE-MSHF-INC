@@ -8,7 +8,6 @@ urlpatterns = [
     path('dashboard/data/',                          v.secretary_dashboard_data,  name='dashboard_data'),
     path('appointments/',                            v.secretary_appointment_list, name='appointment_list'),
     path('appointments/<int:pk>/detail/',            v.appointment_detail,        name='appointment_detail'),
-    path('appointments/<int:pk>/approve/',           v.appointment_approve,       name='appointment_approve'),
     path('appointments/<int:pk>/cancel/',            v.appointment_cancel,        name='appointment_cancel'),
     path('walk-in/register/',                        v.walkin_register,           name='walkin_register'),
     path('walk-in/<int:patient_id>/vitals/add/',     v.vitals_add,                name='vitals_add'),

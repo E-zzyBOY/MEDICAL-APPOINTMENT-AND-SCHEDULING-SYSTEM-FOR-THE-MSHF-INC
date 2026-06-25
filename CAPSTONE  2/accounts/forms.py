@@ -66,6 +66,12 @@ class DoctorProfileEditForm(forms.ModelForm):
         fields = ['specialization', 'years_of_experience', 'license_number']
 
 
+class SecretaryProfileEditForm(forms.ModelForm):
+    class Meta:
+        model  = SecretaryProfile
+        fields = ['contact_number', 'employee_id']
+
+
 class DoctorCreationForm(UserCreationForm):
     first_name     = forms.CharField(max_length=150, required=True)
     last_name      = forms.CharField(max_length=150, required=True)
@@ -95,6 +101,8 @@ class SecretaryCreationForm(UserCreationForm):
     first_name      = forms.CharField(max_length=150, required=True)
     last_name       = forms.CharField(max_length=150, required=True)
     email           = forms.EmailField(required=True)
+    contact_number  = forms.CharField(max_length=20, required=False, label='Contact Number')
+    employee_id     = forms.CharField(max_length=30, required=False, label='Employee/Staff ID')
     assigned_doctor = forms.ModelChoiceField(
         queryset=CustomUser.objects.filter(role='doctor'),
         required=False, label='Assigned Doctor'
@@ -117,6 +125,8 @@ class SecretaryCreationForm(UserCreationForm):
                 user            = user,
                 assigned_doctor = self.cleaned_data.get('assigned_doctor'),
                 date_assigned   = self.cleaned_data.get('date_assigned'),
+                contact_number  = self.cleaned_data.get('contact_number', ''),
+                employee_id     = self.cleaned_data.get('employee_id', ''),
             )
         return user
 

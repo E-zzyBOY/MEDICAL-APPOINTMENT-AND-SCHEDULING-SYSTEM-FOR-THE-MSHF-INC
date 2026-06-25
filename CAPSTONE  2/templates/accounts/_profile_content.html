@@ -42,7 +42,9 @@
       <div><span class="font-semibold text-gray-600">Years of Experience:</span> {{ profile.years_of_experience|default:"—" }}</div>
       <div><span class="font-semibold text-gray-600">License Number:</span> {{ profile.license_number|default:"—" }}</div>
       {% elif request.user.role == 'secretary' %}
-      <div><span class="font-semibold text-gray-600">Assigned Doctor:</span> {{ profile.assigned_doctor.get_full_name|default:"—" }}</div>
+      <div><span class="font-semibold text-gray-600">Contact Number:</span> {{ profile.contact_number|default:"—" }}</div>
+      <div><span class="font-semibold text-gray-600">Employee/Staff ID:</span> {{ profile.employee_id|default:"—" }}</div>
+      <div><span class="font-semibold text-gray-600">Assigned Doctor:</span> {% if profile.assigned_doctor %}Dr. {{ profile.assigned_doctor.get_full_name }}{% else %}—{% endif %}</div>
       <div><span class="font-semibold text-gray-600">Date Assigned:</span> {{ profile.date_assigned|default:"—" }}</div>
       {% endif %}
     </div>

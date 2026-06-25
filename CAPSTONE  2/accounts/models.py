@@ -62,6 +62,8 @@ class SecretaryProfile(models.Model):
         limit_choices_to={'role': 'doctor'}
     )
     date_assigned   = models.DateField(null=True, blank=True)
+    contact_number  = models.CharField(max_length=20, blank=True)
+    employee_id     = models.CharField(max_length=30, blank=True, verbose_name='Employee/Staff ID')
 
     def __str__(self):
         return f"Secretary: {self.user.get_full_name()}"

@@ -1,14 +1,17 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
+from django.db import transaction
 from django.db.models import Count
 from django.http import JsonResponse
 from datetime import date, datetime, timedelta
 import calendar as calendar_module
 from accounts.decorators import role_required
 from appointments.models import Appointment, Schedule
-from appointments.forms import ScheduleForm, RescheduleForm
+from appointments.forms import ScheduleForm, RescheduleForm, AssignTimeForm
 from accounts.models import CustomUser
-from notifications.email_utils import send_cancellation_email, send_reschedule_email
+from notifications.email_utils import (
+    send_cancellation_email, send_reschedule_email, send_booking_received_email, send_time_assigned_email
+)
 from notifications.models import Notification
 
 
@@ -384,6 +387,79 @@ def appointment_detail(request, pk):
     })
 
 
+def _working_hours_for_date(doctor, the_date):
+    """Returns the doctor's Schedule blocks for that date as (start, end)
+    tuples, used to validate a staff-assigned time falls within them."""
+    return list(
+        Schedule.objects.filter(doctor=doctor, specific_date=the_date)
+        .values_list('start_time', 'end_time')
+    )
+
+
+def _time_within_working_hours(the_time, blocks):
+    return any(start <= the_time < end for start, end in blocks)
+
+
+@role_required('doctor')
+def assign_appointment_time(request, pk):
+    """Doctor sets the actual time on one of their own appointments that's
+    awaiting time assignment. Mirrors secretary_views' version of this
+    action — both roles can do this, whichever gets to it first."""
+    appt = get_object_or_404(Appointment, pk=pk, doctor=request.user, status='Pending Time Assignment')
+    blocks = _working_hours_for_date(appt.doctor, appt.appointment_date)
+
+    if request.method == 'POST':
+        form = AssignTimeForm(request.POST)
+        if form.is_valid():
+            new_time = form.cleaned_data['appointment_time']
+            if not blocks:
+                messages.error(request, "You have no working hours set for this date.")
+            elif not _time_within_working_hours(new_time, blocks):
+                hours_display = ', '.join(
+                    f"{s.strftime('%I:%M %p')}–{e.strftime('%I:%M %p')}" for s, e in blocks
+                )
+                messages.error(request, f"That time is outside your working hours ({hours_display}).")
+            else:
+                with transaction.atomic():
+                    conflict = Appointment.objects.select_for_update().filter(
+                        doctor=appt.doctor,
+                        appointment_date=appt.appointment_date,
+                        appointment_time=new_time,
+                        status__in=['Scheduled', 'Rescheduled'],
+                    ).exclude(pk=appt.pk).exists()
+                    if conflict:
+                        messages.error(request, 'You already have another appointment at that time. Choose a different time.')
+                    else:
+                        appt.appointment_time = new_time
+                        appt.status = 'Scheduled'
+                        appt.save()
+
+                if not conflict:
+                    try:
+                        send_time_assigned_email(appt)
+                    except Exception:
+                        pass
+                    _notify(appt.patient,
+                            f"Your appointment with Dr. {appt.doctor.get_full_name()} on "
+                            f"{appt.appointment_date.strftime('%B %d, %Y')} is confirmed for "
+                            f"{new_time.strftime('%I:%M %p')}.")
+                    messages.success(request, 'Appointment time assigned. Patient notified.')
+                    if request.htmx:
+                        response = render(request, 'doctor/_assign_time_modal.html', {
+                            'appt': appt, 'form': form, 'blocks': blocks,
+                        })
+                        response['HX-Redirect'] = '/doctor/appointments/'
+                        return response
+                    return redirect('doctor:appointment_list')
+    else:
+        form = AssignTimeForm()
+
+    context = {'appt': appt, 'form': form, 'blocks': blocks, 'title': 'Assign Appointment Time'}
+    if request.htmx:
+        return render(request, 'doctor/_assign_time_modal.html', context)
+    return render(request, 'doctor/assign_time.html', context)
+
+
 @role_required('doctor')
 def appointment_accept(request, pk):
     appt = get_object_or_404(Appointment, pk=pk, doctor=request.user, status='Scheduled')
@@ -434,57 +510,34 @@ def appointment_decline(request, pk):
 @role_required('doctor')
 def appointment_reschedule_approve(request, pk):
     """Doctor approves a patient's pending reschedule request: the new
-    date/time become the appointment's actual date/time and the status
-    returns to 'Rescheduled' (so the patient sees it reflected as such)."""
-    from django.db import transaction
+    date becomes the appointment's date and the status moves to
+    'Pending Time Assignment' so the doctor or secretary can assign the
+    actual time next (same as a fresh booking)."""
     appt = get_object_or_404(Appointment, pk=pk, status='Pending Reschedule', doctor=request.user)
     if request.method == 'POST':
-        with transaction.atomic():
-            doctor_conflict = Appointment.objects.select_for_update().filter(
-                doctor=appt.doctor,
-                appointment_date=appt.requested_date,
-                appointment_time=appt.requested_time,
-                status__in=['Scheduled', 'Rescheduled']
-            ).exclude(pk=appt.pk).exists()
-            if doctor_conflict:
-                messages.error(request, 'That slot has since been taken. Ask the patient to choose another time.')
-                if request.htmx:
-                    return render(request, 'doctor/_reschedule_action_modal.html', {'appointment': appt, 'action': 'approve'})
-                return render(request, 'doctor/reschedule_confirm_action.html', {'appointment': appt, 'action': 'approve'})
-
-            # The patient may have booked something else at this exact
-            # date/time (with a different doctor) in the time between
-            # requesting this reschedule and the doctor approving it.
-            patient_conflict = Appointment.objects.select_for_update().filter(
-                patient=appt.patient,
-                appointment_date=appt.requested_date,
-                appointment_time=appt.requested_time,
-                status__in=['Scheduled', 'Rescheduled']
-            ).exclude(pk=appt.pk).exists()
-            if patient_conflict:
-                messages.error(request, 'The patient already has another appointment at that date and time. Ask them to choose another time.')
-                if request.htmx:
-                    return render(request, 'doctor/_reschedule_action_modal.html', {'appointment': appt, 'action': 'approve'})
-                return render(request, 'doctor/reschedule_confirm_action.html', {'appointment': appt, 'action': 'approve'})
-
-            appt.appointment_date    = appt.requested_date
-            appt.appointment_time    = appt.requested_time
-            if appt.requested_reason:
-                appt.reason = appt.requested_reason
-            appt.requested_date      = None
-            appt.requested_time      = None
-            appt.requested_reason    = ''
-            appt.status              = 'Rescheduled'
-            appt.save()
+        appt.appointment_date    = appt.requested_date
+        appt.appointment_time    = None
+        if appt.requested_reason:
+            appt.reason = appt.requested_reason
+        appt.requested_date      = None
+        appt.requested_time      = None
+        appt.requested_reason    = ''
+        appt.status              = 'Pending Time Assignment'
+        appt.save()
 
         try:
-            send_reschedule_email(appt)
+            send_booking_received_email(appt)
         except Exception:
             pass
+        _notify_assigned_secretaries(
+            appt.doctor,
+            f"Dr. {appt.doctor.get_full_name()} approved {appt.patient.get_full_name()}'s reschedule request to "
+            f"{appt.appointment_date.strftime('%B %d, %Y')}. Awaiting time assignment."
+        )
         _notify(appt.patient,
-                f"Dr. {appt.doctor.get_full_name()} approved your reschedule request. New schedule: "
-                f"{appt.appointment_date.strftime('%B %d, %Y')} at {appt.appointment_time.strftime('%I:%M %p')}.")
-        messages.success(request, 'Reschedule approved and patient notified.')
+                f"Dr. {appt.doctor.get_full_name()} approved your reschedule request. New date: "
+                f"{appt.appointment_date.strftime('%B %d, %Y')}. You'll be notified once the time is confirmed.")
+        messages.success(request, 'Reschedule approved. Assign a time once ready.')
         if request.htmx:
             response = render(request, 'doctor/_reschedule_action_modal.html', {'appointment': appt, 'action': 'approve'})
             response['HX-Redirect'] = '/doctor/appointments/'
@@ -503,17 +556,19 @@ def appointment_reschedule_reject(request, pk):
     if request.method == 'POST':
         reason = request.POST.get('reason', '')
         requested_date = appt.requested_date
-        requested_time = appt.requested_time
         appt.requested_date   = None
         appt.requested_time   = None
         appt.requested_reason = ''
         appt.status           = 'Scheduled'
         appt.save()
+        original_time_display = (
+            f" at {appt.appointment_time.strftime('%I:%M %p')}" if appt.appointment_time else ''
+        )
         _notify(appt.patient,
                 f"Dr. {appt.doctor.get_full_name()} declined your request to reschedule your appointment to "
                 f"{requested_date.strftime('%B %d, %Y') if requested_date else ''}. "
                 f"{('Reason: ' + reason) if reason else ''} Your original appointment on "
-                f"{appt.appointment_date.strftime('%B %d, %Y')} at {appt.appointment_time.strftime('%I:%M %p')} stays as is.")
+                f"{appt.appointment_date.strftime('%B %d, %Y')}{original_time_display} stays as is.")
         messages.success(request, 'Reschedule request declined. Patient notified, original appointment kept.')
         if request.htmx:
             response = render(request, 'doctor/_reschedule_action_modal.html', {'appointment': appt, 'action': 'reject'})
@@ -527,54 +582,38 @@ def appointment_reschedule_reject(request, pk):
 
 @role_required('doctor')
 def appointment_reschedule(request, pk):
+    """Doctor directly moves one of their own appointments to a new date
+    (separate from approving a patient's reschedule *request*). Date-only
+    — the new appointment lands in 'Pending Time Assignment' just like a
+    fresh booking, since RescheduleForm's clean_appointment_date already
+    rejects past dates."""
     appt = get_object_or_404(Appointment, pk=pk, doctor=request.user, status__in=['Scheduled', 'Rescheduled'])
-    from django.db import transaction
-    from datetime import date as _date, datetime
     form = RescheduleForm(request.POST or None)
     if request.method == 'POST' and form.is_valid():
         new_date = form.cleaned_data['appointment_date']
-        new_time = form.cleaned_data['appointment_time']
-        if new_date < _date.today():
-            messages.error(request, 'Cannot reschedule to a past date.')
-            return render(request, 'doctor/appointment_reschedule.html', {'form': form, 'appointment': appt})
-        with transaction.atomic():
-            doctor_conflict = Appointment.objects.select_for_update().filter(
-                doctor=request.user,
-                appointment_date=new_date,
-                appointment_time=new_time,
-                status__in=['Scheduled', 'Rescheduled']
-            ).exclude(pk=appt.pk).exists()
-            # A patient can only have one active appointment at a given
-            # date/time, even across different doctors.
-            patient_conflict = Appointment.objects.select_for_update().filter(
-                patient=appt.patient,
-                appointment_date=new_date,
-                appointment_time=new_time,
-                status__in=['Scheduled', 'Rescheduled']
-            ).exclude(pk=appt.pk).exists()
-            conflict = doctor_conflict or patient_conflict
-            if doctor_conflict:
-                messages.error(request, 'That slot is already taken.')
-            elif patient_conflict:
-                messages.error(request, 'The patient already has another appointment at that date and time.')
-            else:
-                appt.status = 'Rescheduled'
-                appt.save()
-                new_appt = Appointment.objects.create(
-                    patient=appt.patient, doctor=request.user,
-                    appointment_date=new_date, appointment_time=new_time,
-                    status='Scheduled', reason=appt.reason
-                )
-        if not conflict:
-            try:
-                send_reschedule_email(new_appt)
-            except Exception:
-                pass
-            _notify(appt.patient,
-                    f"Dr. {request.user.get_full_name()} rescheduled your appointment to "
-                    f"{new_date.strftime('%B %d, %Y')} at {new_time.strftime('%I:%M %p')}.")
-            messages.success(request, 'Appointment rescheduled.')
-            return redirect('doctor:appointment_list')
+        new_reason = form.cleaned_data.get('reason') or appt.reason
+
+        appt.status = 'Rescheduled'
+        appt.save()
+        new_appt = Appointment.objects.create(
+            patient=appt.patient, doctor=request.user,
+            appointment_date=new_date, appointment_time=None,
+            status='Pending Time Assignment', reason=new_reason
+        )
+        try:
+            send_booking_received_email(new_appt)
+        except Exception:
+            pass
+        _notify_assigned_secretaries(
+            request.user,
+            f"Dr. {request.user.get_full_name()} rescheduled {appt.patient.get_full_name()}'s appointment to "
+            f"{new_date.strftime('%B %d, %Y')}. Awaiting time assignment."
+        )
+        _notify(appt.patient,
+                f"Dr. {request.user.get_full_name()} rescheduled your appointment to "
+                f"{new_date.strftime('%B %d, %Y')}. You'll be notified once the time is confirmed.")
+        messages.success(request, 'Appointment rescheduled. Assign a time once ready.')
+        return redirect('doctor:appointment_list')
     return render(request, 'doctor/appointment_reschedule.html', {'form': form, 'appointment': appt})
 
 

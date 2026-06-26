@@ -64,6 +64,7 @@ class AppointmentPatientDetails(models.Model):
 
 class Appointment(models.Model):
     STATUS_CHOICES = [
+        ('Pending Time Assignment', 'Pending Time Assignment'),
         ('Scheduled',           'Scheduled'),
         ('Completed',           'Completed'),
         ('Cancelled',           'Cancelled'),
@@ -84,13 +85,20 @@ class Appointment(models.Model):
         limit_choices_to={'role': 'secretary'}
     )
     appointment_date = models.DateField()
-    appointment_time = models.TimeField()
-    status           = models.CharField(max_length=20, choices=STATUS_CHOICES, default='Scheduled')
+    # Null while the appointment is awaiting a time assignment from staff
+    # (status == 'Pending Time Assignment'). Patients only pick a date when
+    # booking or requesting a reschedule; the doctor or secretary assigns
+    # the actual time afterward, which is when this gets filled in.
+    appointment_time = models.TimeField(null=True, blank=True)
+    status           = models.CharField(max_length=30, choices=STATUS_CHOICES, default='Pending Time Assignment')
     reason           = models.TextField(blank=True)
 
     # When a patient requests a reschedule, the original date/time/reason stay
     # untouched (status flips to 'Pending Reschedule') and the requested new
-    # values are held here until the secretary approves or rejects the request.
+    # date is held here until staff approves or rejects the request.
+    # requested_time is no longer set by the patient (date-only requests) but
+    # stays on the model since an approved request still needs to carry a
+    # time once staff assigns one.
     requested_date   = models.DateField(null=True, blank=True)
     requested_time   = models.TimeField(null=True, blank=True)
     requested_reason = models.TextField(blank=True)
@@ -100,6 +108,10 @@ class Appointment(models.Model):
 
     class Meta:
         ordering = ['appointment_date', 'appointment_time']
+
+    @property
+    def needs_time_assignment(self):
+        return self.status == 'Pending Time Assignment'
 
     def __str__(self):
         return f"{self.patient.get_full_name()} + Dr. {self.doctor.get_full_name()} on {self.appointment_date} [{self.status}]"

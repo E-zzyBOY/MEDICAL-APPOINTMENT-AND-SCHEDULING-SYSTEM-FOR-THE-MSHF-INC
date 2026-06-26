@@ -25,7 +25,7 @@
             </div>
             <div class="flex justify-between">
               <span class="text-gray-500">Time</span>
-              <span class="font-medium">{{ appointment.appointment_time|time:"g:i A" }}</span>
+              <span class="font-medium">{% if appointment.appointment_time %}{{ appointment.appointment_time|time:"g:i A" }}{% else %}<span class="text-amber-600">To be confirmed</span>{% endif %}</span>
             </div>
           </div>
           <form method="post"

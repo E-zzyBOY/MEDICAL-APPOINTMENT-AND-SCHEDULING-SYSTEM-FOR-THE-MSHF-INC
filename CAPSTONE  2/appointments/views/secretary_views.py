@@ -1,12 +1,14 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.http import JsonResponse
+from django.db import transaction
 from datetime import date
 from django.db.models import Q
 from accounts.decorators import role_required
 from appointments.models import Appointment, Schedule
+from appointments.forms import AssignTimeForm
 from accounts.models import CustomUser, PatientProfile
-from notifications.email_utils import send_cancellation_email
+from notifications.email_utils import send_cancellation_email, send_time_assigned_email
 from notifications.models import Notification
 
 
@@ -24,14 +26,16 @@ def _build_secretary_dashboard_data(request):
     today_appts = Appointment.objects.filter(
         doctor=doctor,
         appointment_date=date.today(),
-        status__in=['Scheduled', 'Rescheduled', 'Pending Reschedule']
+        status__in=['Pending Time Assignment', 'Scheduled', 'Rescheduled', 'Pending Reschedule']
     ).select_related('patient', 'doctor').order_by('appointment_time') if doctor else Appointment.objects.none()
     total_today = today_appts.count()
+    pending_time_count = today_appts.filter(status='Pending Time Assignment').count() if doctor else 0
 
     return {
         'userName': request.user.get_full_name() or request.user.username,
         'stats': [
             {'label': "Today's Appointments", 'value': total_today},
+            {'label': "Awaiting Time Assignment", 'value': pending_time_count},
         ],
         'appointmentsTitle': "Today's Appointments",
         'appointmentsHref': '/secretary/appointments/',
@@ -40,7 +44,7 @@ def _build_secretary_dashboard_data(request):
                 'primary': a.patient.get_full_name(),
                 'secondary': f'Dr. {a.doctor.get_full_name()}',
                 'date': a.appointment_date.isoformat(),
-                'time': a.appointment_time.strftime('%H:%M'),
+                'time': a.appointment_time.strftime('%H:%M') if a.appointment_time else None,
                 'status': a.status,
             }
             for a in today_appts
@@ -91,6 +95,87 @@ def appointment_detail(request, pk):
     })
 
 
+def _working_hours_for_date(doctor, the_date):
+    """Returns a list of (start_time, end_time) tuples — the doctor's
+    Schedule blocks for that date — used to validate a staff-assigned time
+    actually falls within working hours."""
+    return list(
+        Schedule.objects.filter(doctor=doctor, specific_date=the_date)
+        .values_list('start_time', 'end_time')
+    )
+
+
+def _time_within_working_hours(the_time, blocks):
+    return any(start <= the_time < end for start, end in blocks)
+
+
+@role_required('secretary')
+def assign_appointment_time(request, pk):
+    """Secretary sets the actual time on an appointment that's either
+    awaiting its first time assignment or had a reschedule date approved
+    (both land in 'Pending Time Assignment'). Validates the chosen time
+    falls within the doctor's working hours that day and doesn't conflict
+    with another appointment, the same two things doctor_views' version of
+    this action checks — both staff roles can do this."""
+    doctor = _assigned_doctor(request.user)
+    appt = get_object_or_404(
+        Appointment, pk=pk, doctor=doctor, status='Pending Time Assignment'
+    )
+    blocks = _working_hours_for_date(appt.doctor, appt.appointment_date)
+
+    if request.method == 'POST':
+        form = AssignTimeForm(request.POST)
+        if form.is_valid():
+            new_time = form.cleaned_data['appointment_time']
+            if not blocks:
+                messages.error(request, "The doctor has no working hours set for this date.")
+            elif not _time_within_working_hours(new_time, blocks):
+                hours_display = ', '.join(
+                    f"{s.strftime('%I:%M %p')}–{e.strftime('%I:%M %p')}" for s, e in blocks
+                )
+                messages.error(request, f"That time is outside the doctor's working hours ({hours_display}).")
+            else:
+                with transaction.atomic():
+                    conflict = Appointment.objects.select_for_update().filter(
+                        doctor=appt.doctor,
+                        appointment_date=appt.appointment_date,
+                        appointment_time=new_time,
+                        status__in=['Scheduled', 'Rescheduled'],
+                    ).exclude(pk=appt.pk).exists()
+                    if conflict:
+                        messages.error(request, 'The doctor already has another appointment at that time. Choose a different time.')
+                    else:
+                        appt.appointment_time = new_time
+                        appt.status = 'Scheduled'
+                        appt.secretary = request.user
+                        appt.save()
+
+                if not conflict:
+                    try:
+                        send_time_assigned_email(appt)
+                    except Exception:
+                        pass
+                    _notify(appt.patient,
+                            f"Your appointment with Dr. {appt.doctor.get_full_name()} on "
+                            f"{appt.appointment_date.strftime('%B %d, %Y')} is confirmed for "
+                            f"{new_time.strftime('%I:%M %p')}.")
+                    messages.success(request, 'Appointment time assigned. Patient notified.')
+                    if request.htmx:
+                        response = render(request, 'secretary/_assign_time_modal.html', {
+                            'appt': appt, 'form': form, 'blocks': blocks,
+                        })
+                        response['HX-Redirect'] = '/secretary/appointments/'
+                        return response
+                    return redirect('secretary:appointment_list')
+    else:
+        form = AssignTimeForm()
+
+    context = {'appt': appt, 'form': form, 'blocks': blocks, 'title': 'Assign Appointment Time'}
+    if request.htmx:
+        return render(request, 'secretary/_assign_time_modal.html', context)
+    return render(request, 'secretary/assign_time.html', context)
+
+
 @role_required('secretary')
 def appointment_approve(request, pk):
     doctor = _assigned_doctor(request.user)
@@ -117,7 +202,9 @@ def appointment_approve(request, pk):
 @role_required('secretary')
 def appointment_cancel(request, pk):
     doctor = _assigned_doctor(request.user)
-    appt = get_object_or_404(Appointment, pk=pk, status__in=['Scheduled', 'Rescheduled'], doctor=doctor)
+    appt = get_object_or_404(
+        Appointment, pk=pk, status__in=['Pending Time Assignment', 'Scheduled', 'Rescheduled'], doctor=doctor
+    )
     if request.method == 'POST':
         reason = request.POST.get('reason', '')
         appt.status = 'Cancelled'
@@ -141,6 +228,81 @@ def appointment_cancel(request, pk):
     return render(request, 'secretary/appointment_confirm_action.html', {
         'appointment': appt, 'action': 'cancel'
     })
+
+
+@role_required('secretary')
+def appointment_reschedule_approve(request, pk):
+    """Secretary approves a patient's pending reschedule request, scoped to
+    their assigned doctor. Mirrors doctor_views' version: the new date
+    becomes the appointment's date and status moves to
+    'Pending Time Assignment' for someone to assign a time next."""
+    doctor = _assigned_doctor(request.user)
+    appt = get_object_or_404(Appointment, pk=pk, status='Pending Reschedule', doctor=doctor)
+    if request.method == 'POST':
+        appt.appointment_date = appt.requested_date
+        appt.appointment_time = None
+        if appt.requested_reason:
+            appt.reason = appt.requested_reason
+        appt.requested_date   = None
+        appt.requested_time   = None
+        appt.requested_reason = ''
+        appt.status           = 'Pending Time Assignment'
+        appt.secretary         = request.user
+        appt.save()
+
+        try:
+            send_booking_received_email(appt)
+        except Exception:
+            pass
+        _notify(appt.doctor,
+                f"{request.user.get_full_name()} approved {appt.patient.get_full_name()}'s reschedule request to "
+                f"{appt.appointment_date.strftime('%B %d, %Y')}. Awaiting time assignment.")
+        _notify(appt.patient,
+                f"Your reschedule request has been approved. New date: "
+                f"{appt.appointment_date.strftime('%B %d, %Y')}. You'll be notified once the time is confirmed.")
+        messages.success(request, 'Reschedule approved. Assign a time once ready.')
+        if request.htmx:
+            response = render(request, 'secretary/_reschedule_action_modal.html', {'appointment': appt, 'action': 'approve'})
+            response['HX-Redirect'] = '/secretary/appointments/'
+            return response
+        return redirect('secretary:appointment_list')
+    if request.htmx:
+        return render(request, 'secretary/_reschedule_action_modal.html', {'appointment': appt, 'action': 'approve'})
+    return render(request, 'secretary/reschedule_confirm_action.html', {'appointment': appt, 'action': 'approve'})
+
+
+@role_required('secretary')
+def appointment_reschedule_reject(request, pk):
+    """Secretary rejects a patient's pending reschedule request: the
+    appointment reverts to its original date/time/status, unchanged."""
+    doctor = _assigned_doctor(request.user)
+    appt = get_object_or_404(Appointment, pk=pk, status='Pending Reschedule', doctor=doctor)
+    if request.method == 'POST':
+        reason = request.POST.get('reason', '')
+        requested_date = appt.requested_date
+        appt.requested_date   = None
+        appt.requested_time   = None
+        appt.requested_reason = ''
+        appt.status           = 'Scheduled'
+        appt.secretary         = request.user
+        appt.save()
+        original_time_display = (
+            f" at {appt.appointment_time.strftime('%I:%M %p')}" if appt.appointment_time else ''
+        )
+        _notify(appt.patient,
+                f"Your request to reschedule your appointment to "
+                f"{requested_date.strftime('%B %d, %Y') if requested_date else ''} was declined. "
+                f"{('Reason: ' + reason) if reason else ''} Your original appointment on "
+                f"{appt.appointment_date.strftime('%B %d, %Y')}{original_time_display} stays as is.")
+        messages.success(request, 'Reschedule request declined. Patient notified, original appointment kept.')
+        if request.htmx:
+            response = render(request, 'secretary/_reschedule_action_modal.html', {'appointment': appt, 'action': 'reject'})
+            response['HX-Redirect'] = '/secretary/appointments/'
+            return response
+        return redirect('secretary:appointment_list')
+    if request.htmx:
+        return render(request, 'secretary/_reschedule_action_modal.html', {'appointment': appt, 'action': 'reject'})
+    return render(request, 'secretary/reschedule_confirm_action.html', {'appointment': appt, 'action': 'reject'})
 
 
 @role_required('secretary')

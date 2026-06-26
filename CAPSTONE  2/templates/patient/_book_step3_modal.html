@@ -1,5 +1,6 @@
 {% extends "components/modal.html" %}
 {% block modal_content %}
+{% if details %}
 <div class="bg-blue-50 rounded-xl p-5 mb-6 space-y-3 text-sm">
   <div class="flex justify-between">
     <span class="text-gray-500 font-medium">Doctor</span>
@@ -11,11 +12,11 @@
   </div>
   <div class="flex justify-between">
     <span class="text-gray-500 font-medium">Date</span>
-    <span class="font-bold text-gray-800">{{ appointment_date }}</span>
+    <span class="font-bold text-gray-800">{{ appointment_date_display|default:appointment_date }}</span>
   </div>
   <div class="flex justify-between">
     <span class="text-gray-500 font-medium">Time</span>
-    <span class="font-bold text-gray-800">{{ appointment_time_display|default:appointment_time }}</span>
+    <span class="font-semibold text-amber-700">To be confirmed by staff</span>
   </div>
 </div>
 
@@ -53,13 +54,16 @@
   </div>
 </div>
 
+<div class="bg-amber-50 border border-amber-100 rounded-lg p-3 text-sm text-amber-800 mb-6">
+  Your appointment time will be confirmed by our staff and you'll be notified once it's set.
+</div>
+
 <form method="post" action="{% url 'patient:book_confirm' %}"
       hx-post="{% url 'patient:book_confirm' %}"
       hx-target="#modal-root" hx-swap="innerHTML">
   {% csrf_token %}
   <input type="hidden" name="doctor_id" value="{{ doctor.pk }}" />
   <input type="hidden" name="appointment_date" value="{{ appointment_date }}" />
-  <input type="hidden" name="appointment_time" value="{{ appointment_time }}" />
   <input type="hidden" name="first_name" value="{{ details.first_name }}" />
   <input type="hidden" name="middle_name" value="{{ details.middle_name }}" />
   <input type="hidden" name="last_name" value="{{ details.last_name }}" />
@@ -76,7 +80,7 @@
             class="flex-1 bg-blue-700 hover:bg-blue-800 text-white font-bold py-3 rounded-lg transition">
       Confirm &amp; Book
     </button>
-    <a hx-get="{% url 'patient:book_step4' doctor_id=doctor.pk %}?appointment_date={{ appointment_date }}&appointment_time={{ appointment_time }}"
+    <a hx-get="{% url 'patient:book_step4' doctor_id=doctor.pk %}?appointment_date={{ appointment_date }}"
        hx-target="#modal-root" hx-swap="innerHTML"
        class="flex-1 text-center border border-gray-300 text-gray-700 font-bold py-3 rounded-lg hover:bg-gray-50 transition cursor-pointer">
       Go Back
@@ -85,4 +89,19 @@
 </form>
 
 <p class="text-xs text-gray-400 text-center mt-4">A confirmation email will be sent to {{ request.user.email }}</p>
+{% else %}
+<div class="text-center py-4">
+  <div class="w-14 h-14 mx-auto mb-4 rounded-full bg-green-100 flex items-center justify-center">
+    <svg class="w-7 h-7 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+  </div>
+  <p class="font-bold text-gray-800 mb-1">Appointment Requested</p>
+  <p class="text-sm text-gray-500 mb-4">
+    Your request with Dr. {{ doctor.get_full_name }} on {{ appointment_date_display|default:appointment_date }} has been sent.
+    You'll be notified once your appointment time is confirmed.
+  </p>
+  <button type="button" onclick="closeModal()" class="bg-blue-700 hover:bg-blue-800 text-white font-bold py-2.5 px-6 rounded-lg transition">
+    Got it
+  </button>
+</div>
+{% endif %}
 {% endblock %}

@@ -31,6 +31,7 @@ export type AppointmentRow = {
  * non-brand color on purpose, so a cancellation still reads as "different"
  * at a glance rather than blending in with normal blue/indigo states. */
 const statusStyles: Record<string, string> = {
+	"Pending Time Assignment": "border-transparent bg-amber-100 text-amber-700 hover:bg-amber-200",
 	Scheduled: "border-transparent bg-[#4382DF] text-white hover:bg-[#4382DF]/90",
 	Rescheduled: "border-transparent bg-[#4647AE] text-white hover:bg-[#4647AE]/90",
 	Completed: "border-transparent bg-[#AACCD6]/40 text-[#112E81] hover:bg-[#AACCD6]/55",

@@ -10,11 +10,10 @@
       class="space-y-5" novalidate>
   {% csrf_token %}
   <input type="hidden" name="appointment_date" value="{{ appointment_date }}" />
-  <input type="hidden" name="appointment_time" value="{{ appointment_time }}" />
 
   <div class="bg-blue-50 rounded-lg px-4 py-3 text-sm text-blue-800 flex items-center justify-between">
     <span>Dr. {{ doctor.get_full_name }}</span>
-    <span class="font-semibold">{{ appointment_date }} &middot; {{ appointment_time_display|default:appointment_time }}</span>
+    <span class="font-semibold">{{ appointment_date_display|default:appointment_date }} &middot; Time to be confirmed</span>
   </div>
 
   <!-- Name -->

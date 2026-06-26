@@ -27,7 +27,7 @@
       <div class="flex items-center justify-between py-2 border-b border-gray-100">
         <div>
           <p class="font-medium text-gray-700">Dr. {{ appt.doctor.get_full_name }}</p>
-          <p class="text-sm text-gray-400">{{ appt.appointment_date|date:"M j, Y" }} at {{ appt.appointment_time|time:"g:i A" }}</p>
+          <p class="text-sm text-gray-400">{{ appt.appointment_date|date:"M j, Y" }}{% if appt.appointment_time %} at {{ appt.appointment_time|time:"g:i A" }}{% endif %}</p>
         </div>
         <span class="px-2 py-0.5 rounded-full text-xs font-semibold
           {% if appt.status == 'Scheduled' %}bg-green-100 text-green-700

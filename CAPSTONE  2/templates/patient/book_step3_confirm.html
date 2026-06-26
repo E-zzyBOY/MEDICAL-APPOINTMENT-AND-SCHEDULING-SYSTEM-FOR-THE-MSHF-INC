@@ -7,9 +7,9 @@
   <div class="flex items-center gap-2 mb-6 text-sm flex-wrap">
     <a href="/patient/appointments/book/" class="px-3 py-1 bg-blue-100 text-blue-700 rounded-full font-semibold hover:bg-blue-200">1. Doctor</a>
     <span class="text-gray-300">&rarr;</span>
-    <a href="/patient/appointments/book/{{ doctor.pk }}/slots/?date={{ appointment_date }}" class="px-3 py-1 bg-blue-100 text-blue-700 rounded-full font-semibold hover:bg-blue-200">2. Date &amp; Time</a>
+    <a href="/patient/appointments/book/{{ doctor.pk }}/slots/?date={{ appointment_date }}" class="px-3 py-1 bg-blue-100 text-blue-700 rounded-full font-semibold hover:bg-blue-200">2. Date</a>
     <span class="text-gray-300">&rarr;</span>
-    <a href="/patient/appointments/book/{{ doctor.pk }}/details/?appointment_date={{ appointment_date }}&appointment_time={{ appointment_time }}" class="px-3 py-1 bg-blue-100 text-blue-700 rounded-full font-semibold hover:bg-blue-200">3. Patient Details</a>
+    <a href="/patient/appointments/book/{{ doctor.pk }}/details/?appointment_date={{ appointment_date }}" class="px-3 py-1 bg-blue-100 text-blue-700 rounded-full font-semibold hover:bg-blue-200">3. Patient Details</a>
     <span class="text-gray-300">&rarr;</span>
     <span class="px-3 py-1 bg-blue-700 text-white rounded-full font-semibold">4. Review &amp; Confirm</span>
   </div>
@@ -28,11 +28,11 @@
       </div>
       <div class="flex justify-between">
         <span class="text-gray-500 font-medium">Date</span>
-        <span class="font-bold text-gray-800">{{ appointment_date }}</span>
+        <span class="font-bold text-gray-800">{{ appointment_date_display|default:appointment_date }}</span>
       </div>
       <div class="flex justify-between">
         <span class="text-gray-500 font-medium">Time</span>
-        <span class="font-bold text-gray-800">{{ appointment_time_display|default:appointment_time }}</span>
+        <span class="font-semibold text-amber-700">To be confirmed by staff</span>
       </div>
     </div>
 
@@ -70,11 +70,14 @@
       </div>
     </div>
 
+    <div class="bg-amber-50 border border-amber-100 rounded-lg p-3 text-sm text-amber-800 mb-6">
+      Your appointment time will be confirmed by our staff and you'll be notified once it's set.
+    </div>
+
     <form method="post" action="{% url 'patient:book_confirm' %}">
       {% csrf_token %}
       <input type="hidden" name="doctor_id" value="{{ doctor.pk }}" />
       <input type="hidden" name="appointment_date" value="{{ appointment_date }}" />
-      <input type="hidden" name="appointment_time" value="{{ appointment_time }}" />
       <input type="hidden" name="first_name" value="{{ details.first_name }}" />
       <input type="hidden" name="middle_name" value="{{ details.middle_name }}" />
       <input type="hidden" name="last_name" value="{{ details.last_name }}" />
@@ -91,7 +94,7 @@
                 class="flex-1 bg-blue-700 hover:bg-blue-800 text-white font-bold py-3 rounded-lg transition">
           Confirm &amp; Book
         </button>
-        <a href="/patient/appointments/book/{{ doctor.pk }}/details/?appointment_date={{ appointment_date }}&appointment_time={{ appointment_time }}"
+        <a href="/patient/appointments/book/{{ doctor.pk }}/details/?appointment_date={{ appointment_date }}"
            class="flex-1 text-center border border-gray-300 text-gray-700 font-bold py-3 rounded-lg hover:bg-gray-50 transition">
           Go Back
         </a>

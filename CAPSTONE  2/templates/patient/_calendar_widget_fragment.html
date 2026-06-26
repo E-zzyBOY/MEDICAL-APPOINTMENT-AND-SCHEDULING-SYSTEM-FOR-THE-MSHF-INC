@@ -1,13 +1,14 @@
 {% comment %}
 Booking calendar widget — shows a full month grid where each day is colored:
-  green  = doctor has open slots that day
-  red    = doctor has no schedule that weekday, or every slot is booked
+  green  = doctor has working hours that day (bookable)
+  red    = doctor has no schedule that day
   gray   = a past date, not selectable
-Clicking a green day fires hx-get to load that day's time slots into
+Clicking a green day fires hx-get to load a date-confirmation panel into
 #slot-grid (defined by the including template) without reloading this
 calendar. The prev/next month arrows swap just this fragment via
-#calendar-widget so the slot grid below is left alone until a new day
-is actually picked.
+#calendar-widget so the panel below is left alone until a new day
+is actually picked. The actual appointment TIME is assigned afterward by
+staff, not chosen here.
 {% endcomment %}
 <div id="calendar-widget" {% if oob %}hx-swap-oob="outerHTML"{% endif %} class="border border-gray-200 rounded-xl p-4">
   <input type="hidden" id="selected-date-input" value="{{ selected_date }}">

@@ -35,13 +35,12 @@
               <div class="flex-1 rounded-lg bg-white/70 px-3 py-2 text-center">
                 <p class="text-[10px] text-gray-400 uppercase tracking-wide font-semibold">Current</p>
                 <p class="text-sm font-medium text-gray-400 line-through">{{ appointment.appointment_date|date:"M j, Y" }}</p>
-                <p class="text-xs text-gray-400 line-through">{{ appointment.appointment_time|time:"g:i A" }}</p>
+                {% if appointment.appointment_time %}<p class="text-xs text-gray-400 line-through">{{ appointment.appointment_time|time:"g:i A" }}</p>{% endif %}
               </div>
               <svg class="w-5 h-5 text-purple-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/></svg>
               <div class="flex-1 rounded-lg bg-white px-3 py-2 text-center shadow-sm">
                 <p class="text-[10px] text-purple-400 uppercase tracking-wide font-semibold">Requested</p>
                 <p class="text-sm font-bold text-purple-900">{{ appointment.requested_date|date:"M j, Y" }}</p>
-                <p class="text-xs font-semibold text-purple-700">{{ appointment.requested_time|time:"g:i A" }}</p>
               </div>
             </div>
             {% if appointment.requested_reason %}

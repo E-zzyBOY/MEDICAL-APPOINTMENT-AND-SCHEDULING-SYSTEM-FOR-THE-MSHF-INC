@@ -14,6 +14,7 @@ urlpatterns = [
     path('schedule/<int:pk>/delete/',               v.schedule_delete,           name='schedule_delete'),
     path('appointments/',                           v.doctor_appointment_list,   name='appointment_list'),
     path('appointments/<int:pk>/detail/',           v.appointment_detail,        name='appointment_detail'),
+    path('appointments/<int:pk>/assign-time/',      v.assign_appointment_time,   name='assign_time'),
     path('appointments/<int:pk>/accept/',           v.appointment_accept,        name='appointment_accept'),
     path('appointments/<int:pk>/decline/',          v.appointment_decline,       name='appointment_decline'),
     path('appointments/<int:pk>/reschedule/',       v.appointment_reschedule,    name='appointment_reschedule'),

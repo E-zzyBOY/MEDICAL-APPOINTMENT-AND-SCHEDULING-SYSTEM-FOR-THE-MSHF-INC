@@ -73,9 +73,30 @@ class ScheduleForm(forms.ModelForm):
 
 
 class RescheduleForm(forms.Form):
+    """Used when a doctor directly reschedules one of their own appointments
+    (separate from a patient's reschedule *request*, which is handled in
+    patient_views). Date-only: the actual time is set afterward through
+    AssignTimeForm by whichever staff member gets to it first."""
     appointment_date = forms.DateField(widget=forms.DateInput(attrs={'type': 'date'}))
-    appointment_time = forms.TimeField(widget=forms.TimeInput(attrs={'type': 'time'}))
     reason           = forms.CharField(widget=forms.Textarea(attrs={'rows': 3}), required=False)
+
+    def clean_appointment_date(self):
+        new_date = self.cleaned_data['appointment_date']
+        if new_date < date.today():
+            raise forms.ValidationError('Cannot reschedule to a past date.')
+        return new_date
+
+
+class AssignTimeForm(forms.Form):
+    """Used by a doctor or secretary to set the actual time on an
+    appointment sitting in 'Pending Time Assignment'. The time itself is
+    validated against the doctor's working hours for that date and checked
+    for conflicts in the view, since both depend on which doctor/date this
+    particular appointment is for — info the form alone doesn't have."""
+    appointment_time = forms.TimeField(
+        required=True, label='Appointment Time',
+        widget=forms.TimeInput(attrs={'type': 'time'})
+    )
 
 
 class AdminAppointmentEditForm(forms.ModelForm):

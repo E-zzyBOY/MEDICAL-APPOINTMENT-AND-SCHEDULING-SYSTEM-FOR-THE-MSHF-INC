@@ -17,7 +17,7 @@ def _build_admin_dashboard_data(request):
     total_secretaries = CustomUser.objects.filter(role='secretary').count()
     total_appts       = Appointment.objects.count()
     today_appts       = Appointment.objects.filter(
-        appointment_date=date.today(), status__in=['Scheduled', 'Rescheduled']
+        appointment_date=date.today(), status__in=['Pending Time Assignment', 'Scheduled', 'Rescheduled']
     ).count()
     avg_rating        = Feedback.objects.aggregate(avg=Avg('rating'))['avg']
     recent_appts      = Appointment.objects.select_related('patient', 'doctor').order_by('-created_at')[:10]
@@ -54,7 +54,7 @@ def _build_admin_dashboard_data(request):
                 'primary': a.patient.get_full_name(),
                 'secondary': f'Dr. {a.doctor.get_full_name()}',
                 'date': a.appointment_date.isoformat(),
-                'time': a.appointment_time.strftime('%H:%M'),
+                'time': a.appointment_time.strftime('%H:%M') if a.appointment_time else None,
                 'status': a.status,
             }
             for a in recent_appts

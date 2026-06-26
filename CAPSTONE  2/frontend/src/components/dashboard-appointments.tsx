@@ -21,6 +21,8 @@ import { formatDate } from "@/components/formater";
 import type { AppointmentRow } from "@/types";
 
 const statusStyles: Record<string, string> = {
+	"Pending Time Assignment":
+		"border-transparent bg-amber-100 text-amber-700 hover:bg-amber-200",
 	Scheduled: "border-transparent bg-[#4382DF] text-white hover:bg-[#4382DF]/90",
 	Rescheduled:
 		"border-transparent bg-[#4647AE] text-white hover:bg-[#4647AE]/90",

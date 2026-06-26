@@ -11,7 +11,8 @@ from appointments.models import Appointment, Schedule, AppointmentPatientDetails
 from appointments.forms import PatientDetailsForm
 from accounts.models import CustomUser, PatientProfile, TERMS_VERSION
 from notifications.email_utils import (
-    send_booking_confirmation_email, send_cancellation_email, send_reschedule_email
+    send_booking_received_email, send_booking_confirmation_email, send_cancellation_email,
+    send_reschedule_email, send_time_assigned_email
 )
 from notifications.models import Notification
 
@@ -20,10 +21,27 @@ def _notify(user, message):
     Notification.objects.create(user=user, message=message)
 
 
+def _notify_assigned_secretaries_and_doctor(doctor, message):
+    """A new pending-time appointment needs action from whoever gets to it
+    first — the doctor or any secretary assigned to them — so both get
+    notified rather than just one."""
+    _notify(doctor, message)
+    for secretary_profile in doctor.assigned_secretaries.select_related('user').all():
+        if secretary_profile.user:
+            _notify(secretary_profile.user, message)
+
+
 def _compute_month_availability(doctor, year, month):
     """Build a day-by-day availability map for one calendar month, used to
-    color the booking calendar green (open slots), red (no schedule on
-    this exact date, or every slot already booked), or past (unselectable).
+    color the booking calendar green (the doctor works this day) or red
+    (no schedule on this date), or past (unselectable).
+
+    Patients only pick a DATE now — the actual time is assigned afterward
+    by staff — so a date just needs at least one Schedule block to count
+    as available. There's no slot-capacity check here anymore (that would
+    require knowing time slots, which no longer exist on the booking
+    side); double-booking is checked at time-assignment instead, where an
+    actual time exists to compare against.
 
     Returns a list of week rows; each cell is either None (padding outside
     the month) or a dict: {day, date, status} where status is one of
@@ -34,39 +52,11 @@ def _compute_month_availability(doctor, year, month):
     month_start = date(year, month, 1)
     month_end   = date(year, month, days_in_month)
 
-    # How many 30-min slots does this doctor offer on each specific date
-    # this month (across all schedule blocks for that date)?
-    schedule_blocks = list(
+    working_dates = set(
         Schedule.objects.filter(
             doctor=doctor, specific_date__gte=month_start, specific_date__lte=month_end
-        )
+        ).values_list('specific_date', flat=True)
     )
-    slots_per_date = {}
-    for block in schedule_blocks:
-        count = 0
-        current = datetime.combine(block.specific_date, block.start_time)
-        end     = datetime.combine(block.specific_date, block.end_time)
-        while current < end:
-            count += 1
-            current += timedelta(minutes=30)
-        slots_per_date[block.specific_date] = slots_per_date.get(block.specific_date, 0) + count
-    working_dates = set(slots_per_date.keys())
-
-    # One query for every booked slot this month, bucketed by date, instead
-    # of a separate query per day.
-    booked_counts = {}
-    if working_dates:
-        booked_rows = (
-            Appointment.objects.filter(
-                doctor=doctor,
-                appointment_date__gte=month_start,
-                appointment_date__lte=month_end,
-                status__in=['Scheduled', 'Rescheduled'],
-            )
-            .values_list('appointment_date', flat=True)
-        )
-        for d in booked_rows:
-            booked_counts[d] = booked_counts.get(d, 0) + 1
 
     weeks = []
     week = [None] * first_weekday
@@ -74,12 +64,10 @@ def _compute_month_availability(doctor, year, month):
         current_date = date(year, month, day_num)
         if current_date < today:
             status = 'past'
-        elif current_date not in working_dates:
-            status = 'unavailable'
-        elif booked_counts.get(current_date, 0) >= slots_per_date[current_date]:
-            status = 'unavailable'
-        else:
+        elif current_date in working_dates:
             status = 'available'
+        else:
+            status = 'unavailable'
         week.append({'day': day_num, 'date': current_date.isoformat(), 'status': status})
         if len(week) == 7:
             weeks.append(week)
@@ -94,7 +82,7 @@ def _compute_month_availability(doctor, year, month):
 def _build_patient_dashboard_data(request):
     upcoming = Appointment.objects.filter(
         patient=request.user,
-        status__in=['Scheduled', 'Rescheduled', 'Pending Reschedule'],
+        status__in=['Pending Time Assignment', 'Scheduled', 'Rescheduled', 'Pending Reschedule'],
         appointment_date__gte=date.today()
     ).select_related('doctor')[:5]
     past = Appointment.objects.filter(
@@ -115,7 +103,7 @@ def _build_patient_dashboard_data(request):
                 'primary': f'Dr. {a.doctor.get_full_name()}',
                 'secondary': a.reason or '',
                 'date': a.appointment_date.isoformat(),
-                'time': a.appointment_time.strftime('%H:%M'),
+                'time': a.appointment_time.strftime('%H:%M') if a.appointment_time else None,
                 'status': a.status,
             }
             for a in upcoming
@@ -216,39 +204,23 @@ def _format_time_str(selected_time_str):
         return selected_time_str
 
 
-def _compute_slots(doctor, selected_date_str):
-    slots = []
+def _validate_booking_date(doctor, selected_date_str):
+    """Patients pick a date only now — the time is assigned afterward by
+    staff. This just confirms the date is choosable: not in the past, and
+    the doctor actually has a Schedule block (working hours) that day."""
     error = None
-
     if selected_date_str:
         try:
             selected_date = datetime.strptime(selected_date_str, '%Y-%m-%d').date()
         except ValueError:
-            return [], 'Invalid date format.', selected_date_str
+            return 'Invalid date format.', selected_date_str
 
         if selected_date < date.today():
             error = 'Cannot book an appointment in the past.'
-        else:
-            schedule_blocks = Schedule.objects.filter(doctor=doctor, specific_date=selected_date)
-            if not schedule_blocks.exists():
-                error = 'The selected doctor has no schedule on this date.'
-            else:
-                booked_times = set(
-                    Appointment.objects.filter(
-                        doctor=doctor,
-                        appointment_date=selected_date,
-                        status__in=['Scheduled', 'Rescheduled']
-                    ).values_list('appointment_time', flat=True)
-                )
-                for block in schedule_blocks:
-                    current = datetime.combine(selected_date, block.start_time)
-                    end     = datetime.combine(selected_date, block.end_time)
-                    while current < end:
-                        t = current.time()
-                        slots.append({'time': t, 'available': t not in booked_times})
-                        current += timedelta(minutes=30)
+        elif not Schedule.objects.filter(doctor=doctor, specific_date=selected_date).exists():
+            error = 'The selected doctor has no schedule on this date.'
 
-    return slots, error, selected_date_str
+    return error, selected_date_str
 
 
 def _resolve_calendar_month(request, selected_date_str):
@@ -276,17 +248,16 @@ def _resolve_calendar_month(request, selected_date_str):
 def book_step2_slots(request, doctor_id):
     doctor = get_object_or_404(CustomUser, pk=doctor_id, role='doctor')
     selected_date_str = request.GET.get('date', '')
-    slots, error, selected_date_str = _compute_slots(doctor, selected_date_str)
+    error, selected_date_str = _validate_booking_date(doctor, selected_date_str)
     year, month = _resolve_calendar_month(request, selected_date_str)
     calendar_weeks = _compute_month_availability(doctor, year, month)
 
     context = {
         'doctor': doctor,
-        'slots': slots,
         'selected_date': selected_date_str,
         'selected_date_display': _format_date_str(selected_date_str),
         'error': error,
-        'title': 'Choose a Time Slot',
+        'title': 'Choose a Date',
         'calendar_weeks': calendar_weeks,
         'calendar_year': year,
         'calendar_month': month,
@@ -302,11 +273,11 @@ def book_step2_slots(request, doctor_id):
 def book_step2_slots_partial(request, doctor_id):
     doctor = get_object_or_404(CustomUser, pk=doctor_id, role='doctor')
     selected_date_str = request.GET.get('date', '')
-    slots, error, selected_date_str = _compute_slots(doctor, selected_date_str)
+    error, selected_date_str = _validate_booking_date(doctor, selected_date_str)
     year, month = _resolve_calendar_month(request, selected_date_str)
     calendar_weeks = _compute_month_availability(doctor, year, month)
     return render(request, 'patient/_slot_grid_fragment.html', {
-        'doctor': doctor, 'slots': slots, 'selected_date': selected_date_str,
+        'doctor': doctor, 'selected_date': selected_date_str,
         'selected_date_display': _format_date_str(selected_date_str),
         'error': error,
         'calendar_weeks': calendar_weeks,
@@ -395,10 +366,9 @@ def book_step4_details(request, doctor_id):
     AppointmentPatientDetails snapshot) gets created on final confirm."""
     doctor = get_object_or_404(CustomUser, pk=doctor_id, role='doctor')
     appointment_date = request.POST.get('appointment_date') or request.GET.get('appointment_date', '')
-    appointment_time = request.POST.get('appointment_time') or request.GET.get('appointment_time', '')
 
-    if not (appointment_date and appointment_time):
-        # Can't proceed without knowing which slot this is for.
+    if not appointment_date:
+        # Can't proceed without knowing which date this is for.
         return redirect('patient:book_step2', doctor_id=doctor.pk)
 
     already_consented = _patient_already_consented(request.user)
@@ -414,7 +384,7 @@ def book_step4_details(request, doctor_id):
             context = {
                 'doctor': doctor,
                 'appointment_date': appointment_date,
-                'appointment_time': appointment_time,
+                'appointment_date_display': _format_date_str(appointment_date),
                 'details': form.cleaned_data,
                 'already_consented': already_consented,
                 'title': 'Review Appointment',
@@ -431,8 +401,7 @@ def book_step4_details(request, doctor_id):
     context = {
         'doctor': doctor,
         'appointment_date': appointment_date,
-        'appointment_time': appointment_time,
-        'appointment_time_display': _format_time_str(appointment_time),
+        'appointment_date_display': _format_date_str(appointment_date),
         'form': form,
         'already_consented': already_consented,
         'title': 'Patient Details',
@@ -447,12 +416,10 @@ def book_step3_confirm(request):
     if request.method == 'POST':
         doctor_id  = request.POST.get('doctor_id')
         date_str   = request.POST.get('appointment_date')
-        time_str   = request.POST.get('appointment_time')
 
         try:
             doctor           = get_object_or_404(CustomUser, pk=doctor_id, role='doctor')
             appointment_date = datetime.strptime(date_str, '%Y-%m-%d').date()
-            appointment_time = datetime.strptime(time_str, '%H:%M:%S').time()
         except (ValueError, TypeError):
             messages.error(request, 'Invalid booking data. Please try again.')
             return redirect('patient:book_step1')
@@ -471,8 +438,7 @@ def book_step3_confirm(request):
             response_ctx = {
                 'doctor': doctor,
                 'appointment_date': date_str,
-                'appointment_time': time_str,
-                'appointment_time_display': _format_time_str(time_str),
+                'appointment_date_display': _format_date_str(date_str),
                 'form': form,
                 'already_consented': already_consented,
                 'title': 'Patient Details',
@@ -483,52 +449,16 @@ def book_step3_confirm(request):
 
         details = form.cleaned_data
 
+        # No time-based conflict check here — there's no time yet. Staff
+        # checks for double-booking when they assign the actual time
+        # (see assign_appointment_time in doctor_views/secretary_views).
         with transaction.atomic():
-            doctor_conflict = Appointment.objects.select_for_update().filter(
-                doctor=doctor,
-                appointment_date=appointment_date,
-                appointment_time=appointment_time,
-                status__in=['Scheduled', 'Rescheduled']
-            ).exists()
-            if doctor_conflict:
-                messages.error(request, 'This time slot was just taken. Please choose another.')
-                if request.htmx:
-                    slots, _ignored_error, selected_date_str = _compute_slots(doctor, date_str)
-                    return render(request, 'patient/_book_step2_modal.html', {
-                        'doctor': doctor, 'slots': slots, 'selected_date': selected_date_str,
-                        'error': 'This time slot was just taken. Please choose another.',
-                        'title': 'Choose a Time Slot',
-                    })
-                return redirect('patient:book_step2', doctor_id=doctor.pk)
-
-            # A patient can only have one active appointment at a given
-            # date/time, even across different doctors — checked separately
-            # from the doctor-scoped conflict above so the two cases can
-            # show a message that actually explains what happened.
-            patient_conflict = Appointment.objects.select_for_update().filter(
-                patient=request.user,
-                appointment_date=appointment_date,
-                appointment_time=appointment_time,
-                status__in=['Scheduled', 'Rescheduled']
-            ).exists()
-            if patient_conflict:
-                error_msg = 'You already have an appointment at this date and time. Please choose another.'
-                messages.error(request, error_msg)
-                if request.htmx:
-                    slots, _ignored_error, selected_date_str = _compute_slots(doctor, date_str)
-                    return render(request, 'patient/_book_step2_modal.html', {
-                        'doctor': doctor, 'slots': slots, 'selected_date': selected_date_str,
-                        'error': error_msg,
-                        'title': 'Choose a Time Slot',
-                    })
-                return redirect('patient:book_step2', doctor_id=doctor.pk)
-
             appointment = Appointment.objects.create(
                 patient          = request.user,
                 doctor           = doctor,
                 appointment_date = appointment_date,
-                appointment_time = appointment_time,
-                status           = 'Scheduled',
+                appointment_time = None,
+                status           = 'Pending Time Assignment',
                 reason           = details['reason'],
             )
 
@@ -555,36 +485,40 @@ def book_step3_confirm(request):
                 profile.save(update_fields=['terms_accepted_at', 'terms_accepted_version'])
 
         try:
-            send_booking_confirmation_email(appointment)
+            send_booking_received_email(appointment)
         except Exception:
             pass
+        _notify_assigned_secretaries_and_doctor(
+            doctor,
+            f"{request.user.get_full_name()} requested an appointment with Dr. {doctor.get_full_name()} on "
+            f"{appointment_date.strftime('%B %d, %Y')}. Awaiting time assignment."
+        )
         _notify(request.user,
-                f"Your appointment with Dr. {doctor.get_full_name()} on "
-                f"{appointment_date.strftime('%B %d, %Y')} at "
-                f"{appointment_time.strftime('%I:%M %p')} has been booked.")
+                f"Your appointment request with Dr. {doctor.get_full_name()} on "
+                f"{appointment_date.strftime('%B %d, %Y')} has been received. "
+                f"You'll be notified once the time is confirmed.")
 
-        messages.success(request, 'Appointment booked successfully! A confirmation email has been sent.')
+        messages.success(request, 'Appointment request sent! You\'ll be notified once the time is confirmed.')
         if request.htmx:
             response = render(request, 'patient/_book_step3_modal.html', {
-                'doctor': doctor, 'appointment_date': date_str, 'appointment_time': time_str,
-                'title': 'Confirm Appointment',
+                'doctor': doctor, 'appointment_date': date_str,
+                'title': 'Appointment Requested',
             })
             response['HX-Redirect'] = '/patient/appointments/'
             return response
         return redirect('patient:appointment_list')
 
-    # GET: redirect back into the flow at Step 4 (Patient Details) — this
-    # view no longer accepts a direct GET with just doctor/date/time, since
-    # patient details must be collected first. Carries the date/time
-    # through so the patient doesn't have to re-pick the slot.
+    # GET: redirect back into the flow at Step 3 (Patient Details) — this
+    # view no longer accepts a direct GET with just doctor/date, since
+    # patient details must be collected first. Carries the date through
+    # so the patient doesn't have to re-pick it.
     doctor_id  = request.GET.get('doctor_id')
     date_str   = request.GET.get('appointment_date')
-    time_str   = request.GET.get('appointment_time')
-    if not all([doctor_id, date_str, time_str]):
+    if not all([doctor_id, date_str]):
         return redirect('patient:book_step1')
     return redirect(
         f"{reverse('patient:book_step4', kwargs={'doctor_id': doctor_id})}"
-        f"?appointment_date={date_str}&appointment_time={time_str}"
+        f"?appointment_date={date_str}"
     )
 
 
@@ -595,13 +529,11 @@ def reschedule_appointment(request, pk):
     )
     if request.method == 'POST':
         date_str = request.POST.get('appointment_date')
-        time_str = request.POST.get('appointment_time')
         reason   = request.POST.get('reason', appointment.reason)
         try:
             new_date = datetime.strptime(date_str, '%Y-%m-%d').date()
-            new_time = datetime.strptime(time_str, '%H:%M').time()
         except (ValueError, TypeError):
-            messages.error(request, 'Invalid date/time.')
+            messages.error(request, 'Invalid date.')
             if request.htmx:
                 return render(request, 'patient/_reschedule_modal.html', {'appointment': appointment, 'title': 'Reschedule Appointment'})
             return render(request, 'patient/reschedule.html', {'appointment': appointment})
@@ -612,51 +544,25 @@ def reschedule_appointment(request, pk):
                 return render(request, 'patient/_reschedule_modal.html', {'appointment': appointment, 'title': 'Reschedule Appointment'})
             return render(request, 'patient/reschedule.html', {'appointment': appointment})
 
-        with transaction.atomic():
-            doctor_conflict = Appointment.objects.select_for_update().filter(
-                doctor=appointment.doctor,
-                appointment_date=new_date,
-                appointment_time=new_time,
-                status__in=['Scheduled', 'Rescheduled']
-            ).exclude(pk=appointment.pk).exists()
-            if doctor_conflict:
-                messages.error(request, 'That slot is already taken. Choose another time.')
-                if request.htmx:
-                    return render(request, 'patient/_reschedule_modal.html', {'appointment': appointment, 'title': 'Reschedule Appointment'})
-                return render(request, 'patient/reschedule.html', {'appointment': appointment})
+        # No time-based conflict check here — the patient is only picking a
+        # new date now. Whoever approves this (doctor or secretary) assigns
+        # the actual time afterward, which is where double-booking against
+        # other appointments actually gets checked.
+        appointment.status            = 'Pending Reschedule'
+        appointment.requested_date    = new_date
+        appointment.requested_time    = None
+        appointment.requested_reason  = reason
+        appointment.save()
 
-            # A patient can only have one active appointment at a given
-            # date/time, even across different doctors — checked separately
-            # from the doctor-scoped conflict above. Excludes this same
-            # appointment since it's the one being moved.
-            patient_conflict = Appointment.objects.select_for_update().filter(
-                patient=appointment.patient,
-                appointment_date=new_date,
-                appointment_time=new_time,
-                status__in=['Scheduled', 'Rescheduled']
-            ).exclude(pk=appointment.pk).exists()
-            if patient_conflict:
-                messages.error(request, 'You already have another appointment at this date and time. Choose another time.')
-                if request.htmx:
-                    return render(request, 'patient/_reschedule_modal.html', {'appointment': appointment, 'title': 'Reschedule Appointment'})
-                return render(request, 'patient/reschedule.html', {'appointment': appointment})
-
-            # Don't apply the new date/time yet — the original appointment is
-            # left untouched and flagged as pending until the doctor
-            # reviews and approves the request.
-            appointment.status            = 'Pending Reschedule'
-            appointment.requested_date    = new_date
-            appointment.requested_time    = new_time
-            appointment.requested_reason  = reason
-            appointment.save()
-
-        _notify(appointment.doctor,
-                f"{appointment.patient.get_full_name()} requested to reschedule their appointment to "
-                f"{new_date.strftime('%B %d, %Y')} at {new_time.strftime('%I:%M %p')}. Awaiting your approval.")
+        _notify_assigned_secretaries_and_doctor(
+            appointment.doctor,
+            f"{appointment.patient.get_full_name()} requested to reschedule their appointment to "
+            f"{new_date.strftime('%B %d, %Y')}. Awaiting approval."
+        )
         _notify(request.user,
-                f"Your reschedule request for {new_date.strftime('%B %d, %Y')} at "
-                f"{new_time.strftime('%I:%M %p')} has been sent to Dr. {appointment.doctor.get_full_name()} for approval.")
-        messages.success(request, 'Reschedule request sent. It will take effect once the doctor approves it.')
+                f"Your reschedule request for {new_date.strftime('%B %d, %Y')} "
+                f"has been sent to Dr. {appointment.doctor.get_full_name()}'s office for approval.")
+        messages.success(request, 'Reschedule request sent. It will take effect once approved.')
         if request.htmx:
             response = render(request, 'patient/_reschedule_modal.html', {'appointment': appointment, 'title': 'Reschedule Appointment'})
             response['HX-Redirect'] = '/patient/appointments/'
@@ -688,7 +594,8 @@ def appointment_detail(request, pk):
 @role_required('patient')
 def cancel_appointment(request, pk):
     appointment = get_object_or_404(
-        Appointment, pk=pk, patient=request.user, status__in=['Scheduled', 'Rescheduled']
+        Appointment, pk=pk, patient=request.user,
+        status__in=['Pending Time Assignment', 'Scheduled', 'Rescheduled']
     )
     if request.method == 'POST':
         appointment.status = 'Cancelled'

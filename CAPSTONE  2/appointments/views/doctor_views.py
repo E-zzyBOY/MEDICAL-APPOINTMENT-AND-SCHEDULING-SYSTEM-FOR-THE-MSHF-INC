@@ -157,7 +157,14 @@ def schedule_delete(request, pk):
         schedule.delete()
         messages.success(request, 'Schedule slot removed.')
         if request.htmx:
-            response = render(request, 'doctor/_schedule_delete_modal.html', {'schedule': schedule})
+            # Don't re-render _schedule_delete_modal.html here: it now builds
+            # a URL from schedule.pk, but Django sets pk to None on an
+            # instance right after .delete() succeeds, which would throw a
+            # NoReverseMatch. HX-Redirect makes htmx navigate away
+            # immediately anyway, so the response body just needs to be
+            # valid HTML — its content is never shown to the user.
+            from django.http import HttpResponse
+            response = HttpResponse('')
             response['HX-Redirect'] = '/doctor/schedule/'
             return response
         return redirect('doctor:schedule_list')

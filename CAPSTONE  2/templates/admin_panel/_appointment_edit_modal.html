@@ -1,6 +1,9 @@
 {% extends "components/modal.html" %}
 {% block modal_content %}
-<form method="post" class="space-y-4">
+<form method="post" action="{% url 'admin_panel:appointment_edit' pk=appt.pk %}"
+      hx-post="{% url 'admin_panel:appointment_edit' pk=appt.pk %}"
+      hx-target="#modal-root" hx-swap="innerHTML"
+      class="space-y-4">
   {% csrf_token %}
   {% if form.non_field_errors %}
   <p class="text-red-600 text-sm bg-red-50 p-3 rounded">{{ form.non_field_errors.0 }}</p>

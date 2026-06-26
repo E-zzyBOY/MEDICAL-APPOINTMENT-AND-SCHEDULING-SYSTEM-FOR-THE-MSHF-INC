@@ -20,7 +20,10 @@
           <p class="text-center text-gray-700 font-medium mb-1">{{ edited_user.get_full_name|default:edited_user.username }}</p>
           <p class="text-center text-gray-500 text-sm capitalize mb-2">{{ edited_user.role }} &bull; {{ edited_user.email }}</p>
           <p class="text-center text-red-500 text-sm mb-6">This action cannot be undone. All associated data will be affected.</p>
-          <form method="post" class="flex gap-3">
+          <form method="post" action="{% url 'admin_panel:user_delete' pk=edited_user.pk %}"
+                hx-post="{% url 'admin_panel:user_delete' pk=edited_user.pk %}"
+                hx-target="#modal-root" hx-swap="innerHTML"
+                class="flex gap-3">
             {% csrf_token %}
             <button type="submit" class="flex-1 px-4 py-3 bg-red-600 text-white font-bold rounded-lg hover:bg-red-700 transition">
               Delete

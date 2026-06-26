@@ -9,7 +9,10 @@
           <button type="button" onclick="closeModal()" aria-label="Close" class="w-8 h-8 flex items-center justify-center rounded-full text-gray-400 hover:text-gray-600 hover:bg-gray-100 text-2xl leading-none">&times;</button>
         </div>
         <!-- Content -->
-        <form method="post" class="px-6 py-6 space-y-4 flex-1 overflow-y-auto" novalidate>
+        <form method="post" action="{% url 'admin_panel:user_edit' pk=edited_user.pk %}"
+              hx-post="{% url 'admin_panel:user_edit' pk=edited_user.pk %}"
+              hx-target="#modal-root" hx-swap="innerHTML"
+              class="px-6 py-6 space-y-4 flex-1 overflow-y-auto" novalidate>
           {% csrf_token %}
           {% if form.non_field_errors %}
           <div class="bg-red-50 border border-red-200 text-red-700 rounded-lg p-3 text-sm">

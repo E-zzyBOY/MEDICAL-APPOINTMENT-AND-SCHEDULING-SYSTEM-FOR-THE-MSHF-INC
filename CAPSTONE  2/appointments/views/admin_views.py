@@ -1,7 +1,7 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.db.models import Count, Avg, Q
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse
 from datetime import date, timedelta
 from accounts.decorators import role_required
 from accounts.models import CustomUser, PatientProfile, DoctorProfile, SecretaryProfile
@@ -155,7 +155,13 @@ def user_delete(request, pk):
         user.delete()
         messages.success(request, f'User {name} deleted.')
         if request.htmx:
-            response = render(request, 'admin_panel/_user_delete_modal.html', {'edited_user': user})
+            # Don't re-render _user_delete_modal.html here: it builds a URL
+            # from edited_user.pk, but Django sets pk to None on an instance
+            # right after .delete() succeeds, which would throw a
+            # NoReverseMatch. HX-Redirect makes htmx navigate away
+            # immediately anyway, so the response body just needs to be
+            # valid HTML — its content is never shown to the user.
+            response = HttpResponse('')
             response['HX-Redirect'] = '/admin-panel/users/'
             return response
         return redirect('admin_panel:user_list')

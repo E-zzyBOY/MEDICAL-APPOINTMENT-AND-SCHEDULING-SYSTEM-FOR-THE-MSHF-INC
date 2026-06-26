@@ -307,8 +307,8 @@ def appointment_reschedule_reject(request, pk):
 
 @role_required('secretary')
 def walkin_register(request):
-    from accounts.forms import PatientRegistrationForm
-    form = PatientRegistrationForm(request.POST or None)
+    from accounts.forms import WalkInPatientForm
+    form = WalkInPatientForm(request.POST or None)
     if request.method == 'POST' and form.is_valid():
         user = form.save()
         messages.success(request, f'Walk-in patient {user.get_full_name()} registered.')

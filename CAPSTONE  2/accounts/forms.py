@@ -1,6 +1,74 @@
 from django import forms
 from django.contrib.auth.forms import UserCreationForm
+import re
 from .models import CustomUser, PatientProfile, DoctorProfile, SecretaryProfile
+from .validators import validate_ph_mobile_number, normalize_ph_mobile_number
+
+
+def _slugify_name_part(value):
+    """Lowercases and strips a name down to safe username characters."""
+    value = value.lower().strip()
+    value = re.sub(r'[^a-z0-9]+', '', value)
+    return value or 'patient'
+
+
+def _generate_walkin_username(first_name, last_name):
+    """Builds a readable, unique username like 'walkin-juan-delacruz' (with
+    a numeric suffix if that's already taken) — walk-in patients never log
+    in with it, but it still shows up in admin/secretary patient lists, so
+    it should be recognizable rather than a random string."""
+    base = f"walkin-{_slugify_name_part(first_name)}-{_slugify_name_part(last_name)}"
+    username = base
+    suffix = 1
+    while CustomUser.objects.filter(username=username).exists():
+        suffix += 1
+        username = f"{base}-{suffix}"
+    return username
+
+
+class WalkInPatientForm(forms.Form):
+    """Registers a walk-in patient who will never log in themselves — the
+    secretary is entering their details in person, on the spot. No
+    username or password is collected; both are generated automatically.
+    Email is optional since many walk-ins won't have one handy, but a
+    mobile number is required so the clinic has a way to reach them."""
+    first_name      = forms.CharField(max_length=150, required=True, label='First Name')
+    last_name       = forms.CharField(max_length=150, required=True, label='Last Name')
+    contact_number  = forms.CharField(max_length=20, required=True, label='Mobile Number')
+    email           = forms.EmailField(required=False, label='Email Address')
+    gender          = forms.ChoiceField(
+        choices=[('', '-- Select --')] + PatientProfile.GENDER_CHOICES, required=False, label='Sex'
+    )
+    date_of_birth   = forms.DateField(required=False, widget=forms.DateInput(attrs={'type': 'date'}))
+    address         = forms.CharField(widget=forms.Textarea(attrs={'rows': 2}), required=False)
+
+    def clean_contact_number(self):
+        value = self.cleaned_data['contact_number']
+        validate_ph_mobile_number(value)
+        return normalize_ph_mobile_number(value)
+
+    def save(self):
+        username = _generate_walkin_username(self.cleaned_data['first_name'], self.cleaned_data['last_name'])
+        user = CustomUser(
+            username=username,
+            first_name=self.cleaned_data['first_name'],
+            last_name=self.cleaned_data['last_name'],
+            email=self.cleaned_data.get('email', ''),
+            role='patient',
+        )
+        # Walk-in patients never log in with this account, so it should
+        # be impossible to authenticate as them even if someone later
+        # learned or guessed the auto-generated username.
+        user.set_unusable_password()
+        user.save()
+        PatientProfile.objects.create(
+            user=user,
+            contact_number=self.cleaned_data['contact_number'],
+            gender=self.cleaned_data.get('gender', ''),
+            date_of_birth=self.cleaned_data.get('date_of_birth'),
+            address=self.cleaned_data.get('address', ''),
+        )
+        return user
 
 
 class PatientRegistrationForm(UserCreationForm):

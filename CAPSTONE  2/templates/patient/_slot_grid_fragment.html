@@ -20,7 +20,7 @@ directly by the including template, so this OOB copy is skipped then.
 <div class="grid grid-cols-3 sm:grid-cols-4 gap-2">
   {% for slot in slots %}
     {% if slot.available %}
-    <a hx-get="{% url 'patient:book_confirm' %}?doctor_id={{ doctor.pk }}&appointment_date={{ selected_date }}&appointment_time={{ slot.time|time:'H:i:s' }}"
+    <a hx-get="{% url 'patient:book_step4' doctor_id=doctor.pk %}?appointment_date={{ selected_date }}&appointment_time={{ slot.time|time:'H:i:s' }}"
        hx-target="#modal-root" hx-swap="innerHTML"
        class="text-center py-2 px-3 bg-green-100 border-2 border-green-200 text-green-700 rounded-lg text-sm font-semibold hover:bg-green-600 hover:text-white hover:border-green-600 transition cursor-pointer">
       {{ slot.time|time:"g:i A" }}

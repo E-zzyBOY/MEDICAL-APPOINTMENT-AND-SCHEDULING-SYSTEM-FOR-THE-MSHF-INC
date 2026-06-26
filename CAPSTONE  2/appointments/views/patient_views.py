@@ -1,12 +1,15 @@
 from django.shortcuts import render, redirect, get_object_or_404
+from django.urls import reverse
 from django.contrib import messages
 from django.db import transaction
 from django.http import JsonResponse
+from django.utils import timezone
 from datetime import date, datetime, timedelta
 import calendar as calendar_module
 from accounts.decorators import role_required
-from appointments.models import Appointment, Schedule
-from accounts.models import CustomUser
+from appointments.models import Appointment, Schedule, AppointmentPatientDetails
+from appointments.forms import PatientDetailsForm
+from accounts.models import CustomUser, PatientProfile, TERMS_VERSION
 from notifications.email_utils import (
     send_booking_confirmation_email, send_cancellation_email, send_reschedule_email
 )
@@ -201,6 +204,18 @@ def _format_date_str(selected_date_str):
         return selected_date_str
 
 
+def _format_time_str(selected_time_str):
+    """Same idea as _format_date_str but for a 'HH:MM:SS' time string,
+    e.g. '09:00:00' -> '9:00 AM'."""
+    if not selected_time_str:
+        return ''
+    try:
+        t = datetime.strptime(selected_time_str, '%H:%M:%S').time()
+        return t.strftime('%I:%M %p').lstrip('0')
+    except ValueError:
+        return selected_time_str
+
+
 def _compute_slots(doctor, selected_date_str):
     slots = []
     error = None
@@ -321,13 +336,118 @@ def book_step2_calendar_partial(request, doctor_id):
     })
 
 
+def _patient_details_initial(user):
+    """Builds initial form data for the Patient Details step from whatever
+    the logged-in patient already has on file. Missing fields are simply
+    left blank so the patient fills them in once and (per the spec) only
+    has to type the chief complaint if everything else is already complete."""
+    profile = getattr(user, 'patient_profile', None)
+    initial = {
+        'first_name':  user.first_name,
+        'last_name':   user.last_name,
+        'email':       user.email,
+    }
+    if profile:
+        initial.update({
+            'middle_name':   profile.middle_name,
+            'date_of_birth': profile.date_of_birth,
+            'gender':        profile.gender,
+            'address':       profile.address,
+            'mobile_number': profile.contact_number,
+        })
+    return initial
+
+
+def _apply_patient_details_to_profile(user, cleaned_data):
+    """Writes the editable identity/contact fields back onto the live
+    CustomUser / PatientProfile, per the spec's requirement that the
+    patient's profile stays in sync with anything changed during booking.
+    Does not touch chief_complaint or terms_accepted — those are
+    per-appointment, not part of the profile."""
+    user.first_name = cleaned_data['first_name']
+    user.last_name  = cleaned_data['last_name']
+    if cleaned_data.get('email'):
+        user.email = cleaned_data['email']
+    user.save(update_fields=['first_name', 'last_name', 'email'])
+
+    profile, _created = PatientProfile.objects.get_or_create(user=user)
+    profile.middle_name    = cleaned_data.get('middle_name', '')
+    profile.date_of_birth  = cleaned_data['date_of_birth']
+    profile.gender         = cleaned_data['gender']
+    profile.address        = cleaned_data['address']
+    profile.contact_number = cleaned_data['mobile_number']
+    profile.save()
+
+
+def _patient_already_consented(user):
+    profile = getattr(user, 'patient_profile', None)
+    return bool(
+        profile and profile.terms_accepted_at and profile.terms_accepted_version == TERMS_VERSION
+    )
+
+
+@role_required('patient')
+def book_step4_details(request, doctor_id):
+    """Step 4 of booking: Patient Details. Sits between slot selection and
+    the review/confirm step. Nothing is written to the database here —
+    validated field values are carried forward as hidden form fields into
+    the review step, where the actual Appointment row (and the permanent
+    AppointmentPatientDetails snapshot) gets created on final confirm."""
+    doctor = get_object_or_404(CustomUser, pk=doctor_id, role='doctor')
+    appointment_date = request.POST.get('appointment_date') or request.GET.get('appointment_date', '')
+    appointment_time = request.POST.get('appointment_time') or request.GET.get('appointment_time', '')
+
+    if not (appointment_date and appointment_time):
+        # Can't proceed without knowing which slot this is for.
+        return redirect('patient:book_step2', doctor_id=doctor.pk)
+
+    already_consented = _patient_already_consented(request.user)
+
+    if request.method == 'POST':
+        form = PatientDetailsForm(request.POST)
+        # If the patient already has valid consent on file, don't force a
+        # re-check on every booking — but if they're a first-time/legacy
+        # patient or the policy version changed, the box is required.
+        if already_consented:
+            form.fields['terms_accepted'].required = False
+        if form.is_valid():
+            context = {
+                'doctor': doctor,
+                'appointment_date': appointment_date,
+                'appointment_time': appointment_time,
+                'details': form.cleaned_data,
+                'already_consented': already_consented,
+                'title': 'Review Appointment',
+            }
+            if request.htmx:
+                return render(request, 'patient/_book_step3_modal.html', context)
+            return render(request, 'patient/book_step3_confirm.html', context)
+        # Validation failed — redisplay with errors AND whatever the patient
+        # already typed (Django forms keep submitted values automatically).
+        messages.error(request, 'Please complete all required fields before continuing.')
+    else:
+        form = PatientDetailsForm(initial=_patient_details_initial(request.user))
+
+    context = {
+        'doctor': doctor,
+        'appointment_date': appointment_date,
+        'appointment_time': appointment_time,
+        'appointment_time_display': _format_time_str(appointment_time),
+        'form': form,
+        'already_consented': already_consented,
+        'title': 'Patient Details',
+    }
+    if request.htmx:
+        return render(request, 'patient/_book_step4_modal.html', context)
+    return render(request, 'patient/book_step4_details.html', context)
+
+
 @role_required('patient')
 def book_step3_confirm(request):
     if request.method == 'POST':
         doctor_id  = request.POST.get('doctor_id')
         date_str   = request.POST.get('appointment_date')
         time_str   = request.POST.get('appointment_time')
-        reason     = request.POST.get('reason', '')
 
         try:
             doctor           = get_object_or_404(CustomUser, pk=doctor_id, role='doctor')
@@ -337,14 +457,40 @@ def book_step3_confirm(request):
             messages.error(request, 'Invalid booking data. Please try again.')
             return redirect('patient:book_step1')
 
+        # Re-validate the patient-details fields here too, server-side —
+        # the review screen only carries these as hidden inputs, so a
+        # tampered or replayed POST must not be able to skip Step 4's
+        # validation (required fields, DOB not in the future, mobile
+        # number format, T&C checkbox).
+        already_consented = _patient_already_consented(request.user)
+        form = PatientDetailsForm(request.POST)
+        if already_consented:
+            form.fields['terms_accepted'].required = False
+        if not form.is_valid():
+            messages.error(request, 'Some patient details are missing or invalid. Please review and try again.')
+            response_ctx = {
+                'doctor': doctor,
+                'appointment_date': date_str,
+                'appointment_time': time_str,
+                'appointment_time_display': _format_time_str(time_str),
+                'form': form,
+                'already_consented': already_consented,
+                'title': 'Patient Details',
+            }
+            if request.htmx:
+                return render(request, 'patient/_book_step4_modal.html', response_ctx)
+            return render(request, 'patient/book_step4_details.html', response_ctx)
+
+        details = form.cleaned_data
+
         with transaction.atomic():
-            conflict = Appointment.objects.select_for_update().filter(
+            doctor_conflict = Appointment.objects.select_for_update().filter(
                 doctor=doctor,
                 appointment_date=appointment_date,
                 appointment_time=appointment_time,
                 status__in=['Scheduled', 'Rescheduled']
             ).exists()
-            if conflict:
+            if doctor_conflict:
                 messages.error(request, 'This time slot was just taken. Please choose another.')
                 if request.htmx:
                     slots, _ignored_error, selected_date_str = _compute_slots(doctor, date_str)
@@ -355,14 +501,58 @@ def book_step3_confirm(request):
                     })
                 return redirect('patient:book_step2', doctor_id=doctor.pk)
 
+            # A patient can only have one active appointment at a given
+            # date/time, even across different doctors — checked separately
+            # from the doctor-scoped conflict above so the two cases can
+            # show a message that actually explains what happened.
+            patient_conflict = Appointment.objects.select_for_update().filter(
+                patient=request.user,
+                appointment_date=appointment_date,
+                appointment_time=appointment_time,
+                status__in=['Scheduled', 'Rescheduled']
+            ).exists()
+            if patient_conflict:
+                error_msg = 'You already have an appointment at this date and time. Please choose another.'
+                messages.error(request, error_msg)
+                if request.htmx:
+                    slots, _ignored_error, selected_date_str = _compute_slots(doctor, date_str)
+                    return render(request, 'patient/_book_step2_modal.html', {
+                        'doctor': doctor, 'slots': slots, 'selected_date': selected_date_str,
+                        'error': error_msg,
+                        'title': 'Choose a Time Slot',
+                    })
+                return redirect('patient:book_step2', doctor_id=doctor.pk)
+
             appointment = Appointment.objects.create(
                 patient          = request.user,
                 doctor           = doctor,
                 appointment_date = appointment_date,
                 appointment_time = appointment_time,
                 status           = 'Scheduled',
-                reason           = reason,
+                reason           = details['reason'],
             )
+
+            terms_timestamp = timezone.now()
+            AppointmentPatientDetails.objects.create(
+                appointment      = appointment,
+                first_name       = details['first_name'],
+                middle_name      = details.get('middle_name', ''),
+                last_name        = details['last_name'],
+                date_of_birth    = details['date_of_birth'],
+                gender           = details['gender'],
+                address          = details['address'],
+                mobile_number    = details['mobile_number'],
+                email            = details.get('email', ''),
+                chief_complaint  = details['reason'],
+                terms_accepted_at = terms_timestamp,
+            )
+
+            _apply_patient_details_to_profile(request.user, details)
+            if not already_consented:
+                profile = request.user.patient_profile
+                profile.terms_accepted_at      = terms_timestamp
+                profile.terms_accepted_version = TERMS_VERSION
+                profile.save(update_fields=['terms_accepted_at', 'terms_accepted_version'])
 
         try:
             send_booking_confirmation_email(appointment)
@@ -383,22 +573,19 @@ def book_step3_confirm(request):
             return response
         return redirect('patient:appointment_list')
 
-    # GET: show confirmation form with pre-filled fields
+    # GET: redirect back into the flow at Step 4 (Patient Details) — this
+    # view no longer accepts a direct GET with just doctor/date/time, since
+    # patient details must be collected first. Carries the date/time
+    # through so the patient doesn't have to re-pick the slot.
     doctor_id  = request.GET.get('doctor_id')
     date_str   = request.GET.get('appointment_date')
     time_str   = request.GET.get('appointment_time')
     if not all([doctor_id, date_str, time_str]):
         return redirect('patient:book_step1')
-    doctor = get_object_or_404(CustomUser, pk=doctor_id, role='doctor')
-    context = {
-        'doctor': doctor,
-        'appointment_date': date_str,
-        'appointment_time': time_str,
-        'title': 'Confirm Appointment',
-    }
-    if request.htmx:
-        return render(request, 'patient/_book_step3_modal.html', context)
-    return render(request, 'patient/book_step3_confirm.html', context)
+    return redirect(
+        f"{reverse('patient:book_step4', kwargs={'doctor_id': doctor_id})}"
+        f"?appointment_date={date_str}&appointment_time={time_str}"
+    )
 
 
 @role_required('patient')
@@ -426,14 +613,30 @@ def reschedule_appointment(request, pk):
             return render(request, 'patient/reschedule.html', {'appointment': appointment})
 
         with transaction.atomic():
-            conflict = Appointment.objects.select_for_update().filter(
+            doctor_conflict = Appointment.objects.select_for_update().filter(
                 doctor=appointment.doctor,
                 appointment_date=new_date,
                 appointment_time=new_time,
                 status__in=['Scheduled', 'Rescheduled']
             ).exclude(pk=appointment.pk).exists()
-            if conflict:
+            if doctor_conflict:
                 messages.error(request, 'That slot is already taken. Choose another time.')
+                if request.htmx:
+                    return render(request, 'patient/_reschedule_modal.html', {'appointment': appointment, 'title': 'Reschedule Appointment'})
+                return render(request, 'patient/reschedule.html', {'appointment': appointment})
+
+            # A patient can only have one active appointment at a given
+            # date/time, even across different doctors — checked separately
+            # from the doctor-scoped conflict above. Excludes this same
+            # appointment since it's the one being moved.
+            patient_conflict = Appointment.objects.select_for_update().filter(
+                patient=appointment.patient,
+                appointment_date=new_date,
+                appointment_time=new_time,
+                status__in=['Scheduled', 'Rescheduled']
+            ).exclude(pk=appointment.pk).exists()
+            if patient_conflict:
+                messages.error(request, 'You already have another appointment at this date and time. Choose another time.')
                 if request.htmx:
                     return render(request, 'patient/_reschedule_modal.html', {'appointment': appointment, 'title': 'Reschedule Appointment'})
                 return render(request, 'patient/reschedule.html', {'appointment': appointment})

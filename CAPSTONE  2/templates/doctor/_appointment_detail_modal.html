@@ -41,6 +41,25 @@
     <p class="text-sm font-semibold text-gray-700 mb-1">Reason</p>
     <p class="text-sm text-gray-600">{{ appt.reason|default:"—" }}</p>
   </div>
+  {% with details=appt.patient_details %}
+  {% if details %}
+  <div class="rounded-xl border border-gray-100 bg-gray-50 p-4">
+    <p class="text-xs font-bold text-gray-500 uppercase tracking-wide mb-3">Patient Details</p>
+    <div class="grid grid-cols-2 gap-y-2 gap-x-4 text-sm">
+      <div><span class="text-gray-500">Name</span></div>
+      <div class="font-medium text-gray-800">{{ details.full_name }}</div>
+      <div><span class="text-gray-500">Date of Birth</span></div>
+      <div class="font-medium text-gray-800">{{ details.date_of_birth|date:"M j, Y" }}</div>
+      <div><span class="text-gray-500">Sex</span></div>
+      <div class="font-medium text-gray-800">{{ details.get_gender_display }}</div>
+      <div><span class="text-gray-500">Mobile</span></div>
+      <div class="font-medium text-gray-800">{{ details.mobile_number }}</div>
+      <div class="col-span-2"><span class="text-gray-500">Address</span></div>
+      <div class="col-span-2 font-medium text-gray-800">{{ details.address }}</div>
+    </div>
+  </div>
+  {% endif %}
+  {% endwith %}
   <div class="flex gap-3 pt-2">
     {% if appt.status == 'Pending Reschedule' %}
     <a hx-get="{% url 'doctor:reschedule_approve' pk=appt.pk %}" hx-target="#modal-root" hx-swap="innerHTML"

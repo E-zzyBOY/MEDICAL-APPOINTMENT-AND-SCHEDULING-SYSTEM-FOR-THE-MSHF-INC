@@ -19,6 +19,49 @@ class Schedule(models.Model):
         return f"Dr. {self.doctor.get_full_name()} — {self.specific_date.strftime('%b %d, %Y')} {self.start_time.strftime('%I:%M %p')}–{self.end_time.strftime('%I:%M %p')}"
 
 
+class AppointmentPatientDetails(models.Model):
+    """Snapshot of the patient-details form filled out during booking,
+    captured at the moment the appointment is confirmed (Patient Details
+    step). Kept separate from the live PatientProfile so a later profile
+    edit never silently rewrites what a doctor already reviewed for a past
+    or upcoming visit — same spirit as how a reschedule request leaves the
+    original appointment untouched until approved.
+
+    Editable profile fields (name, DOB, sex, address, mobile, email) are
+    also pushed back onto CustomUser / PatientProfile at booking time per
+    the spec ("patient profile should be updated if editable profile
+    information is changed"), so this table and the live profile normally
+    agree — this row exists to guarantee the appointment keeps its own
+    durable copy regardless of what happens to the profile afterward.
+    """
+    GENDER_CHOICES = [('M', 'Male'), ('F', 'Female'), ('O', 'Other')]
+
+    appointment   = models.OneToOneField(
+        'Appointment', on_delete=models.CASCADE, related_name='patient_details'
+    )
+    first_name    = models.CharField(max_length=150)
+    middle_name   = models.CharField(max_length=150, blank=True)
+    last_name     = models.CharField(max_length=150)
+    date_of_birth = models.DateField()
+    gender        = models.CharField(max_length=1, choices=GENDER_CHOICES)
+    address       = models.TextField()
+    mobile_number = models.CharField(max_length=20)
+    email         = models.EmailField(blank=True)
+    chief_complaint = models.TextField(
+        help_text='Reason for booking / chief complaint, shown to the assigned doctor.'
+    )
+    terms_accepted_at = models.DateTimeField()
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def full_name(self):
+        parts = [self.first_name, self.middle_name, self.last_name]
+        return ' '.join(p for p in parts if p)
+
+    def __str__(self):
+        return f"Patient details for appointment #{self.appointment_id}"
+
+
 class Appointment(models.Model):
     STATUS_CHOICES = [
         ('Scheduled',           'Scheduled'),

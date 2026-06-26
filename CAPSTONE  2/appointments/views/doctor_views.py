@@ -16,6 +16,15 @@ def _notify(user, message):
     Notification.objects.create(user=user, message=message)
 
 
+def _notify_assigned_secretaries(doctor, message):
+    """Notifies every secretary assigned to this doctor — a doctor can in
+    principle have more than one, so this fans out to all of them rather
+    than assuming a single secretary."""
+    for secretary_profile in doctor.assigned_secretaries.select_related('user').all():
+        if secretary_profile.user:
+            _notify(secretary_profile.user, message)
+
+
 def _format_date_str(selected_date_str):
     """Safely turn a 'YYYY-MM-DD' string into a display-friendly date, e.g.
     'Jun 29, 2026'. Mirrors the same helper on the patient booking side."""
@@ -197,6 +206,12 @@ def schedule_add(request):
                 })
         else:
             schedule.save()
+            _notify_assigned_secretaries(
+                request.user,
+                f"Dr. {request.user.get_full_name()} added a new schedule slot on "
+                f"{schedule.specific_date.strftime('%B %d, %Y')} "
+                f"({schedule.start_time.strftime('%I:%M %p')}–{schedule.end_time.strftime('%I:%M %p')})."
+            )
             messages.success(request, 'Schedule slot added.')
             if request.htmx:
                 response = render(request, 'doctor/_schedule_modal.html', {'form': form, 'action': 'Add'})
@@ -269,7 +284,15 @@ def schedule_edit(request, pk):
                     'today_iso': date.today().isoformat(),
                 })
         else:
+            old_date, old_start, old_end = schedule.specific_date, schedule.start_time, schedule.end_time
             updated.save()
+            _notify_assigned_secretaries(
+                request.user,
+                f"Dr. {request.user.get_full_name()} updated a schedule slot: "
+                f"{old_date.strftime('%b %d, %Y')} {old_start.strftime('%I:%M %p')}–{old_end.strftime('%I:%M %p')} "
+                f"is now {updated.specific_date.strftime('%b %d, %Y')} "
+                f"{updated.start_time.strftime('%I:%M %p')}–{updated.end_time.strftime('%I:%M %p')}."
+            )
             messages.success(request, 'Schedule updated.')
             if request.htmx:
                 response = render(request, 'doctor/_schedule_modal.html', {'form': form, 'action': 'Edit'})
@@ -313,7 +336,16 @@ def schedule_edit_calendar_partial(request, pk):
 def schedule_delete(request, pk):
     schedule = get_object_or_404(Schedule, pk=pk, doctor=request.user)
     if request.method == 'POST':
+        removed_date, removed_start, removed_end = (
+            schedule.specific_date, schedule.start_time, schedule.end_time
+        )
         schedule.delete()
+        _notify_assigned_secretaries(
+            request.user,
+            f"Dr. {request.user.get_full_name()} removed the schedule slot on "
+            f"{removed_date.strftime('%B %d, %Y')} "
+            f"({removed_start.strftime('%I:%M %p')}–{removed_end.strftime('%I:%M %p')})."
+        )
         messages.success(request, 'Schedule slot removed.')
         if request.htmx:
             # Don't re-render _schedule_delete_modal.html here: it now builds
@@ -408,14 +440,29 @@ def appointment_reschedule_approve(request, pk):
     appt = get_object_or_404(Appointment, pk=pk, status='Pending Reschedule', doctor=request.user)
     if request.method == 'POST':
         with transaction.atomic():
-            conflict = Appointment.objects.select_for_update().filter(
+            doctor_conflict = Appointment.objects.select_for_update().filter(
                 doctor=appt.doctor,
                 appointment_date=appt.requested_date,
                 appointment_time=appt.requested_time,
                 status__in=['Scheduled', 'Rescheduled']
             ).exclude(pk=appt.pk).exists()
-            if conflict:
+            if doctor_conflict:
                 messages.error(request, 'That slot has since been taken. Ask the patient to choose another time.')
+                if request.htmx:
+                    return render(request, 'doctor/_reschedule_action_modal.html', {'appointment': appt, 'action': 'approve'})
+                return render(request, 'doctor/reschedule_confirm_action.html', {'appointment': appt, 'action': 'approve'})
+
+            # The patient may have booked something else at this exact
+            # date/time (with a different doctor) in the time between
+            # requesting this reschedule and the doctor approving it.
+            patient_conflict = Appointment.objects.select_for_update().filter(
+                patient=appt.patient,
+                appointment_date=appt.requested_date,
+                appointment_time=appt.requested_time,
+                status__in=['Scheduled', 'Rescheduled']
+            ).exclude(pk=appt.pk).exists()
+            if patient_conflict:
+                messages.error(request, 'The patient already has another appointment at that date and time. Ask them to choose another time.')
                 if request.htmx:
                     return render(request, 'doctor/_reschedule_action_modal.html', {'appointment': appt, 'action': 'approve'})
                 return render(request, 'doctor/reschedule_confirm_action.html', {'appointment': appt, 'action': 'approve'})
@@ -491,14 +538,25 @@ def appointment_reschedule(request, pk):
             messages.error(request, 'Cannot reschedule to a past date.')
             return render(request, 'doctor/appointment_reschedule.html', {'form': form, 'appointment': appt})
         with transaction.atomic():
-            conflict = Appointment.objects.select_for_update().filter(
+            doctor_conflict = Appointment.objects.select_for_update().filter(
                 doctor=request.user,
                 appointment_date=new_date,
                 appointment_time=new_time,
                 status__in=['Scheduled', 'Rescheduled']
             ).exclude(pk=appt.pk).exists()
-            if conflict:
+            # A patient can only have one active appointment at a given
+            # date/time, even across different doctors.
+            patient_conflict = Appointment.objects.select_for_update().filter(
+                patient=appt.patient,
+                appointment_date=new_date,
+                appointment_time=new_time,
+                status__in=['Scheduled', 'Rescheduled']
+            ).exclude(pk=appt.pk).exists()
+            conflict = doctor_conflict or patient_conflict
+            if doctor_conflict:
                 messages.error(request, 'That slot is already taken.')
+            elif patient_conflict:
+                messages.error(request, 'The patient already has another appointment at that date and time.')
             else:
                 appt.status = 'Rescheduled'
                 appt.save()

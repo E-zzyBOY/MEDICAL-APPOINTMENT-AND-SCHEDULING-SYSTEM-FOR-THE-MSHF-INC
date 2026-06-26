@@ -1,6 +1,13 @@
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 
+# Bump this when the Terms & Conditions / Privacy Policy text changes in a
+# way that requires patients to re-consent. Patients whose
+# PatientProfile.terms_accepted_version doesn't match are asked to check
+# the box again on their next booking, even if they'd accepted a prior
+# version before.
+TERMS_VERSION = '2026-06'
+
 
 class CustomUser(AbstractUser):
     ROLE_CHOICES = [
@@ -29,6 +36,7 @@ class PatientProfile(models.Model):
         ('AB+', 'AB+'), ('AB-', 'AB-'), ('O+', 'O+'), ('O-', 'O-'),
     ]
     user           = models.OneToOneField(CustomUser, on_delete=models.CASCADE, related_name='patient_profile')
+    middle_name    = models.CharField(max_length=150, blank=True)
     contact_number = models.CharField(max_length=20, blank=True)
     age            = models.PositiveIntegerField(null=True, blank=True)
     gender         = models.CharField(max_length=1, choices=GENDER_CHOICES, blank=True)
@@ -39,6 +47,12 @@ class PatientProfile(models.Model):
     emergency_contact_name   = models.CharField(max_length=150, blank=True)
     emergency_contact_number = models.CharField(max_length=20, blank=True)
     blood_type     = models.CharField(max_length=3, choices=BLOOD_TYPE_CHOICES, blank=True)
+    # Set the first time the patient checks the Terms & Conditions / Privacy
+    # Policy box during booking. Once set, the booking flow treats consent
+    # as already on file and doesn't force a re-check on every visit unless
+    # the policy version changes (see TERMS_VERSION below).
+    terms_accepted_at      = models.DateTimeField(null=True, blank=True)
+    terms_accepted_version = models.CharField(max_length=20, blank=True)
 
     def __str__(self):
         return f"Profile: {self.user.get_full_name()}"

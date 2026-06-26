@@ -1,0 +1,7 @@
+{% extends "components/modal.html" %}
+{% block modal_content %}
+<p class="text-sm text-gray-500 mb-5">
+  This information is saved with your appointment record and shared with Dr. {{ doctor.get_full_name }} ahead of your visit.
+</p>
+{% include "patient/_patient_details_form_fields.html" %}
+{% endblock %}

@@ -15,7 +15,41 @@
   </div>
   <div class="flex justify-between">
     <span class="text-gray-500 font-medium">Time</span>
-    <span class="font-bold text-gray-800">{{ appointment_time }}</span>
+    <span class="font-bold text-gray-800">{{ appointment_time_display|default:appointment_time }}</span>
+  </div>
+</div>
+
+<h3 class="text-sm font-bold text-gray-700 mb-3 uppercase tracking-wide">Patient Details</h3>
+<div class="bg-gray-50 rounded-xl p-5 mb-6 space-y-3 text-sm">
+  <div class="flex justify-between">
+    <span class="text-gray-500 font-medium">Name</span>
+    <span class="font-semibold text-gray-800">{{ details.first_name }} {{ details.middle_name }} {{ details.last_name }}</span>
+  </div>
+  <div class="flex justify-between">
+    <span class="text-gray-500 font-medium">Date of Birth</span>
+    <span class="text-gray-800">{{ details.date_of_birth|date:"M j, Y" }}</span>
+  </div>
+  <div class="flex justify-between">
+    <span class="text-gray-500 font-medium">Sex</span>
+    <span class="text-gray-800">{% if details.gender == 'M' %}Male{% elif details.gender == 'F' %}Female{% else %}Other{% endif %}</span>
+  </div>
+  <div class="flex justify-between gap-4">
+    <span class="text-gray-500 font-medium shrink-0">Address</span>
+    <span class="text-gray-800 text-right">{{ details.address }}</span>
+  </div>
+  <div class="flex justify-between">
+    <span class="text-gray-500 font-medium">Mobile Number</span>
+    <span class="text-gray-800">{{ details.mobile_number }}</span>
+  </div>
+  {% if details.email %}
+  <div class="flex justify-between">
+    <span class="text-gray-500 font-medium">Email</span>
+    <span class="text-gray-800">{{ details.email }}</span>
+  </div>
+  {% endif %}
+  <div class="pt-2 border-t border-gray-200">
+    <p class="text-gray-500 font-medium mb-1">Reason for Booking / Chief Complaint</p>
+    <p class="text-gray-800">{{ details.reason }}</p>
   </div>
 </div>
 
@@ -26,20 +60,23 @@
   <input type="hidden" name="doctor_id" value="{{ doctor.pk }}" />
   <input type="hidden" name="appointment_date" value="{{ appointment_date }}" />
   <input type="hidden" name="appointment_time" value="{{ appointment_time }}" />
-
-  <div class="mb-5">
-    <label class="block text-sm font-semibold text-gray-700 mb-1">Reason for Visit <span class="text-gray-400 font-normal">(optional)</span></label>
-    <textarea name="reason" rows="3"
-              class="w-full border border-gray-300 rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="Describe your symptoms or reason for the visit..."></textarea>
-  </div>
+  <input type="hidden" name="first_name" value="{{ details.first_name }}" />
+  <input type="hidden" name="middle_name" value="{{ details.middle_name }}" />
+  <input type="hidden" name="last_name" value="{{ details.last_name }}" />
+  <input type="hidden" name="date_of_birth" value="{{ details.date_of_birth|date:'Y-m-d' }}" />
+  <input type="hidden" name="gender" value="{{ details.gender }}" />
+  <input type="hidden" name="address" value="{{ details.address }}" />
+  <input type="hidden" name="mobile_number" value="{{ details.mobile_number }}" />
+  <input type="hidden" name="email" value="{{ details.email }}" />
+  <input type="hidden" name="reason" value="{{ details.reason }}" />
+  <input type="hidden" name="terms_accepted" value="on" />
 
   <div class="flex gap-3">
     <button type="submit"
             class="flex-1 bg-blue-700 hover:bg-blue-800 text-white font-bold py-3 rounded-lg transition">
       Confirm &amp; Book
     </button>
-    <a hx-get="{% url 'patient:book_step2' doctor_id=doctor.pk %}?date={{ appointment_date }}"
+    <a hx-get="{% url 'patient:book_step4' doctor_id=doctor.pk %}?appointment_date={{ appointment_date }}&appointment_time={{ appointment_time }}"
        hx-target="#modal-root" hx-swap="innerHTML"
        class="flex-1 text-center border border-gray-300 text-gray-700 font-bold py-3 rounded-lg hover:bg-gray-50 transition cursor-pointer">
       Go Back

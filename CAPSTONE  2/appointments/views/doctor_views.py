@@ -2,7 +2,8 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.db.models import Count
 from django.http import JsonResponse
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
+import calendar as calendar_module
 from accounts.decorators import role_required
 from appointments.models import Appointment, Schedule
 from appointments.forms import ScheduleForm, RescheduleForm
@@ -13,6 +14,83 @@ from notifications.models import Notification
 
 def _notify(user, message):
     Notification.objects.create(user=user, message=message)
+
+
+def _format_date_str(selected_date_str):
+    """Safely turn a 'YYYY-MM-DD' string into a display-friendly date, e.g.
+    'Jun 29, 2026'. Mirrors the same helper on the patient booking side."""
+    if not selected_date_str:
+        return ''
+    try:
+        d = datetime.strptime(selected_date_str, '%Y-%m-%d').date()
+        return f"{d.strftime('%b')} {d.day}, {d.year}"
+    except ValueError:
+        return selected_date_str
+
+
+def _resolve_calendar_month(request, selected_date_str):
+    """Decide which year/month the schedule calendar grid should show: an
+    explicit ?year=&month= from month-navigation clicks takes priority,
+    then the month containing the currently selected date, then today's
+    month. Mirrors the same helper on the patient booking side."""
+    year_param  = request.GET.get('year')
+    month_param = request.GET.get('month')
+    if year_param and month_param:
+        try:
+            return int(year_param), int(month_param)
+        except ValueError:
+            pass
+    if selected_date_str:
+        try:
+            d = datetime.strptime(selected_date_str, '%Y-%m-%d').date()
+            return d.year, d.month
+        except ValueError:
+            pass
+    today = date.today()
+    return today.year, today.month
+
+
+def _compute_schedule_month(doctor, year, month):
+    """Build a day-by-day map for one calendar month, used to color the
+    doctor's own 'Add Slot' calendar:
+      has_slots = doctor already has one or more Schedule rows that day
+      open      = no slot yet, but still a valid day to add one
+      past      = before today, not selectable
+
+    Returns a list of week rows; each cell is either None (padding outside
+    the month) or a dict: {day, date, status}.
+    """
+    today = date.today()
+    first_weekday, days_in_month = calendar_module.monthrange(year, month)
+    month_start = date(year, month, 1)
+    month_end   = date(year, month, days_in_month)
+
+    dates_with_slots = set(
+        Schedule.objects.filter(
+            doctor=doctor,
+            specific_date__gte=month_start,
+            specific_date__lte=month_end,
+        ).values_list('specific_date', flat=True)
+    )
+
+    weeks = []
+    week = [None] * first_weekday
+    for day in range(1, days_in_month + 1):
+        d = date(year, month, day)
+        if d < today:
+            status = 'past'
+        elif d in dates_with_slots:
+            status = 'has_slots'
+        else:
+            status = 'open'
+        week.append({'day': day, 'date': d.isoformat(), 'status': status})
+        if len(week) == 7:
+            weeks.append(week)
+            week = []
+    if week:
+        week += [None] * (7 - len(week))
+        weeks.append(week)
+    return weeks
 
 
 def _build_doctor_dashboard_data(request):
@@ -84,58 +162,112 @@ def doctor_dashboard_data(request):
 
 @role_required('doctor')
 def schedule_list(request):
-    schedules = Schedule.objects.filter(doctor=request.user)
+    schedules = Schedule.objects.filter(doctor=request.user).order_by('specific_date', 'start_time')
     return render(request, 'doctor/schedule_list.html', {'schedules': schedules})
 
 
 @role_required('doctor')
 def schedule_add(request):
-    form = ScheduleForm(request.POST or None)
+    selected_date_str = request.POST.get('specific_date') or request.GET.get('date', '')
+    year, month = _resolve_calendar_month(request, selected_date_str)
+    calendar_weeks = _compute_schedule_month(request.user, year, month)
+
+    form = ScheduleForm(request.POST or None, initial={'specific_date': selected_date_str})
     if request.method == 'POST' and form.is_valid():
         schedule = form.save(commit=False)
         schedule.doctor = request.user
-        # Check overlap
+        # Check overlap against existing slots on the same specific date
         overlap = Schedule.objects.filter(
             doctor=request.user,
-            day_of_week=schedule.day_of_week,
+            specific_date=schedule.specific_date,
             start_time__lt=schedule.end_time,
             end_time__gt=schedule.start_time,
         ).exists()
         if overlap:
-            messages.error(request, 'This schedule overlaps with an existing one.')
+            messages.error(request, 'This schedule overlaps with an existing one on that date.')
             if request.htmx:
-                return render(request, 'doctor/_schedule_modal.html', {'form': form, 'action': 'Add'})
+                return render(request, 'doctor/_schedule_modal.html', {
+                    'form': form, 'action': 'Add',
+                    'selected_date': selected_date_str,
+                    'selected_date_display': _format_date_str(selected_date_str),
+                    'calendar_weeks': calendar_weeks,
+                    'calendar_year': year, 'calendar_month': month,
+                    'calendar_month_name': calendar_module.month_name[month],
+                    'today_iso': date.today().isoformat(),
+                })
         else:
             schedule.save()
             messages.success(request, 'Schedule slot added.')
             if request.htmx:
-                # On htmx: use HX-Redirect header to redirect after success
                 response = render(request, 'doctor/_schedule_modal.html', {'form': form, 'action': 'Add'})
                 response['HX-Redirect'] = '/doctor/schedule/'
                 return response
             return redirect('doctor:schedule_list')
-    
+
+    context = {
+        'form': form, 'action': 'Add',
+        'selected_date': selected_date_str,
+        'selected_date_display': _format_date_str(selected_date_str),
+        'calendar_weeks': calendar_weeks,
+        'calendar_year': year, 'calendar_month': month,
+        'calendar_month_name': calendar_module.month_name[month],
+        'today_iso': date.today().isoformat(),
+    }
     if request.htmx:
-        return render(request, 'doctor/_schedule_modal.html', {'form': form, 'action': 'Add'})
-    return render(request, 'doctor/schedule_form.html', {'form': form, 'action': 'Add'})
+        return render(request, 'doctor/_schedule_modal.html', context)
+    return render(request, 'doctor/schedule_form.html', context)
+
+
+@role_required('doctor')
+def schedule_add_calendar_partial(request):
+    """Re-renders just the calendar grid inside the Add Slot modal when the
+    doctor clicks the prev/next month arrows, without losing whatever
+    start/end time they may have already begun typing. Mirrors the same
+    pattern used on the patient booking calendar."""
+    selected_date_str = request.GET.get('selected_date', '')
+    year, month = _resolve_calendar_month(request, '')
+    calendar_weeks = _compute_schedule_month(request.user, year, month)
+    return render(request, 'doctor/_schedule_calendar_fragment.html', {
+        'calendar_weeks': calendar_weeks,
+        'calendar_year': year, 'calendar_month': month,
+        'calendar_month_name': calendar_module.month_name[month],
+        'today_iso': date.today().isoformat(),
+        'selected_date': selected_date_str,
+    })
 
 
 @role_required('doctor')
 def schedule_edit(request, pk):
     schedule = get_object_or_404(Schedule, pk=pk, doctor=request.user)
-    form = ScheduleForm(request.POST or None, instance=schedule)
+    selected_date_str = (
+        request.POST.get('specific_date')
+        or request.GET.get('date')
+        or schedule.specific_date.isoformat()
+    )
+    year, month = _resolve_calendar_month(request, selected_date_str)
+    calendar_weeks = _compute_schedule_month(request.user, year, month)
+
+    form = ScheduleForm(request.POST or None, instance=schedule, initial={'specific_date': selected_date_str})
     if request.method == 'POST' and form.is_valid():
         updated = form.save(commit=False)
         overlap = Schedule.objects.filter(
             doctor=request.user,
-            day_of_week=updated.day_of_week,
+            specific_date=updated.specific_date,
             start_time__lt=updated.end_time,
             end_time__gt=updated.start_time,
         ).exclude(pk=pk).exists()
         if overlap:
-            messages.error(request, 'This schedule overlaps with an existing one.')
+            messages.error(request, 'This schedule overlaps with an existing one on that date.')
             if request.htmx:
-                return render(request, 'doctor/_schedule_modal.html', {'form': form, 'action': 'Edit'})
+                return render(request, 'doctor/_schedule_modal.html', {
+                    'form': form, 'action': 'Edit', 'schedule': schedule,
+                    'selected_date': selected_date_str,
+                    'selected_date_display': _format_date_str(selected_date_str),
+                    'calendar_weeks': calendar_weeks,
+                    'calendar_year': year, 'calendar_month': month,
+                    'calendar_month_name': calendar_module.month_name[month],
+                    'today_iso': date.today().isoformat(),
+                })
         else:
             updated.save()
             messages.success(request, 'Schedule updated.')
@@ -144,10 +276,37 @@ def schedule_edit(request, pk):
                 response['HX-Redirect'] = '/doctor/schedule/'
                 return response
             return redirect('doctor:schedule_list')
-    
+
+    context = {
+        'form': form, 'action': 'Edit', 'schedule': schedule,
+        'selected_date': selected_date_str,
+        'selected_date_display': _format_date_str(selected_date_str),
+        'calendar_weeks': calendar_weeks,
+        'calendar_year': year, 'calendar_month': month,
+        'calendar_month_name': calendar_module.month_name[month],
+        'today_iso': date.today().isoformat(),
+    }
     if request.htmx:
-        return render(request, 'doctor/_schedule_modal.html', {'form': form, 'action': 'Edit'})
-    return render(request, 'doctor/schedule_form.html', {'form': form, 'action': 'Edit'})
+        return render(request, 'doctor/_schedule_modal.html', context)
+    return render(request, 'doctor/schedule_form.html', context)
+
+
+@role_required('doctor')
+def schedule_edit_calendar_partial(request, pk):
+    """Re-renders just the calendar grid inside the Edit Slot modal when the
+    doctor clicks the prev/next month arrows."""
+    schedule = get_object_or_404(Schedule, pk=pk, doctor=request.user)
+    selected_date_str = request.GET.get('selected_date', '')
+    year, month = _resolve_calendar_month(request, '')
+    calendar_weeks = _compute_schedule_month(request.user, year, month)
+    return render(request, 'doctor/_schedule_calendar_fragment.html', {
+        'calendar_weeks': calendar_weeks,
+        'calendar_year': year, 'calendar_month': month,
+        'calendar_month_name': calendar_module.month_name[month],
+        'today_iso': date.today().isoformat(),
+        'selected_date': selected_date_str,
+        'schedule': schedule,
+    })
 
 
 @role_required('doctor')

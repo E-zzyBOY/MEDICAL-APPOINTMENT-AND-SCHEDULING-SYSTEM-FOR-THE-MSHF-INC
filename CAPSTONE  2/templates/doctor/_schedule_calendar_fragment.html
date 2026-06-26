@@ -1,0 +1,71 @@
+{% comment %}
+Doctor schedule calendar widget — shows a full month grid where each day
+is colored:
+  blue (filled)  = the date currently selected for this slot
+  emerald        = doctor already has one or more slots on this date
+  gray (light)   = open day, no slot yet, still pickable
+  gray (faded)   = a past date, not selectable
+Clicking a pickable day re-fetches this same Add/Edit modal with that date
+selected. The prev/next month arrows swap just this fragment via
+#schedule-calendar-widget.
+
+Whether this is an Add or Edit flow is taken from `schedule` (only present
+when editing an existing slot) rather than a separately-passed `edit_pk`,
+so the two can never drift out of sync with each other.
+{% endcomment %}
+<div id="schedule-calendar-widget" class="border border-gray-200 rounded-xl p-4">
+  <!-- Month header + nav -->
+  <div class="flex items-center justify-between mb-3">
+    <button type="button"
+            hx-get="{% if schedule %}{% url 'doctor:schedule_edit_calendar_partial' pk=schedule.pk %}{% else %}{% url 'doctor:schedule_add_calendar_partial' %}{% endif %}?year={% if calendar_month == 1 %}{{ calendar_year|add:'-1' }}{% else %}{{ calendar_year }}{% endif %}&month={% if calendar_month == 1 %}12{% else %}{{ calendar_month|add:'-1' }}{% endif %}&selected_date={{ selected_date }}"
+            hx-target="#schedule-calendar-widget" hx-swap="outerHTML"
+            class="size-8 flex items-center justify-center rounded-full text-gray-500 hover:bg-gray-100 transition cursor-pointer">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+    </button>
+    <p class="font-bold text-gray-800 text-sm">{{ calendar_month_name }} {{ calendar_year }}</p>
+    <button type="button"
+            hx-get="{% if schedule %}{% url 'doctor:schedule_edit_calendar_partial' pk=schedule.pk %}{% else %}{% url 'doctor:schedule_add_calendar_partial' %}{% endif %}?year={% if calendar_month == 12 %}{{ calendar_year|add:'1' }}{% else %}{{ calendar_year }}{% endif %}&month={% if calendar_month == 12 %}1{% else %}{{ calendar_month|add:'1' }}{% endif %}&selected_date={{ selected_date }}"
+            hx-target="#schedule-calendar-widget" hx-swap="outerHTML"
+            class="size-8 flex items-center justify-center rounded-full text-gray-500 hover:bg-gray-100 transition cursor-pointer">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+    </button>
+  </div>
+
+  <!-- Weekday labels -->
+  <div class="grid grid-cols-7 gap-1 mb-1 text-center">
+    {% for label in "MTWTFSS" %}
+    <span class="text-[11px] font-semibold text-gray-400">{{ label }}</span>
+    {% endfor %}
+  </div>
+
+  <!-- Day grid -->
+  <div class="grid grid-cols-7 gap-1">
+    {% for week in calendar_weeks %}
+      {% for cell in week %}
+        {% if cell == None %}
+        <span class="aspect-square"></span>
+        {% elif cell.status == 'past' %}
+        <span class="aspect-square rounded-lg text-sm flex items-center justify-center text-gray-300 cursor-not-allowed" title="Past date">
+          {{ cell.day }}
+        </span>
+        {% else %}
+        <button type="button"
+                hx-get="{% if schedule %}{% url 'doctor:schedule_edit' pk=schedule.pk %}{% else %}{% url 'doctor:schedule_add' %}{% endif %}?date={{ cell.date }}"
+                hx-target="#modal-root" hx-swap="innerHTML"
+                class="schedule-calendar-day aspect-square rounded-lg text-sm font-semibold flex items-center justify-center transition cursor-pointer
+                  {% if cell.date == selected_date %}bg-blue-600 text-white ring-2 ring-blue-700
+                  {% elif cell.status == 'has_slots' %}bg-emerald-100 text-emerald-700 hover:bg-emerald-200
+                  {% else %}bg-gray-100 text-gray-600 hover:bg-gray-200{% endif %}">
+          {{ cell.day }}
+        </button>
+        {% endif %}
+      {% endfor %}
+    {% endfor %}
+  </div>
+
+  <!-- Legend -->
+  <div class="flex items-center gap-4 mt-3 pt-3 border-t border-gray-100 text-[11px] text-gray-500">
+    <span class="flex items-center gap-1.5"><span class="size-2.5 rounded-full bg-emerald-300"></span> Has slot(s)</span>
+    <span class="flex items-center gap-1.5"><span class="size-2.5 rounded-full bg-blue-600"></span> Selected</span>
+  </div>
+</div>

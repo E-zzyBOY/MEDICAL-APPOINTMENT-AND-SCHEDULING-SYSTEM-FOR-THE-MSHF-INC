@@ -4,8 +4,8 @@ from .models import Schedule, Appointment
 
 @admin.register(Schedule)
 class ScheduleAdmin(admin.ModelAdmin):
-    list_display = ['doctor', 'day_of_week', 'start_time', 'end_time']
-    list_filter  = ['day_of_week', 'doctor']
+    list_display = ['doctor', 'specific_date', 'start_time', 'end_time']
+    list_filter  = ['specific_date', 'doctor']
 
 
 @admin.register(Appointment)

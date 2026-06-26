@@ -2,23 +2,40 @@
 {% block page_title %}{{ action }} Schedule Slot{% endblock %}
 
 {% block doctor_content %}
-<div class="max-w-md">
+<div class="max-w-md space-y-4">
+  <div class="bg-white rounded-xl shadow p-6">
+    {% include "doctor/_schedule_calendar_fragment.html" %}
+  </div>
   <div class="bg-white rounded-xl shadow p-8">
-    <h2 class="text-xl font-bold text-gray-800 mb-6">{{ action }} Schedule Slot</h2>
-    <form method="post" class="space-y-4">
+    <h2 class="text-xl font-bold text-gray-800 mb-2">{{ action }} Schedule Slot</h2>
+    {% if selected_date %}
+    <p class="text-sm text-gray-600 mb-6">
+      Selected date: <span class="font-semibold text-gray-800">{{ selected_date_display }}</span>
+    </p>
+    {% else %}
+    <p class="text-sm text-gray-400 mb-6">Pick a date on the calendar above to continue.</p>
+    {% endif %}
+    <form method="post"
+          action="{% if schedule %}{% url 'doctor:schedule_edit' pk=schedule.pk %}{% else %}{% url 'doctor:schedule_add' %}{% endif %}"
+          class="space-y-4">
       {% csrf_token %}
       {% for field in form %}
+      {% if field.name == 'specific_date' %}
+        {{ field }}
+      {% else %}
       <div>
         <label class="block text-sm font-semibold text-gray-700 mb-1">{{ field.label }}</label>
         {{ field }}
         {% if field.errors %}<p class="text-red-600 text-xs mt-1">{{ field.errors.0 }}</p>{% endif %}
       </div>
+      {% endif %}
       {% endfor %}
       {% if form.non_field_errors %}
       <p class="text-red-600 text-sm">{{ form.non_field_errors.0 }}</p>
       {% endif %}
       <div class="flex gap-3 pt-2">
-        <button type="submit" class="flex-1 bg-emerald-700 text-white font-bold py-3 rounded-lg hover:bg-emerald-800 transition">
+        <button type="submit" {% if not selected_date %}disabled{% endif %}
+                class="flex-1 bg-emerald-700 text-white font-bold py-3 rounded-lg hover:bg-emerald-800 transition disabled:opacity-50 disabled:cursor-not-allowed">
           Save
         </button>
         <a href="/doctor/schedule/" class="flex-1 text-center border border-gray-300 text-gray-700 font-bold py-3 rounded-lg hover:bg-gray-50 transition">

@@ -1,4 +1,5 @@
 from django import forms
+from datetime import date
 from .models import Schedule, Appointment
 from accounts.models import CustomUser
 
@@ -6,18 +7,22 @@ from accounts.models import CustomUser
 class ScheduleForm(forms.ModelForm):
     class Meta:
         model  = Schedule
-        fields = ['day_of_week', 'start_time', 'end_time']
+        fields = ['specific_date', 'start_time', 'end_time']
         widgets = {
-            'start_time': forms.TimeInput(attrs={'type': 'time'}),
-            'end_time':   forms.TimeInput(attrs={'type': 'time'}),
+            'specific_date': forms.HiddenInput(),
+            'start_time':    forms.TimeInput(attrs={'type': 'time'}),
+            'end_time':      forms.TimeInput(attrs={'type': 'time'}),
         }
 
     def clean(self):
         cleaned = super().clean()
         start = cleaned.get('start_time')
         end   = cleaned.get('end_time')
+        specific_date = cleaned.get('specific_date')
         if start and end and end <= start:
             raise forms.ValidationError('End time must be after start time.')
+        if specific_date and specific_date < date.today():
+            raise forms.ValidationError('Cannot add a schedule slot for a past date.')
         return cleaned
 
 

@@ -9,27 +9,48 @@
           <button type="button" onclick="closeModal()" aria-label="Close" class="w-8 h-8 flex items-center justify-center rounded-full text-gray-400 hover:text-gray-600 hover:bg-gray-100 text-2xl leading-none">&times;</button>
         </div>
         <!-- Content -->
-        <form method="post" class="px-6 py-6 space-y-4 flex-1 overflow-y-auto">
-          {% csrf_token %}
-          {% for field in form %}
-          <div>
-            <label class="block text-sm font-semibold text-gray-700 mb-1">{{ field.label }}</label>
-            {{ field }}
-            {% if field.errors %}<p class="text-red-600 text-xs mt-1">{{ field.errors.0 }}</p>{% endif %}
-          </div>
-          {% endfor %}
-          {% if form.non_field_errors %}
-          <p class="text-red-600 text-sm bg-red-50 p-3 rounded">{{ form.non_field_errors.0 }}</p>
+        <div class="px-6 py-6 space-y-4 flex-1 overflow-y-auto">
+          {% include "doctor/_schedule_calendar_fragment.html" %}
+
+          {% if selected_date %}
+          <p class="text-sm text-gray-600">
+            Selected date: <span class="font-semibold text-gray-800">{{ selected_date_display }}</span>
+          </p>
+          {% else %}
+          <p class="text-sm text-gray-400">Pick a date on the calendar above to continue.</p>
           {% endif %}
-          <div class="flex gap-3 pt-4">
-            <button type="submit" class="flex-1 bg-emerald-700 text-white font-bold py-3 rounded-lg hover:bg-emerald-800 transition">
-              Save
-            </button>
-            <button type="button" onclick="closeModal()" class="flex-1 border border-gray-300 text-gray-700 font-bold py-3 rounded-lg hover:bg-gray-50 transition">
-              Cancel
-            </button>
-          </div>
-        </form>
+
+          <form method="post"
+                action="{% if schedule %}{% url 'doctor:schedule_edit' pk=schedule.pk %}{% else %}{% url 'doctor:schedule_add' %}{% endif %}"
+                hx-post="{% if schedule %}{% url 'doctor:schedule_edit' pk=schedule.pk %}{% else %}{% url 'doctor:schedule_add' %}{% endif %}"
+                hx-target="#modal-root" hx-swap="innerHTML"
+                class="space-y-4">
+            {% csrf_token %}
+            {% for field in form %}
+            {% if field.name == 'specific_date' %}
+              {{ field }}
+            {% else %}
+            <div>
+              <label class="block text-sm font-semibold text-gray-700 mb-1">{{ field.label }}</label>
+              {{ field }}
+              {% if field.errors %}<p class="text-red-600 text-xs mt-1">{{ field.errors.0 }}</p>{% endif %}
+            </div>
+            {% endif %}
+            {% endfor %}
+            {% if form.non_field_errors %}
+            <p class="text-red-600 text-sm bg-red-50 p-3 rounded">{{ form.non_field_errors.0 }}</p>
+            {% endif %}
+            <div class="flex gap-3 pt-4">
+              <button type="submit" {% if not selected_date %}disabled{% endif %}
+                      class="flex-1 bg-emerald-700 text-white font-bold py-3 rounded-lg hover:bg-emerald-800 transition disabled:opacity-50 disabled:cursor-not-allowed">
+                Save
+              </button>
+              <button type="button" onclick="closeModal()" class="flex-1 border border-gray-300 text-gray-700 font-bold py-3 rounded-lg hover:bg-gray-50 transition">
+                Cancel
+              </button>
+            </div>
+          </form>
+        </div>
       </div>
     </div>
   </div>

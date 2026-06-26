@@ -182,7 +182,7 @@ def vitals_add(request, patient_id):
 @role_required('secretary')
 def view_all_schedules(request):
     doctor = _assigned_doctor(request.user)
-    schedules = Schedule.objects.filter(doctor=doctor).order_by('day_of_week', 'start_time') if doctor else Schedule.objects.none()
+    schedules = Schedule.objects.filter(doctor=doctor).order_by('specific_date', 'start_time') if doctor else Schedule.objects.none()
     return render(request, 'secretary/schedules.html', {
         'schedules': schedules, 'doctor': doctor
     })

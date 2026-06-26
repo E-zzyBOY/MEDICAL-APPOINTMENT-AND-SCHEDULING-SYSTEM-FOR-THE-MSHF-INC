@@ -37,12 +37,17 @@ class Command(BaseCommand):
                 first_name=first, last_name=last
             )
             DoctorProfile.objects.create(user=doc, specialization=spec)
-            # Mon, Wed, Fri 9am–12pm
-            for day in [0, 2, 4]:
-                Schedule.objects.create(
-                    doctor=doc, day_of_week=day,
-                    start_time='09:00', end_time='12:00'
-                )
+            # Mon, Wed, Fri 9am–12pm for the next 4 weeks, as specific dates
+            # (the schedule system is date-specific, not recurring weekly)
+            today = date.today()
+            for week in range(4):
+                for weekday in [0, 2, 4]:
+                    days_ahead = (weekday - today.weekday()) % 7
+                    slot_date = today + timedelta(days=days_ahead, weeks=week)
+                    Schedule.objects.create(
+                        doctor=doc, specific_date=slot_date,
+                        start_time='09:00', end_time='12:00'
+                    )
             doctors.append(doc)
             self.stdout.write(f'  Created doctor{i}: Dr. {first} {last} ({spec})')
 

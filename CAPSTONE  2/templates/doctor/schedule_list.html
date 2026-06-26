@@ -4,7 +4,7 @@
 {% block doctor_content %}
 <div class="max-w-3xl space-y-4">
   <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-    <p class="text-gray-500 text-sm">Manage your weekly consultation schedule. Appointments will only be bookable during these hours.</p>
+    <p class="text-gray-500 text-sm">Manage your consultation schedule by date. Appointments will only be bookable during these hours.</p>
     <a hx-get="/doctor/schedule/add/" 
        hx-target="#modal-root" 
        hx-swap="innerHTML"
@@ -19,7 +19,7 @@
       {% for s in schedules %}
       <div class="flex items-center justify-between px-6 py-4">
         <div>
-          <p class="font-semibold text-gray-800">{{ s.get_day_of_week_display }}</p>
+          <p class="font-semibold text-gray-800">{{ s.specific_date|date:"D, M j, Y" }}</p>
           <p class="text-sm text-gray-500">{{ s.start_time|time:"g:i A" }} &ndash; {{ s.end_time|time:"g:i A" }}</p>
         </div>
         <div class="flex gap-2">

@@ -19,37 +19,40 @@ def _notify(user, message):
 
 def _compute_month_availability(doctor, year, month):
     """Build a day-by-day availability map for one calendar month, used to
-    color the booking calendar green (open slots), red (no schedule that
-    weekday, or every slot already booked), or past (unselectable).
+    color the booking calendar green (open slots), red (no schedule on
+    this exact date, or every slot already booked), or past (unselectable).
 
     Returns a list of week rows; each cell is either None (padding outside
     the month) or a dict: {day, date, status} where status is one of
     'available', 'unavailable', 'past'.
     """
     today = date.today()
-
-    # Which weekdays does this doctor work, and how many 30-min slots does
-    # each of those weekdays offer in total (across all schedule blocks)?
-    schedule_blocks = list(Schedule.objects.filter(doctor=doctor))
-    slots_per_weekday = {}
-    for block in schedule_blocks:
-        count = 0
-        current = datetime.combine(date.today(), block.start_time)
-        end     = datetime.combine(date.today(), block.end_time)
-        while current < end:
-            count += 1
-            current += timedelta(minutes=30)
-        slots_per_weekday[block.day_of_week] = slots_per_weekday.get(block.day_of_week, 0) + count
-    working_weekdays = set(slots_per_weekday.keys())
-
     first_weekday, days_in_month = calendar_module.monthrange(year, month)
     month_start = date(year, month, 1)
     month_end   = date(year, month, days_in_month)
 
+    # How many 30-min slots does this doctor offer on each specific date
+    # this month (across all schedule blocks for that date)?
+    schedule_blocks = list(
+        Schedule.objects.filter(
+            doctor=doctor, specific_date__gte=month_start, specific_date__lte=month_end
+        )
+    )
+    slots_per_date = {}
+    for block in schedule_blocks:
+        count = 0
+        current = datetime.combine(block.specific_date, block.start_time)
+        end     = datetime.combine(block.specific_date, block.end_time)
+        while current < end:
+            count += 1
+            current += timedelta(minutes=30)
+        slots_per_date[block.specific_date] = slots_per_date.get(block.specific_date, 0) + count
+    working_dates = set(slots_per_date.keys())
+
     # One query for every booked slot this month, bucketed by date, instead
     # of a separate query per day.
     booked_counts = {}
-    if working_weekdays:
+    if working_dates:
         booked_rows = (
             Appointment.objects.filter(
                 doctor=doctor,
@@ -66,12 +69,11 @@ def _compute_month_availability(doctor, year, month):
     week = [None] * first_weekday
     for day_num in range(1, days_in_month + 1):
         current_date = date(year, month, day_num)
-        weekday = current_date.weekday()
         if current_date < today:
             status = 'past'
-        elif weekday not in working_weekdays:
+        elif current_date not in working_dates:
             status = 'unavailable'
-        elif booked_counts.get(current_date, 0) >= slots_per_weekday[weekday]:
+        elif booked_counts.get(current_date, 0) >= slots_per_date[current_date]:
             status = 'unavailable'
         else:
             status = 'available'
@@ -175,7 +177,9 @@ def book_step1(request):
 @role_required('patient')
 def doctor_profile_view(request, doctor_id):
     doctor = get_object_or_404(CustomUser, pk=doctor_id, role='doctor')
-    schedules = Schedule.objects.filter(doctor=doctor).order_by('day_of_week', 'start_time')
+    schedules = Schedule.objects.filter(
+        doctor=doctor, specific_date__gte=date.today()
+    ).order_by('specific_date', 'start_time')
     context = {'doctor': doctor, 'schedules': schedules, 'title': 'Doctor Profile'}
     if request.htmx:
         return render(request, 'patient/_doctor_profile_modal.html', context)
@@ -210,10 +214,9 @@ def _compute_slots(doctor, selected_date_str):
         if selected_date < date.today():
             error = 'Cannot book an appointment in the past.'
         else:
-            day_of_week = selected_date.weekday()
-            schedule_blocks = Schedule.objects.filter(doctor=doctor, day_of_week=day_of_week)
+            schedule_blocks = Schedule.objects.filter(doctor=doctor, specific_date=selected_date)
             if not schedule_blocks.exists():
-                error = 'The selected doctor has no schedule on this day.'
+                error = 'The selected doctor has no schedule on this date.'
             else:
                 booked_times = set(
                     Appointment.objects.filter(

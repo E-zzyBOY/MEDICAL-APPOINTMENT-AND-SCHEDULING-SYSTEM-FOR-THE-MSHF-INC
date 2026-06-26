@@ -3,24 +3,20 @@ from django.conf import settings
 
 
 class Schedule(models.Model):
-    DAY_CHOICES = [
-        (0, 'Monday'), (1, 'Tuesday'), (2, 'Wednesday'),
-        (3, 'Thursday'), (4, 'Friday'), (5, 'Saturday'), (6, 'Sunday'),
-    ]
-    doctor      = models.ForeignKey(
+    doctor         = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
         related_name='schedules', limit_choices_to={'role': 'doctor'}
     )
-    day_of_week = models.IntegerField(choices=DAY_CHOICES)
-    start_time  = models.TimeField()
-    end_time    = models.TimeField()
+    specific_date  = models.DateField()
+    start_time     = models.TimeField()
+    end_time       = models.TimeField()
 
     class Meta:
-        unique_together = ('doctor', 'day_of_week', 'start_time')
-        ordering = ['day_of_week', 'start_time']
+        unique_together = ('doctor', 'specific_date', 'start_time')
+        ordering = ['specific_date', 'start_time']
 
     def __str__(self):
-        return f"Dr. {self.doctor.get_full_name()} — {self.get_day_of_week_display()} {self.start_time.strftime('%I:%M %p')}–{self.end_time.strftime('%I:%M %p')}"
+        return f"Dr. {self.doctor.get_full_name()} — {self.specific_date.strftime('%b %d, %Y')} {self.start_time.strftime('%I:%M %p')}–{self.end_time.strftime('%I:%M %p')}"
 
 
 class Appointment(models.Model):

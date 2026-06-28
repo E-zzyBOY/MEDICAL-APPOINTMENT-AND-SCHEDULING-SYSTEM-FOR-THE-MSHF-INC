@@ -81,8 +81,9 @@ it survives the round trip.
                 onclick="scheduleCalendarToggleDay(this)"
                 hx-get="{% url 'doctor:schedule_day_info' %}?date={{ cell.date }}"
                 hx-target="#schedule-day-info" hx-swap="innerHTML"
+                {% if cell.date in selected_dates_list %}style="background-color: #2563eb; color: #ffffff;"{% endif %}
                 class="schedule-calendar-day aspect-square rounded-lg text-sm font-semibold flex items-center justify-center transition cursor-pointer
-                  {% if cell.date in selected_dates_list %}bg-blue-600 text-white ring-2 ring-blue-700
+                  {% if cell.date in selected_dates_list %}
                   {% elif cell.status == 'has_slots' %}bg-emerald-100 text-emerald-700 hover:bg-emerald-200
                   {% else %}bg-gray-100 text-gray-600 hover:bg-gray-200{% endif %}">
           {{ cell.day }}
@@ -116,16 +117,10 @@ it survives the round trip.
     const idx = selected.indexOf(dateStr);
     if (idx === -1) {
       selected.push(dateStr);
-      btn.classList.add('bg-blue-600', 'text-white', 'ring-2', 'ring-blue-700');
-      btn.classList.remove('bg-gray-100', 'text-gray-600', 'bg-emerald-100', 'text-emerald-700');
+      scheduleCalendarPaintSelected(btn);
     } else {
       selected.splice(idx, 1);
-      btn.classList.remove('bg-blue-600', 'text-white', 'ring-2', 'ring-blue-700');
-      if (status === 'has_slots') {
-        btn.classList.add('bg-emerald-100', 'text-emerald-700');
-      } else {
-        btn.classList.add('bg-gray-100', 'text-gray-600');
-      }
+      scheduleCalendarPaintUnselected(btn, status);
     }
     input.value = selected.join(',');
     const display = document.getElementById('schedule-selected-count');
@@ -136,6 +131,32 @@ it survives the round trip.
     }
     const saveBtn = document.getElementById('schedule-save-btn');
     if (saveBtn) saveBtn.disabled = selected.length === 0;
+  }
+
+  // Paints the "selected" look using inline styles rather than relying
+  // purely on Tailwind utility classes. classList.add() alone left the
+  // very last clicked day looking unfilled (just a ring, no fill) until
+  // a second click forced a repaint — htmx adds its own request-state
+  // classes to the clicked element while schedule_day_info's hx-get is
+  // in flight, and that extra class churn was interfering with the
+  // browser's paint timing for the just-added utility classes. Setting
+  // background/text color directly on style sidesteps that entirely:
+  // the fill appears the instant the click handler runs, no race with
+  // anything htmx does to the same element afterward.
+  function scheduleCalendarPaintSelected(btn) {
+    btn.classList.remove('bg-gray-100', 'text-gray-600', 'bg-emerald-100', 'text-emerald-700');
+    btn.style.backgroundColor = '#2563eb'; // Tailwind blue-600
+    btn.style.color = '#ffffff';
+  }
+
+  function scheduleCalendarPaintUnselected(btn, status) {
+    btn.style.backgroundColor = '';
+    btn.style.color = '';
+    if (status === 'has_slots') {
+      btn.classList.add('bg-emerald-100', 'text-emerald-700');
+    } else {
+      btn.classList.add('bg-gray-100', 'text-gray-600');
+    }
   }
 </script>
 {% endif %}

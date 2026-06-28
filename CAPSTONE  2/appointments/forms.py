@@ -1,5 +1,5 @@
 from django import forms
-from datetime import date
+from datetime import date, datetime
 from .models import Schedule, Appointment, AppointmentPatientDetails
 from accounts.models import CustomUser
 from accounts.validators import validate_ph_mobile_number, normalize_ph_mobile_number
@@ -48,6 +48,59 @@ class PatientDetailsForm(forms.Form):
         value = self.cleaned_data['mobile_number']
         validate_ph_mobile_number(value)
         return normalize_ph_mobile_number(value)
+
+
+class MultiDateScheduleForm(forms.Form):
+    """Add Slot, multi-date version: one start/end time applied to every
+    date the doctor selected on the calendar in one submit, instead of
+    repeating the whole Add Slot flow once per day. Each date still gets
+    its own Schedule row — this form just collects the shared time once.
+
+    Dates arrive as a comma-separated string from a hidden field the
+    calendar JS maintains client-side (one toggleable selection set),
+    parsed and validated here rather than trusting the client's list of
+    dates blindly.
+    """
+    dates      = forms.CharField(widget=forms.HiddenInput(), required=False)
+    start_time = forms.TimeField(widget=forms.TimeInput(attrs={'type': 'time'}))
+    end_time   = forms.TimeField(widget=forms.TimeInput(attrs={'type': 'time'}))
+
+    def clean_dates(self):
+        raw = self.cleaned_data['dates']
+        if not raw:
+            raise forms.ValidationError('Select at least one date on the calendar.')
+        parsed = []
+        today = date.today()
+        for part in raw.split(','):
+            part = part.strip()
+            if not part:
+                continue
+            try:
+                d = datetime.strptime(part, '%Y-%m-%d').date()
+            except ValueError:
+                raise forms.ValidationError(f"'{part}' is not a valid date.")
+            if d < today:
+                raise forms.ValidationError(f"{d.strftime('%b %d, %Y')} is in the past.")
+            parsed.append(d)
+        if not parsed:
+            raise forms.ValidationError('Select at least one date on the calendar.')
+        # De-duplicate while preserving order, in case the client sent the
+        # same date twice.
+        seen = set()
+        unique = []
+        for d in parsed:
+            if d not in seen:
+                seen.add(d)
+                unique.append(d)
+        return unique
+
+    def clean(self):
+        cleaned = super().clean()
+        start = cleaned.get('start_time')
+        end   = cleaned.get('end_time')
+        if start and end and end <= start:
+            raise forms.ValidationError('End time must be after start time.')
+        return cleaned
 
 
 class ScheduleForm(forms.ModelForm):

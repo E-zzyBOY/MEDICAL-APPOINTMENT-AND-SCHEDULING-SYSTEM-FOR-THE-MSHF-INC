@@ -7,7 +7,7 @@ from datetime import date, datetime, timedelta
 import calendar as calendar_module
 from accounts.decorators import role_required
 from appointments.models import Appointment, Schedule
-from appointments.forms import ScheduleForm, RescheduleForm, AssignTimeForm
+from appointments.forms import ScheduleForm, RescheduleForm, AssignTimeForm, MultiDateScheduleForm
 from accounts.models import CustomUser
 from notifications.email_utils import (
     send_cancellation_email, send_reschedule_email, send_booking_received_email, send_time_assigned_email
@@ -179,53 +179,106 @@ def schedule_list(request):
 
 
 @role_required('doctor')
+def schedule_day_info(request):
+    """Returns just the 'existing slots on this date' info panel, fetched
+    whenever the doctor clicks a day on the Add Slot calendar. Kept
+    separate from the multi-select toggle itself (which is pure
+    client-side JS) so clicking a day never re-renders the whole modal or
+    loses whatever other days are already selected."""
+    date_str = request.GET.get('date', '')
+    existing = []
+    if date_str:
+        try:
+            the_date = datetime.strptime(date_str, '%Y-%m-%d').date()
+            existing = list(
+                Schedule.objects.filter(doctor=request.user, specific_date=the_date)
+                .order_by('start_time')
+            )
+        except ValueError:
+            pass
+    return render(request, 'doctor/_schedule_day_info.html', {
+        'date_str': date_str,
+        'date_display': _format_date_str(date_str),
+        'existing_slots': existing,
+    })
+
+
+@role_required('doctor')
 def schedule_add(request):
-    selected_date_str = request.POST.get('specific_date') or request.GET.get('date', '')
-    year, month = _resolve_calendar_month(request, selected_date_str)
+    """Add Slot now accepts MULTIPLE dates at once — the doctor multi-selects
+    days on the calendar (pure client-side toggle, see the JS in
+    _schedule_calendar_fragment.html) and applies one start/end time to
+    all of them in a single submit. Each date is checked for overlap
+    independently: a date that already has a conflicting slot is skipped
+    (not saved) while every other selected date still gets its slot, and
+    the doctor sees exactly which ones succeeded vs were skipped and why."""
+    selected_dates_str = request.POST.get('dates') or request.GET.get('date', '')
+    # GET (just opening the modal) only ever carries one date so far, from
+    # a single calendar click — that's fine, it seeds the multi-select
+    # with one day already toggled on.
+    year, month = _resolve_calendar_month(request, selected_dates_str.split(',')[0] if selected_dates_str else '')
     calendar_weeks = _compute_schedule_month(request.user, year, month)
 
-    form = ScheduleForm(request.POST or None, initial={'specific_date': selected_date_str})
-    if request.method == 'POST' and form.is_valid():
-        schedule = form.save(commit=False)
-        schedule.doctor = request.user
-        # Check overlap against existing slots on the same specific date
-        overlap = Schedule.objects.filter(
-            doctor=request.user,
-            specific_date=schedule.specific_date,
-            start_time__lt=schedule.end_time,
-            end_time__gt=schedule.start_time,
-        ).exists()
-        if overlap:
-            messages.error(request, 'This schedule overlaps with an existing one on that date.')
-            if request.htmx:
-                return render(request, 'doctor/_schedule_modal.html', {
-                    'form': form, 'action': 'Add',
-                    'selected_date': selected_date_str,
-                    'selected_date_display': _format_date_str(selected_date_str),
-                    'calendar_weeks': calendar_weeks,
-                    'calendar_year': year, 'calendar_month': month,
-                    'calendar_month_name': calendar_module.month_name[month],
-                    'today_iso': date.today().isoformat(),
-                })
-        else:
-            schedule.save()
-            _notify_assigned_secretaries(
-                request.user,
-                f"Dr. {request.user.get_full_name()} added a new schedule slot on "
-                f"{schedule.specific_date.strftime('%B %d, %Y')} "
-                f"({schedule.start_time.strftime('%I:%M %p')}–{schedule.end_time.strftime('%I:%M %p')})."
-            )
-            messages.success(request, 'Schedule slot added.')
-            if request.htmx:
-                response = render(request, 'doctor/_schedule_modal.html', {'form': form, 'action': 'Add'})
-                response['HX-Redirect'] = '/doctor/schedule/'
-                return response
-            return redirect('doctor:schedule_list')
+    if request.method == 'POST':
+        form = MultiDateScheduleForm(request.POST)
+        if form.is_valid():
+            target_dates = form.cleaned_data['dates']
+            start_time   = form.cleaned_data['start_time']
+            end_time     = form.cleaned_data['end_time']
+
+            saved_dates  = []
+            skipped      = []  # list of (date, reason) tuples
+            with transaction.atomic():
+                for d in target_dates:
+                    overlap = Schedule.objects.filter(
+                        doctor=request.user, specific_date=d,
+                        start_time__lt=end_time, end_time__gt=start_time,
+                    ).exists()
+                    if overlap:
+                        skipped.append((d, 'overlaps with an existing slot on that date'))
+                        continue
+                    Schedule.objects.create(
+                        doctor=request.user, specific_date=d,
+                        start_time=start_time, end_time=end_time,
+                    )
+                    saved_dates.append(d)
+
+            if saved_dates:
+                dates_display = ', '.join(d.strftime('%b %d') for d in saved_dates)
+                _notify_assigned_secretaries(
+                    request.user,
+                    f"Dr. {request.user.get_full_name()} added schedule slots on "
+                    f"{dates_display} ({start_time.strftime('%I:%M %p')}–{end_time.strftime('%I:%M %p')})."
+                )
+            if saved_dates and not skipped:
+                messages.success(request, f"Added the slot to {len(saved_dates)} date(s).")
+            elif saved_dates and skipped:
+                skipped_display = ', '.join(d.strftime('%b %d') for d, _r in skipped)
+                messages.success(
+                    request,
+                    f"Added the slot to {len(saved_dates)} date(s). "
+                    f"Skipped {len(skipped)} that already had an overlapping slot: {skipped_display}."
+                )
+            elif not saved_dates:
+                skipped_display = ', '.join(d.strftime('%b %d') for d, _r in skipped)
+                messages.error(request, f"No slots were added — every selected date already has an overlapping slot ({skipped_display}).")
+
+            if saved_dates:
+                if request.htmx:
+                    response = render(request, 'doctor/_schedule_modal.html', {'form': MultiDateScheduleForm(), 'action': 'Add'})
+                    response['HX-Redirect'] = '/doctor/schedule/'
+                    return response
+                return redirect('doctor:schedule_list')
+            # Nothing saved at all — fall through and re-show the form
+            # with the same dates still selected so the doctor can pick a
+            # different time without having to re-select every day.
+    else:
+        form = MultiDateScheduleForm(initial={'dates': selected_dates_str})
 
     context = {
         'form': form, 'action': 'Add',
-        'selected_date': selected_date_str,
-        'selected_date_display': _format_date_str(selected_date_str),
+        'selected_dates': selected_dates_str,
+        'selected_dates_list': [s for s in selected_dates_str.split(',') if s],
         'calendar_weeks': calendar_weeks,
         'calendar_year': year, 'calendar_month': month,
         'calendar_month_name': calendar_module.month_name[month],
@@ -239,18 +292,23 @@ def schedule_add(request):
 @role_required('doctor')
 def schedule_add_calendar_partial(request):
     """Re-renders just the calendar grid inside the Add Slot modal when the
-    doctor clicks the prev/next month arrows, without losing whatever
-    start/end time they may have already begun typing. Mirrors the same
-    pattern used on the patient booking calendar."""
-    selected_date_str = request.GET.get('selected_date', '')
-    year, month = _resolve_calendar_month(request, '')
+    doctor clicks the prev/next month arrows. The full multi-select set
+    (selected_dates, comma-joined) is carried through via querystring so
+    navigating months never loses days already picked in another month —
+    the selection itself lives in the page via a hidden input the JS
+    toggle maintains, this param just lets the freshly-rendered grid know
+    which days (if any, in the now-visible month) to paint as selected."""
+    selected_dates_str = request.GET.get('selected_dates', '')
+    first_date = selected_dates_str.split(',')[0] if selected_dates_str else ''
+    year, month = _resolve_calendar_month(request, first_date)
     calendar_weeks = _compute_schedule_month(request.user, year, month)
     return render(request, 'doctor/_schedule_calendar_fragment.html', {
         'calendar_weeks': calendar_weeks,
         'calendar_year': year, 'calendar_month': month,
         'calendar_month_name': calendar_module.month_name[month],
         'today_iso': date.today().isoformat(),
-        'selected_date': selected_date_str,
+        'selected_dates_list': [s for s in selected_dates_str.split(',') if s],
+        'multi_select': True,
     })
 
 

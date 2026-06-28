@@ -1,0 +1,24 @@
+{% comment %}
+Small read-only panel shown beneath the Add Slot calendar whenever the
+doctor clicks any day — lets them see what's already scheduled there
+before deciding to add another block (or pick a different day instead).
+Purely informational; doesn't affect the multi-select toggle in any way.
+{% endcomment %}
+{% if date_str %}
+<div class="rounded-lg bg-gray-50 border border-gray-100 p-3 text-sm">
+  <p class="font-semibold text-gray-700 mb-1">{{ date_display }}</p>
+  {% if existing_slots %}
+  <p class="text-gray-500 text-xs mb-2">Already scheduled on this date:</p>
+  <ul class="space-y-1">
+    {% for slot in existing_slots %}
+    <li class="flex items-center gap-2 text-emerald-700 font-medium">
+      <span class="size-1.5 rounded-full bg-emerald-400 shrink-0"></span>
+      {{ slot.start_time|time:"g:i A" }}–{{ slot.end_time|time:"g:i A" }}
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p class="text-gray-400">No slots scheduled yet on this date.</p>
+  {% endif %}
+</div>
+{% endif %}

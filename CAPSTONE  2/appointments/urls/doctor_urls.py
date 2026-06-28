@@ -9,6 +9,7 @@ urlpatterns = [
     path('schedule/',                               v.schedule_list,             name='schedule_list'),
     path('schedule/add/',                           v.schedule_add,              name='schedule_add'),
     path('schedule/add/calendar/',                  v.schedule_add_calendar_partial, name='schedule_add_calendar_partial'),
+    path('schedule/day-info/',                      v.schedule_day_info,         name='schedule_day_info'),
     path('schedule/<int:pk>/edit/',                 v.schedule_edit,             name='schedule_edit'),
     path('schedule/<int:pk>/edit/calendar/',        v.schedule_edit_calendar_partial, name='schedule_edit_calendar_partial'),
     path('schedule/<int:pk>/delete/',               v.schedule_delete,           name='schedule_delete'),

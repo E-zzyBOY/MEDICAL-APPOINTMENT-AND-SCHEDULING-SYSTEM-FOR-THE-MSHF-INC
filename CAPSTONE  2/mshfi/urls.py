@@ -17,8 +17,13 @@ def landing_view(request):
     return render(request, 'landing.html')
 
 
+def terms_view(request):
+    return render(request, 'terms.html')
+
+
 urlpatterns = [
     path('',               landing_view,                 name='landing'),
+    path('terms/',         terms_view,                   name='terms'),
     path('django-admin/',  admin.site.urls),
     path('accounts/',      include('accounts.urls')),
     path('patient/',       include('appointments.urls.patient_urls')),

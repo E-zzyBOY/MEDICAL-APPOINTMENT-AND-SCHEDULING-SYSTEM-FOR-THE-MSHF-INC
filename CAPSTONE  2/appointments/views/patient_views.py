@@ -1,7 +1,7 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse
 from django.contrib import messages
-from django.db import transaction
+from django.db import transaction, models
 from django.http import JsonResponse
 from django.utils import timezone
 from datetime import date, datetime, timedelta
@@ -79,6 +79,15 @@ def _compute_month_availability(doctor, year, month):
     return weeks
 
 
+def _time_aware_greeting():
+    hour = timezone.localtime().hour
+    if hour < 12:
+        return 'Good morning'
+    if hour < 18:
+        return 'Good afternoon'
+    return 'Good evening'
+
+
 def _build_patient_dashboard_data(request):
     upcoming = Appointment.objects.filter(
         patient=request.user,
@@ -90,8 +99,17 @@ def _build_patient_dashboard_data(request):
         status__in=['Completed', 'Cancelled']
     ).select_related('doctor', 'results')[:5]
 
+    doctors_qs = CustomUser.objects.filter(role='doctor').select_related('doctor_profile')[:8]
+    specializations = sorted({
+        d.doctor_profile.specialization
+        for d in doctors_qs
+        if getattr(d, 'doctor_profile', None) and d.doctor_profile.specialization
+    })
+
     return {
         'userName': request.user.get_full_name() or request.user.username,
+        'greeting': _time_aware_greeting(),
+        'searchHref': '/patient/appointments/book/',
         'stats': [
             {'label': 'Upcoming Appointments', 'value': upcoming.count()},
             {'label': 'Past Appointments', 'value': past.count()},
@@ -114,7 +132,7 @@ def _build_patient_dashboard_data(request):
             {
                 'primary': f'Dr. {a.doctor.get_full_name()}',
                 'secondary': (
-                    getattr(a.results, 'diagnosis', '') if a.status == 'Completed' else ''
+                    (a.results.diagnosis if hasattr(a, 'results') else '') if a.status == 'Completed' else ''
                 ) or ('Pending' if a.status == 'Completed' else ''),
                 'date': a.appointment_date.isoformat(),
                 'status': a.status,
@@ -126,6 +144,22 @@ def _build_patient_dashboard_data(request):
             {'title': 'My Appointments', 'description': 'View upcoming & past', 'href': '/patient/appointments/'},
             {'title': 'Medical Records', 'description': 'View your health history', 'href': '/patient/records/'},
         ],
+        'categories': [
+            {'name': spec, 'href': f'/patient/appointments/book/?q={spec}'}
+            for spec in specializations
+        ],
+        'categoriesHref': '/patient/appointments/book/',
+        'doctors': [
+            {
+                'id': str(d.id),
+                'name': f'Dr. {d.get_full_name()}',
+                'specialization': d.doctor_profile.specialization if getattr(d, 'doctor_profile', None) else '',
+                'photoUrl': d.profile_picture.url if d.profile_picture else None,
+                'href': f'/patient/doctors/{d.id}/',
+            }
+            for d in doctors_qs
+        ],
+        'doctorsHref': '/patient/appointments/book/',
     }
 
 
@@ -162,7 +196,14 @@ def appointment_list(request):
 @role_required('patient')
 def book_step1(request):
     doctors = CustomUser.objects.filter(role='doctor').select_related('doctor_profile')
-    return render(request, 'patient/book_step1.html', {'doctors': doctors})
+    query = request.GET.get('q', '').strip()
+    if query:
+        doctors = doctors.filter(
+            models.Q(first_name__icontains=query) |
+            models.Q(last_name__icontains=query) |
+            models.Q(doctor_profile__specialization__icontains=query)
+        )
+    return render(request, 'patient/book_step1.html', {'doctors': doctors, 'query': query})
 
 
 @role_required('patient')

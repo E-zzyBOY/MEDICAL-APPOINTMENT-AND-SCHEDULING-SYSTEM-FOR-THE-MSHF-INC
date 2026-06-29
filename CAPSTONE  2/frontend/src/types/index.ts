@@ -87,8 +87,23 @@ export interface QuickActionItem {
   href: string;
 }
 
+export interface CategoryItem {
+  name: string;
+  href: string;
+}
+
+export interface DoctorCard {
+  id: string;
+  name: string;
+  specialization: string;
+  photoUrl?: string;
+  href: string;
+}
+
 export interface DashboardData {
   userName?: string;
+  greeting?: string;
+  searchHref?: string;
   stats: DashboardStat[];
   trend?: TrendPoint[];
   trendLabel?: string;
@@ -99,4 +114,8 @@ export interface DashboardData {
   pastAppointmentsHref?: string;
   pastAppointments?: AppointmentRow[];
   quickActions?: QuickActionItem[];
+  categories?: CategoryItem[];
+  categoriesHref?: string;
+  doctors?: DoctorCard[];
+  doctorsHref?: string;
 }

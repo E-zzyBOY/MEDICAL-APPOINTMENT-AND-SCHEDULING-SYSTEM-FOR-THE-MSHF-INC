@@ -1,31 +1,52 @@
 {% extends "components/modal.html" %}
 {% load static %}
 {% block modal_content %}
-<div class="flex items-center gap-4 mb-6">
+<div class="flex items-center gap-4 mb-5">
   {% if doctor.profile_picture %}
-    <img src="{{ doctor.profile_picture.url }}" class="size-14 rounded-full object-cover" alt="">
+    <img src="{{ doctor.profile_picture.url }}" class="size-14 rounded-2xl object-cover" alt="">
   {% else %}
-    <img src="{% static 'img/default-avatar.svg' %}" class="size-14 rounded-full object-cover" alt="">
+    <div class="size-14 rounded-2xl bg-[#E9ECF5] flex items-center justify-center">
+      <span class="text-[#4382DF] font-semibold">{{ doctor.first_name.0 }}{{ doctor.last_name.0 }}</span>
+    </div>
   {% endif %}
   <div>
-    <p class="font-bold text-gray-800 text-lg">Dr. {{ doctor.get_full_name }}</p>
-    <p class="text-sm text-gray-500">{{ doctor.doctor_profile.specialization|default:"General Medicine" }}</p>
+    <p class="font-bold text-[#161622] text-lg">Dr. {{ doctor.get_full_name }}</p>
+    <p class="text-sm text-[#9a9aa5]">{{ doctor.doctor_profile.specialization|default:"General Medicine" }}</p>
   </div>
 </div>
 
-<h3 class="text-sm font-bold text-gray-700 mb-3">Upcoming Availability</h3>
+<div class="grid grid-cols-4 gap-2 mb-5">
+  <div class="bg-[#F5F5F7] rounded-xl p-2.5 text-center">
+    <p class="font-bold text-sm text-[#161622]">{{ doctor.patient_count }}{% if doctor.patient_count >= 50 %}+{% endif %}</p>
+    <p class="text-[10px] text-[#9a9aa5]">patients</p>
+  </div>
+  <div class="bg-[#F5F5F7] rounded-xl p-2.5 text-center">
+    <p class="font-bold text-sm text-[#161622]">{{ doctor.doctor_profile.years_of_experience|default:"—" }}{% if doctor.doctor_profile.years_of_experience %}+{% endif %}</p>
+    <p class="text-[10px] text-[#9a9aa5]">experience</p>
+  </div>
+  <div class="bg-[#F5F5F7] rounded-xl p-2.5 text-center">
+    <p class="font-bold text-sm text-[#161622]">{{ doctor.avg_rating|floatformat:1|default:"—" }}</p>
+    <p class="text-[10px] text-[#9a9aa5]">rating</p>
+  </div>
+  <div class="bg-[#F5F5F7] rounded-xl p-2.5 text-center">
+    <p class="font-bold text-sm text-[#161622]">{{ doctor.review_count }}</p>
+    <p class="text-[10px] text-[#9a9aa5]">reviews</p>
+  </div>
+</div>
+
+<h3 class="text-sm font-semibold text-[#161622] mb-3">Upcoming Availability</h3>
 {% if schedules %}
 <div class="hidden md:block overflow-x-auto mb-2">
   <table class="w-full text-sm">
-    <thead class="text-left text-gray-500 border-b border-gray-200">
-      <tr><th class="pb-3 font-semibold">Day</th><th class="pb-3 font-semibold">Start</th><th class="pb-3 font-semibold">End</th></tr>
+    <thead class="text-left text-[#9a9aa5] border-b border-[#ECECEF]">
+      <tr><th class="pb-3 font-medium">Day</th><th class="pb-3 font-medium">Start</th><th class="pb-3 font-medium">End</th></tr>
     </thead>
-    <tbody class="divide-y divide-gray-100">
+    <tbody class="divide-y divide-[#F5F5F7]">
       {% for s in schedules %}
       <tr>
-        <td class="py-3 font-medium">{{ s.specific_date|date:"D, M j, Y" }}</td>
-        <td class="py-3 text-gray-600">{{ s.start_time|time:"g:i A" }}</td>
-        <td class="py-3 text-gray-600">{{ s.end_time|time:"g:i A" }}</td>
+        <td class="py-3 font-medium text-[#161622]">{{ s.specific_date|date:"D, M j, Y" }}</td>
+        <td class="py-3 text-[#5a5a66]">{{ s.start_time|time:"g:i A" }}</td>
+        <td class="py-3 text-[#5a5a66]">{{ s.end_time|time:"g:i A" }}</td>
       </tr>
       {% endfor %}
     </tbody>
@@ -33,20 +54,46 @@
 </div>
 <div class="flex md:hidden flex-col gap-2">
   {% for s in schedules %}
-  <div class="flex items-center justify-between border border-gray-200 rounded-lg px-3 py-2 text-sm">
-    <span class="font-medium text-gray-800">{{ s.specific_date|date:"D, M j, Y" }}</span>
-    <span class="text-gray-600">{{ s.start_time|time:"g:i A" }} – {{ s.end_time|time:"g:i A" }}</span>
+  <div class="flex items-center justify-between bg-[#F5F5F7] rounded-xl px-3.5 py-2.5 text-sm">
+    <span class="font-medium text-[#161622]">{{ s.specific_date|date:"D, M j, Y" }}</span>
+    <span class="text-[#5a5a66]">{{ s.start_time|time:"g:i A" }} – {{ s.end_time|time:"g:i A" }}</span>
   </div>
   {% endfor %}
 </div>
 {% else %}
-<p class="text-gray-400 text-center py-10">This doctor has no availability set yet.</p>
+<p class="text-[#9a9aa5] text-center py-8">This doctor has no availability set yet.</p>
+{% endif %}
+
+{% if reviews %}
+<h3 class="text-sm font-semibold text-[#161622] mt-5 mb-3">Reviews</h3>
+<div class="space-y-3 max-h-48 overflow-y-auto">
+  {% for review in reviews %}
+  <div class="flex items-start gap-2.5">
+    {% if review.patient.profile_picture %}
+      <img src="{{ review.patient.profile_picture.url }}" class="size-7 rounded-full object-cover shrink-0" alt="">
+    {% else %}
+      <img src="{% static 'img/default-avatar.svg' %}" class="size-7 rounded-full object-cover shrink-0" alt="">
+    {% endif %}
+    <div class="flex-1">
+      <div class="flex items-center justify-between">
+        <p class="text-xs font-semibold text-[#161622]">{{ review.patient.first_name }} {{ review.patient.last_name|first }}.</p>
+        <div class="flex items-center gap-0.5">
+          {% for i in "12345" %}
+          <svg class="w-2.5 h-2.5 {% if forloop.counter <= review.rating %}text-[#E0A93C]{% else %}text-[#e5e5ea]{% endif %}" fill="currentColor" viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.27 5.82.85-4.21 4.1 1 5.8L10 14.9l-5.21 2.52 1-5.8-4.21-4.1 5.82-.85L10 1.5z"/></svg>
+          {% endfor %}
+        </div>
+      </div>
+      <p class="text-xs text-[#5a5a66] mt-0.5">{{ review.comment }}</p>
+    </div>
+  </div>
+  {% endfor %}
+</div>
 {% endif %}
 
 <div class="mt-6 flex justify-end">
   <a hx-get="{% url 'patient:book_step2' doctor_id=doctor.pk %}"
      hx-target="#modal-root" hx-swap="innerHTML"
-     class="px-5 py-2.5 bg-blue-700 text-white rounded-lg text-sm font-medium hover:bg-blue-800 transition cursor-pointer">
+     class="px-5 py-2.5 bg-[#161622] text-white rounded-xl text-sm font-medium hover:bg-[#22222f] transition cursor-pointer">
     Book Appointment
   </a>
 </div>

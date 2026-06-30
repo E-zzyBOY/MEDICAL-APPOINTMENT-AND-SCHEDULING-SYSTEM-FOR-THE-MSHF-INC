@@ -100,10 +100,21 @@ export interface DoctorCard {
   href: string;
 }
 
+export interface CarouselSlideData {
+  id: string;
+  title: string;
+  description: string;
+  ctaLabel: string;
+  href: string;
+  icon: "calendar" | "doctors" | "shield";
+  theme: "navy" | "teal" | "violet";
+}
+
 export interface DashboardData {
   userName?: string;
   greeting?: string;
   searchHref?: string;
+  carouselSlides?: CarouselSlideData[];
   stats: DashboardStat[];
   trend?: TrendPoint[];
   trendLabel?: string;

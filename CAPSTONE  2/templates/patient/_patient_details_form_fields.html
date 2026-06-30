@@ -1,5 +1,5 @@
 {% if form.non_field_errors %}
-<div class="bg-red-50 border border-red-200 text-red-700 rounded-lg p-3 text-sm mb-4">
+<div class="bg-[#FCEBEB] text-[#A32D2D] rounded-xl p-3 text-sm mb-4">
   {% for error in form.non_field_errors %}{{ error }}{% endfor %}
 </div>
 {% endif %}
@@ -7,95 +7,93 @@
 <form method="post" action="{% url 'patient:book_step4' doctor_id=doctor.pk %}"
       hx-post="{% url 'patient:book_step4' doctor_id=doctor.pk %}"
       hx-target="#modal-root" hx-swap="innerHTML"
-      class="space-y-5" novalidate>
+      class="space-y-4 hp-field" novalidate>
   {% csrf_token %}
   <input type="hidden" name="appointment_date" value="{{ appointment_date }}" />
 
-  <div class="bg-blue-50 rounded-lg px-4 py-3 text-sm text-blue-800 flex items-center justify-between">
-    <span>Dr. {{ doctor.get_full_name }}</span>
-    <span class="font-semibold">{{ appointment_date_display|default:appointment_date }} &middot; Time to be confirmed</span>
+  <div class="bg-[#F5F5F7] rounded-xl px-4 py-3 text-sm text-[#161622] flex items-center justify-between flex-wrap gap-1">
+    <span class="font-medium">Dr. {{ doctor.get_full_name }}</span>
+    <span class="text-[#5a5a66]">{{ appointment_date_display|default:appointment_date }} &middot; Time to be confirmed</span>
   </div>
 
   <!-- Name -->
-  <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+  <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
     <div>
-      <label class="block text-sm font-semibold text-gray-700 mb-1">First Name <span class="text-red-500">*</span></label>
       <input type="text" name="first_name" required value="{{ form.first_name.value|default:'' }}"
-             class="w-full border {% if form.first_name.errors %}border-red-400{% else %}border-gray-300{% endif %} rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
-      {% if form.first_name.errors %}<p class="text-red-600 text-xs mt-1">{{ form.first_name.errors.0 }}</p>{% endif %}
+             placeholder="First Name"
+             class="w-full bg-[#F5F5F7] border-0 rounded-xl px-4 py-3.5 text-sm text-[#161622] placeholder-[#9a9aa5] focus:outline-none focus:ring-2 {% if form.first_name.errors %}ring-2 ring-[#D7503C]{% else %}focus:ring-[#16162233]{% endif %}" />
+      {% if form.first_name.errors %}<p class="text-[#A32D2D] text-xs mt-1 ml-1">{{ form.first_name.errors.0 }}</p>{% endif %}
     </div>
     <div>
-      <label class="block text-sm font-semibold text-gray-700 mb-1">Middle Name <span class="text-gray-400 font-normal">(optional)</span></label>
       <input type="text" name="middle_name" value="{{ form.middle_name.value|default:'' }}"
-             class="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+             placeholder="Middle Name (optional)"
+             class="w-full bg-[#F5F5F7] border-0 rounded-xl px-4 py-3.5 text-sm text-[#161622] placeholder-[#9a9aa5] focus:outline-none focus:ring-2 focus:ring-[#16162233]" />
     </div>
     <div>
-      <label class="block text-sm font-semibold text-gray-700 mb-1">Last Name <span class="text-red-500">*</span></label>
       <input type="text" name="last_name" required value="{{ form.last_name.value|default:'' }}"
-             class="w-full border {% if form.last_name.errors %}border-red-400{% else %}border-gray-300{% endif %} rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
-      {% if form.last_name.errors %}<p class="text-red-600 text-xs mt-1">{{ form.last_name.errors.0 }}</p>{% endif %}
+             placeholder="Last Name"
+             class="w-full bg-[#F5F5F7] border-0 rounded-xl px-4 py-3.5 text-sm text-[#161622] placeholder-[#9a9aa5] focus:outline-none focus:ring-2 {% if form.last_name.errors %}ring-2 ring-[#D7503C]{% else %}focus:ring-[#16162233]{% endif %}" />
+      {% if form.last_name.errors %}<p class="text-[#A32D2D] text-xs mt-1 ml-1">{{ form.last_name.errors.0 }}</p>{% endif %}
     </div>
   </div>
 
   <!-- DOB + Sex -->
-  <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+  <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
     <div>
-      <label class="block text-sm font-semibold text-gray-700 mb-1">Date of Birth <span class="text-red-500">*</span></label>
+      <label class="block text-xs font-medium text-[#9a9aa5] mb-1.5 ml-1">Date of Birth</label>
       <input type="date" name="date_of_birth" required
              max="{% now 'Y-m-d' %}"
              value="{{ form.date_of_birth.value|date:'Y-m-d'|default:'' }}"
-             class="w-full border {% if form.date_of_birth.errors %}border-red-400{% else %}border-gray-300{% endif %} rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
-      {% if form.date_of_birth.errors %}<p class="text-red-600 text-xs mt-1">{{ form.date_of_birth.errors.0 }}</p>{% endif %}
+             class="w-full bg-[#F5F5F7] border-0 rounded-xl px-4 py-3.5 text-sm text-[#161622] focus:outline-none focus:ring-2 {% if form.date_of_birth.errors %}ring-2 ring-[#D7503C]{% else %}focus:ring-[#16162233]{% endif %}" />
+      {% if form.date_of_birth.errors %}<p class="text-[#A32D2D] text-xs mt-1 ml-1">{{ form.date_of_birth.errors.0 }}</p>{% endif %}
     </div>
     <div>
-      <label class="block text-sm font-semibold text-gray-700 mb-1">Sex <span class="text-red-500">*</span></label>
+      <label class="block text-xs font-medium text-[#9a9aa5] mb-1.5 ml-1">Sex</label>
       <select name="gender" required
-              class="w-full border {% if form.gender.errors %}border-red-400{% else %}border-gray-300{% endif %} rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
+              class="w-full bg-[#F5F5F7] border-0 rounded-xl px-4 py-3.5 text-sm text-[#161622] focus:outline-none focus:ring-2 {% if form.gender.errors %}ring-2 ring-[#D7503C]{% else %}focus:ring-[#16162233]{% endif %}">
         <option value="" {% if not form.gender.value %}selected{% endif %}>-- Select --</option>
         <option value="M" {% if form.gender.value == 'M' %}selected{% endif %}>Male</option>
         <option value="F" {% if form.gender.value == 'F' %}selected{% endif %}>Female</option>
         <option value="O" {% if form.gender.value == 'O' %}selected{% endif %}>Other</option>
       </select>
-      {% if form.gender.errors %}<p class="text-red-600 text-xs mt-1">{{ form.gender.errors.0 }}</p>{% endif %}
+      {% if form.gender.errors %}<p class="text-[#A32D2D] text-xs mt-1 ml-1">{{ form.gender.errors.0 }}</p>{% endif %}
     </div>
   </div>
 
   <!-- Address -->
   <div>
-    <label class="block text-sm font-semibold text-gray-700 mb-1">Address <span class="text-red-500">*</span></label>
     <textarea name="address" rows="2" required
-              class="w-full border {% if form.address.errors %}border-red-400{% else %}border-gray-300{% endif %} rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">{{ form.address.value|default:'' }}</textarea>
-    {% if form.address.errors %}<p class="text-red-600 text-xs mt-1">{{ form.address.errors.0 }}</p>{% endif %}
+              placeholder="Address"
+              class="w-full bg-[#F5F5F7] border-0 rounded-xl px-4 py-3.5 text-sm text-[#161622] placeholder-[#9a9aa5] focus:outline-none focus:ring-2 {% if form.address.errors %}ring-2 ring-[#D7503C]{% else %}focus:ring-[#16162233]{% endif %}">{{ form.address.value|default:'' }}</textarea>
+    {% if form.address.errors %}<p class="text-[#A32D2D] text-xs mt-1 ml-1">{{ form.address.errors.0 }}</p>{% endif %}
   </div>
 
   <!-- Mobile + Email -->
-  <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+  <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
     <div>
-      <label class="block text-sm font-semibold text-gray-700 mb-1">Mobile Number <span class="text-red-500">*</span></label>
-      <input type="tel" name="mobile_number" required placeholder="09171234567"
+      <input type="tel" name="mobile_number" required placeholder="Mobile Number (09171234567)"
              value="{{ form.mobile_number.value|default:'' }}"
-             class="w-full border {% if form.mobile_number.errors %}border-red-400{% else %}border-gray-300{% endif %} rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
-      {% if form.mobile_number.errors %}<p class="text-red-600 text-xs mt-1">{{ form.mobile_number.errors.0 }}</p>{% else %}<p class="text-gray-400 text-xs mt-1">Format: 09171234567 or +639171234567</p>{% endif %}
+             class="w-full bg-[#F5F5F7] border-0 rounded-xl px-4 py-3.5 text-sm text-[#161622] placeholder-[#9a9aa5] focus:outline-none focus:ring-2 {% if form.mobile_number.errors %}ring-2 ring-[#D7503C]{% else %}focus:ring-[#16162233]{% endif %}" />
+      {% if form.mobile_number.errors %}<p class="text-[#A32D2D] text-xs mt-1 ml-1">{{ form.mobile_number.errors.0 }}</p>{% else %}<p class="text-[#b0b0bc] text-xs mt-1 ml-1">Format: 09171234567 or +639171234567</p>{% endif %}
     </div>
     <div>
-      <label class="block text-sm font-semibold text-gray-700 mb-1">Email Address <span class="text-gray-400 font-normal">(optional)</span></label>
       <input type="email" name="email" value="{{ form.email.value|default:'' }}"
-             class="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+             placeholder="Email Address (optional)"
+             class="w-full bg-[#F5F5F7] border-0 rounded-xl px-4 py-3.5 text-sm text-[#161622] placeholder-[#9a9aa5] focus:outline-none focus:ring-2 focus:ring-[#16162233]" />
     </div>
   </div>
 
   <!-- Reason for booking -->
   <div>
-    <label class="block text-sm font-semibold text-gray-700 mb-1">Reason for Booking / Chief Complaint <span class="text-red-500">*</span></label>
     <textarea name="reason" rows="3" required
-              placeholder="Briefly describe your symptoms or reason for the visit..."
-              class="w-full border {% if form.reason.errors %}border-red-400{% else %}border-gray-300{% endif %} rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">{{ form.reason.value|default:'' }}</textarea>
-    {% if form.reason.errors %}<p class="text-red-600 text-xs mt-1">{{ form.reason.errors.0 }}</p>{% else %}<p class="text-gray-400 text-xs mt-1">Visible to your doctor before the consultation.</p>{% endif %}
+              placeholder="Reason for booking / chief complaint..."
+              class="w-full bg-[#F5F5F7] border-0 rounded-xl px-4 py-3.5 text-sm text-[#161622] placeholder-[#9a9aa5] focus:outline-none focus:ring-2 {% if form.reason.errors %}ring-2 ring-[#D7503C]{% else %}focus:ring-[#16162233]{% endif %}">{{ form.reason.value|default:'' }}</textarea>
+    {% if form.reason.errors %}<p class="text-[#A32D2D] text-xs mt-1 ml-1">{{ form.reason.errors.0 }}</p>{% else %}<p class="text-[#b0b0bc] text-xs mt-1 ml-1">Visible to your doctor before the consultation.</p>{% endif %}
   </div>
 
   <!-- Terms -->
   {% if already_consented %}
-  <div class="bg-green-50 border border-green-200 text-green-700 rounded-lg p-3 text-sm flex items-center gap-2">
+  <div class="bg-[#E1F0E6] text-[#2F8F5B] rounded-xl p-3 text-sm flex items-center gap-2">
     <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
     You've already agreed to the Terms and Conditions and Privacy Policy on file.
   </div>
@@ -104,26 +102,26 @@
     <label class="flex items-start gap-2.5 cursor-pointer">
       <input type="checkbox" name="terms_accepted" required
              {% if form.terms_accepted.value %}checked{% endif %}
-             class="mt-0.5 w-4 h-4 rounded border-gray-300 text-blue-700 focus:ring-blue-500" />
-      <span class="text-sm text-gray-700">
-        I agree to the <a href="/terms/" target="_blank" class="text-blue-700 underline font-medium">Terms and Conditions</a>
-        and <a href="/privacy/" target="_blank" class="text-blue-700 underline font-medium">Privacy Policy</a>. <span class="text-red-500">*</span>
+             class="mt-0.5 w-4 h-4 rounded border-[#c1c1c8] text-[#161622] focus:ring-[#161622]" />
+      <span class="text-sm text-[#5a5a66]">
+        I agree to the <a href="{% url 'terms' %}" target="_blank" class="text-[#161622] underline font-medium">Terms and Conditions</a>
+        and <a href="{% url 'privacy' %}" target="_blank" class="text-[#161622] underline font-medium">Privacy Policy</a>. <span class="text-[#D7503C]">*</span>
       </span>
     </label>
-    {% if form.terms_accepted.errors %}<p class="text-red-600 text-xs mt-1">{{ form.terms_accepted.errors.0 }}</p>{% endif %}
+    {% if form.terms_accepted.errors %}<p class="text-[#A32D2D] text-xs mt-1 ml-1">{{ form.terms_accepted.errors.0 }}</p>{% endif %}
   </div>
   {% endif %}
 
   <div class="flex gap-3 pt-2">
-    <button type="submit"
-            class="flex-1 bg-blue-700 hover:bg-blue-800 text-white font-bold py-3 rounded-lg transition">
-      Continue to Review
-    </button>
     <a hx-get="{% url 'patient:book_step2' doctor_id=doctor.pk %}?date={{ appointment_date }}"
        href="/patient/appointments/book/{{ doctor.pk }}/slots/?date={{ appointment_date }}"
        hx-target="#modal-root" hx-swap="innerHTML"
-       class="flex-1 text-center border border-gray-300 text-gray-700 font-bold py-3 rounded-lg hover:bg-gray-50 transition cursor-pointer">
+       class="flex-1 text-center bg-[#F5F5F7] text-[#161622] font-medium py-3.5 rounded-xl text-sm hover:bg-[#ebebee] transition cursor-pointer">
       Go Back
     </a>
+    <button type="submit" data-loading-text="Saving…"
+            class="flex-1 bg-[#161622] hover:bg-[#22222f] text-white font-medium py-3.5 rounded-xl text-sm transition disabled:opacity-60 disabled:cursor-not-allowed">
+      Continue to Review
+    </button>
   </div>
 </form>

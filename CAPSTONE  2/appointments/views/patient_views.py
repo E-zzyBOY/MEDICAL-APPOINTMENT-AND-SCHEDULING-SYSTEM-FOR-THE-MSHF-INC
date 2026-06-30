@@ -15,6 +15,7 @@ from notifications.email_utils import (
     send_reschedule_email, send_time_assigned_email
 )
 from notifications.models import Notification
+from feedback.models import Feedback
 
 
 def _notify(user, message):
@@ -110,6 +111,35 @@ def _build_patient_dashboard_data(request):
         'userName': request.user.get_full_name() or request.user.username,
         'greeting': _time_aware_greeting(),
         'searchHref': '/patient/appointments/book/',
+        'carouselSlides': [
+            {
+                'id': 'book',
+                'title': 'Need to see a doctor?',
+                'description': 'Book an appointment with our specialists in just a few taps.',
+                'ctaLabel': 'Book Now',
+                'href': '/patient/appointments/book/',
+                'icon': 'calendar',
+                'theme': 'navy',
+            },
+            {
+                'id': 'doctors',
+                'title': 'Meet our doctors',
+                'description': f'{doctors_qs.count()} specialists ready to take care of you at MSHFI.',
+                'ctaLabel': 'Browse Doctors',
+                'href': '/patient/appointments/book/',
+                'icon': 'doctors',
+                'theme': 'teal',
+            },
+            {
+                'id': 'records',
+                'title': 'Your health, organized',
+                'description': 'Keep track of past visits, results, and notes from your doctors.',
+                'ctaLabel': 'View Records',
+                'href': '/patient/records/',
+                'icon': 'shield',
+                'theme': 'violet',
+            },
+        ],
         'stats': [
             {'label': 'Upcoming Appointments', 'value': upcoming.count()},
             {'label': 'Past Appointments', 'value': past.count()},
@@ -195,24 +225,49 @@ def appointment_list(request):
 
 @role_required('patient')
 def book_step1(request):
-    doctors = CustomUser.objects.filter(role='doctor').select_related('doctor_profile')
+    doctors = CustomUser.objects.filter(role='doctor').select_related('doctor_profile').annotate(
+        avg_rating=models.Avg('doctor_appointments__feedback__rating'),
+        review_count=models.Count('doctor_appointments__feedback', distinct=True),
+        patient_count=models.Count('doctor_appointments__patient', distinct=True),
+    )
     query = request.GET.get('q', '').strip()
+    specialty = request.GET.get('specialty', '').strip()
     if query:
         doctors = doctors.filter(
             models.Q(first_name__icontains=query) |
             models.Q(last_name__icontains=query) |
             models.Q(doctor_profile__specialization__icontains=query)
         )
-    return render(request, 'patient/book_step1.html', {'doctors': doctors, 'query': query})
+    if specialty:
+        doctors = doctors.filter(doctor_profile__specialization=specialty)
+    specializations = sorted({
+        d.doctor_profile.specialization
+        for d in CustomUser.objects.filter(role='doctor').select_related('doctor_profile')
+        if getattr(d, 'doctor_profile', None) and d.doctor_profile.specialization
+    })
+    return render(request, 'patient/book_step1.html', {
+        'doctors': doctors, 'query': query, 'specializations': specializations,
+        'selected_specialty': specialty,
+    })
 
 
 @role_required('patient')
 def doctor_profile_view(request, doctor_id):
-    doctor = get_object_or_404(CustomUser, pk=doctor_id, role='doctor')
+    doctor = get_object_or_404(
+        CustomUser.objects.annotate(
+            avg_rating=models.Avg('doctor_appointments__feedback__rating'),
+            review_count=models.Count('doctor_appointments__feedback', distinct=True),
+            patient_count=models.Count('doctor_appointments__patient', distinct=True),
+        ),
+        pk=doctor_id, role='doctor'
+    )
     schedules = Schedule.objects.filter(
         doctor=doctor, specific_date__gte=date.today()
     ).order_by('specific_date', 'start_time')
-    context = {'doctor': doctor, 'schedules': schedules, 'title': 'Doctor Profile'}
+    reviews = Feedback.objects.filter(
+        appointment__doctor=doctor
+    ).exclude(comment='').select_related('patient').order_by('-date_submitted')[:5]
+    context = {'doctor': doctor, 'schedules': schedules, 'reviews': reviews, 'title': 'Doctor Profile'}
     if request.htmx:
         return render(request, 'patient/_doctor_profile_modal.html', context)
     return render(request, 'patient/doctor_profile.html', context)

@@ -1,0 +1,39 @@
+{% comment %}
+Shared progress indicator for the patient booking flow.
+Pass current (the active step number, 1-4), plus doctor_id and
+appointment_date once a doctor/date have been chosen, when including
+this partial from a booking-flow template. Completed steps before
+the active one are clickable links back into the flow; the active
+step is filled; later steps are dimmed and not clickable.
+{% endcomment %}
+<div class="flex items-center gap-1.5 mb-6 text-xs flex-wrap">
+  {% if current >= 1 %}
+    {% if current > 1 %}
+    <a href="{% url 'patient:book_step1' %}" class="px-3 py-1.5 rounded-full font-medium bg-[#F5F5F7] text-[#161622] hover:bg-[#ebebee]">1. Doctor</a>
+    {% else %}
+    <span class="px-3 py-1.5 rounded-full font-medium bg-[#161622] text-white">1. Doctor</span>
+    {% endif %}
+  {% endif %}
+  <span class="text-[#c1c1c8]">&rarr;</span>
+  {% if current > 2 %}
+  <a href="/patient/appointments/book/{{ doctor_id }}/slots/?date={{ appointment_date }}" class="px-3 py-1.5 rounded-full font-medium bg-[#F5F5F7] text-[#161622] hover:bg-[#ebebee]">2. Date</a>
+  {% elif current == 2 %}
+  <span class="px-3 py-1.5 rounded-full font-medium bg-[#161622] text-white">2. Date</span>
+  {% else %}
+  <span class="px-3 py-1.5 rounded-full font-medium bg-[#F5F5F7] text-[#c1c1c8]">2. Date</span>
+  {% endif %}
+  <span class="text-[#c1c1c8]">&rarr;</span>
+  {% if current > 3 %}
+  <a href="/patient/appointments/book/{{ doctor_id }}/details/?appointment_date={{ appointment_date }}" class="px-3 py-1.5 rounded-full font-medium bg-[#F5F5F7] text-[#161622] hover:bg-[#ebebee]">3. Patient Details</a>
+  {% elif current == 3 %}
+  <span class="px-3 py-1.5 rounded-full font-medium bg-[#161622] text-white">3. Patient Details</span>
+  {% else %}
+  <span class="px-3 py-1.5 rounded-full font-medium bg-[#F5F5F7] text-[#c1c1c8]">3. Patient Details</span>
+  {% endif %}
+  <span class="text-[#c1c1c8]">&rarr;</span>
+  {% if current == 4 %}
+  <span class="px-3 py-1.5 rounded-full font-medium bg-[#161622] text-white">4. Review &amp; Confirm</span>
+  {% else %}
+  <span class="px-3 py-1.5 rounded-full font-medium bg-[#F5F5F7] text-[#c1c1c8]">4. Review &amp; Confirm</span>
+  {% endif %}
+</div>

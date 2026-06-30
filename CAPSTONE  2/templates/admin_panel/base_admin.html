@@ -38,24 +38,26 @@
 
     <!-- Bottom tab bar (mobile) -->
     <nav class="md:!hidden fixed bottom-0 inset-x-0 z-30 flex items-stretch bg-white border-t border-slate-200 h-16 pb-[env(safe-area-inset-bottom)]">
-      <a href="/admin-panel/" class="flex flex-1 flex-col items-center justify-center gap-0.5 text-[11px] font-medium {% if request.path == '/admin-panel/' %}text-brand-700{% else %}text-slate-500{% endif %}">
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
-        Home
+      <a href="/admin-panel/" aria-label="Home" class="flex flex-1 items-center justify-center">
+        <span class="flex size-10 items-center justify-center rounded-full transition-colors {% if request.path == '/admin-panel/' %}bg-[#F0F0F2] text-[#161622]{% else %}text-[#9a9aa5]{% endif %}">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+        </span>
       </a>
       {% with active=request.resolver_match.url_name %}
-      <a href="/admin-panel/users/" class="flex flex-1 flex-col items-center justify-center gap-0.5 text-[11px] font-medium {% if active == 'user_list' or active == 'user_create' or active == 'user_edit' or active == 'user_delete' %}text-brand-700{% else %}text-slate-500{% endif %}">
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
-        Users
+      <a href="/admin-panel/users/" aria-label="Users" class="flex flex-1 items-center justify-center">
+        <span class="flex size-10 items-center justify-center rounded-full transition-colors {% if active == 'user_list' or active == 'user_create' or active == 'user_edit' or active == 'user_delete' %}bg-[#F0F0F2] text-[#161622]{% else %}text-[#9a9aa5]{% endif %}">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+        </span>
       </a>
-      <a href="/admin-panel/appointments/" class="flex flex-1 flex-col items-center justify-center">
-        <span class="flex size-11 items-center justify-center rounded-full bg-brand-500 text-white shadow-md shadow-brand-500/40 -mt-5">
+      <a href="/admin-panel/appointments/" aria-label="Appointments" class="flex flex-1 items-center justify-center">
+        <span class="flex size-10 items-center justify-center rounded-full transition-colors {% if active == 'appointment_list' %}bg-[#F0F0F2] text-[#161622]{% else %}text-[#9a9aa5]{% endif %}">
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
         </span>
-        <span class="text-[11px] font-medium text-brand-700 mt-0.5">Appts</span>
       </a>
-      <a href="/admin-panel/feedback/" class="flex flex-1 flex-col items-center justify-center gap-0.5 text-[11px] font-medium {% if active == 'feedback_list' %}text-brand-700{% else %}text-slate-500{% endif %}">
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/></svg>
-        Logs
+      <a href="/admin-panel/feedback/" aria-label="Logs" class="flex flex-1 items-center justify-center">
+        <span class="flex size-10 items-center justify-center rounded-full transition-colors {% if active == 'feedback_list' %}bg-[#F0F0F2] text-[#161622]{% else %}text-[#9a9aa5]{% endif %}">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/></svg>
+        </span>
       </a>
       {% endwith %}
       {% include "components/_mobile_account_popover.html" %}

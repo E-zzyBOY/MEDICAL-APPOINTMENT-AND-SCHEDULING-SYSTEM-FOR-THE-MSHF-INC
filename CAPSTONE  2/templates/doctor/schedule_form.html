@@ -1,30 +1,48 @@
 {% extends "doctor/base_doctor.html" %}
 {% block page_title %}{{ action }} Schedule Slot{% endblock %}
 
+{% block extra_head %}
+<style>
+  .hp-field input,
+  .hp-field select {
+    background-color: #F5F5F7 !important;
+    border: none !important;
+    border-radius: 0.75rem !important;
+    padding: 0.875rem 1rem !important;
+    font-size: 0.875rem !important;
+    color: #161622 !important;
+  }
+  .hp-field input:focus,
+  .hp-field select:focus {
+    box-shadow: 0 0 0 2px #16162233 !important;
+  }
+</style>
+{% endblock %}
+
 {% block doctor_content %}
 <div class="max-w-md space-y-4">
-  <div class="bg-white rounded-xl shadow p-6">
+  <div class="bg-white rounded-2xl shadow-sm p-6">
     {% include "doctor/_schedule_calendar_fragment.html" %}
   </div>
-  <div class="bg-white rounded-xl shadow p-8">
-    <h2 class="text-xl font-bold text-gray-800 mb-2">{{ action }} Schedule Slot</h2>
+  <div class="bg-white rounded-2xl shadow-sm p-6 sm:p-8">
+    <h2 class="text-xl font-bold text-[#161622] mb-1">{{ action }} Schedule Slot</h2>
     {% if schedule %}
     {% if selected_date %}
-    <p class="text-sm text-gray-600 mb-6">
-      Selected date: <span class="font-semibold text-gray-800">{{ selected_date_display }}</span>
+    <p class="text-sm text-[#9a9aa5] mb-6">
+      Selected date: <span class="font-semibold text-[#161622]">{{ selected_date_display }}</span>
     </p>
     {% else %}
-    <p class="text-sm text-gray-400 mb-6">Pick a date on the calendar above to continue.</p>
+    <p class="text-sm text-[#b0b0bc] mb-6">Pick a date on the calendar above to continue.</p>
     {% endif %}
     {% else %}
     <div id="schedule-day-info" class="mb-3"></div>
-    <p id="schedule-selected-count" class="text-sm font-medium text-gray-600 mb-6">
+    <p id="schedule-selected-count" class="text-sm font-medium text-[#5a5a66] mb-6">
       {% if selected_dates_list %}{{ selected_dates_list|length }} date{{ selected_dates_list|length|pluralize }} selected.{% else %}No dates selected yet. Click multiple days above to add the same time to all of them.{% endif %}
     </p>
     {% endif %}
     <form method="post"
           action="{% if schedule %}{% url 'doctor:schedule_edit' pk=schedule.pk %}{% else %}{% url 'doctor:schedule_add' %}{% endif %}"
-          class="space-y-4">
+          class="space-y-4 hp-field">
       {% csrf_token %}
       {% if schedule %}
         {% for field in form %}
@@ -32,38 +50,38 @@
           {{ field }}
         {% else %}
         <div>
-          <label class="block text-sm font-semibold text-gray-700 mb-1">{{ field.label }}</label>
+          <label class="block text-xs font-medium text-[#9a9aa5] mb-1.5 ml-1">{{ field.label }}</label>
           {{ field }}
-          {% if field.errors %}<p class="text-red-600 text-xs mt-1">{{ field.errors.0 }}</p>{% endif %}
+          {% if field.errors %}<p class="text-[#A32D2D] text-xs mt-1 ml-1">{{ field.errors.0 }}</p>{% endif %}
         </div>
         {% endif %}
         {% endfor %}
       {% else %}
         <input type="hidden" id="schedule-selected-dates" name="dates" value="{{ selected_dates }}" />
-        {% if form.dates.errors %}<p class="text-red-600 text-xs">{{ form.dates.errors.0 }}</p>{% endif %}
+        {% if form.dates.errors %}<p class="text-[#A32D2D] text-xs">{{ form.dates.errors.0 }}</p>{% endif %}
         <div>
-          <label class="block text-sm font-semibold text-gray-700 mb-1">Start Time</label>
+          <label class="block text-xs font-medium text-[#9a9aa5] mb-1.5 ml-1">Start Time</label>
           {{ form.start_time }}
-          {% if form.start_time.errors %}<p class="text-red-600 text-xs mt-1">{{ form.start_time.errors.0 }}</p>{% endif %}
+          {% if form.start_time.errors %}<p class="text-[#A32D2D] text-xs mt-1 ml-1">{{ form.start_time.errors.0 }}</p>{% endif %}
         </div>
         <div>
-          <label class="block text-sm font-semibold text-gray-700 mb-1">End Time</label>
+          <label class="block text-xs font-medium text-[#9a9aa5] mb-1.5 ml-1">End Time</label>
           {{ form.end_time }}
-          {% if form.end_time.errors %}<p class="text-red-600 text-xs mt-1">{{ form.end_time.errors.0 }}</p>{% endif %}
+          {% if form.end_time.errors %}<p class="text-[#A32D2D] text-xs mt-1 ml-1">{{ form.end_time.errors.0 }}</p>{% endif %}
         </div>
       {% endif %}
       {% if form.non_field_errors %}
-      <p class="text-red-600 text-sm">{{ form.non_field_errors.0 }}</p>
+      <p class="text-[#A32D2D] text-sm bg-[#FCEBEB] p-3 rounded-xl">{{ form.non_field_errors.0 }}</p>
       {% endif %}
       <div class="flex gap-3 pt-2">
-        <button type="submit" id="schedule-save-btn"
-                {% if schedule %}{% if not selected_date %}disabled{% endif %}{% else %}{% if not selected_dates_list %}disabled{% endif %}{% endif %}
-                class="flex-1 bg-emerald-700 text-white font-bold py-3 rounded-lg hover:bg-emerald-800 transition disabled:opacity-50 disabled:cursor-not-allowed">
-          Save
-        </button>
-        <a href="/doctor/schedule/" class="flex-1 text-center border border-gray-300 text-gray-700 font-bold py-3 rounded-lg hover:bg-gray-50 transition">
+        <a href="/doctor/schedule/" class="flex-1 text-center bg-[#F5F5F7] text-[#161622] font-medium py-3.5 rounded-xl text-sm hover:bg-[#ebebee] transition">
           Cancel
         </a>
+        <button type="submit" id="schedule-save-btn"
+                {% if schedule %}{% if not selected_date %}disabled{% endif %}{% else %}{% if not selected_dates_list %}disabled{% endif %}{% endif %}
+                class="flex-1 bg-[#161622] hover:bg-[#22222f] text-white font-medium py-3.5 rounded-xl text-sm transition disabled:opacity-50 disabled:cursor-not-allowed">
+          Save
+        </button>
       </div>
     </form>
   </div>

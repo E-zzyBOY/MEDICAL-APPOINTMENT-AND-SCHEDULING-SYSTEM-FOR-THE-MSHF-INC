@@ -105,15 +105,12 @@ input[type="file"]::file-selector-button:hover {
   bottom: 30%; right: 20%;
 }
 
-/* Auth input field wrapper — icon + input inside a styled container */
+/* Auth input field wrapper — relative container for absolute-positioned icons */
 .auth-input-wrapper {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
+  position: relative;
   width: 100%;
   border: 1px solid #E2E8F0;
   border-radius: 0.75rem;
-  padding: 0.75rem 1rem;
   background-color: #ffffff;
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
@@ -124,23 +121,48 @@ input[type="file"]::file-selector-button:hover {
   border-color: #2563EB;
   box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
 }
+
+/* Left icon (user, lock, etc.) positioned inside the input */
+.auth-input-wrapper .input-icon {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #94A3B8;
+  pointer-events: none;
+  transition: color 0.2s ease;
+}
+.auth-input-wrapper:focus-within .input-icon {
+  color: #2563EB;
+}
+
+/* Input inside wrapper — padded to clear left icon */
 .auth-input-wrapper input {
-  flex: 1;
+  width: 100%;
   border: none !important;
-  padding: 0 !important;
+  padding: 0.75rem 1rem 0.75rem 42px !important;
   font-size: 0.875rem;
   color: #0F172A;
   background: transparent !important;
   outline: none !important;
   box-shadow: none !important;
-  border-radius: 0 !important;
+  border-radius: 0.75rem !important;
 }
 .auth-input-wrapper input::placeholder {
   color: #94A3B8;
 }
 
-/* Password toggle button */
+/* Password field variant — extra right padding for the toggle button */
+.auth-input-wrapper.password-field input {
+  padding-right: 44px !important;
+}
+
+/* Password toggle — Facebook-style: hidden by default, shown with .visible */
 .password-toggle {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%) scale(0.85);
   background: none;
   border: none;
   padding: 0.25rem;
@@ -149,7 +171,14 @@ input[type="file"]::file-selector-button:hover {
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: color 0.2s;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+.password-toggle.visible {
+  opacity: 1;
+  transform: translateY(-50%) scale(1);
+  pointer-events: auto;
 }
 .password-toggle:hover {
   color: #475569;

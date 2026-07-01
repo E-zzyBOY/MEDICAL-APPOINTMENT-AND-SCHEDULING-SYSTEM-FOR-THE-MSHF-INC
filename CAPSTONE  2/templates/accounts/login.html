@@ -3,69 +3,247 @@
 
 {% block extra_head %}
 <style>
-  .hp-field input {
-    background-color: transparent !important;
-    border: none !important;
-    border-radius: 0 !important;
-    padding: 0 !important;
+  .auth-hero-gradient {
+    background: linear-gradient(135deg, #112E81 0%, #4647AE 40%, #4382DF 100%);
   }
-  .hp-field input:focus {
-    box-shadow: none !important;
-  }
-  .hp-field input::placeholder {
-    color: #9a9aa5 !important;
+  .auth-card-shadow {
+    box-shadow: 0 20px 60px rgba(17, 46, 129, 0.10), 0 4px 16px rgba(0, 0, 0, 0.04);
   }
 </style>
 {% endblock %}
 
 {% block body %}
-<div class="min-h-screen bg-white flex items-center justify-center px-6 py-12">
-  <div class="w-full max-w-sm">
+<div class="min-h-screen flex flex-col lg:flex-row bg-[#F8FAFC] font-inter">
 
-    <div class="flex flex-col items-center mb-8">
-      <div class="w-14 h-14 rounded-full bg-[#F1EFE8] border border-dashed border-[#B4B2A9] flex items-center justify-center mb-4">
-        <svg class="w-6 h-6 text-[#9a9a92]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 16.5v-9a2 2 0 012-2h2.379a2 2 0 001.415-.586l1.172-1.172a2 2 0 011.415-.586h3.238a2 2 0 011.415.586l1.172 1.172a2 2 0 001.415.586H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>
-          <circle cx="12" cy="12" r="3.5" stroke-width="1.5"/>
+  <!-- ================================================================
+       LEFT — Hero Section (hidden on small screens)
+       ================================================================ -->
+  <div class="hidden lg:flex lg:w-1/2 relative overflow-hidden auth-hero-gradient items-center justify-center p-12 min-h-screen">
+    <!-- Decorative blobs -->
+    <div class="blob-1"></div>
+    <div class="blob-2"></div>
+    <div class="blob-3"></div>
+
+    <div class="relative z-10 max-w-lg mx-auto text-center">
+      <!-- Illustration -->
+      <div class="animate-float mb-10">
+        <svg viewBox="0 0 400 280" fill="none" xmlns="http://www.w3.org/2000/svg" class="w-full max-w-sm mx-auto">
+          <!-- Background rounded shape -->
+          <rect x="20" y="20" width="360" height="240" rx="120" fill="white" fill-opacity="0.06"/>
+
+          <!-- Doctor figure -->
+          <g transform="translate(100, 60)">
+            <!-- Head -->
+            <circle cx="40" cy="25" r="22" fill="white" fill-opacity="0.9"/>
+            <!-- Body (white coat) -->
+            <path d="M18 55 L62 55 L68 120 L12 120 Z" fill="white" fill-opacity="0.85"/>
+            <!-- Stethoscope -->
+            <path d="M55 45 C55 35, 65 30, 70 40 C75 50, 65 55, 60 50" stroke="#2563EB" stroke-width="3" fill="none" stroke-linecap="round"/>
+            <circle cx="60" cy="48" r="5" fill="#2563EB" fill-opacity="0.3"/>
+            <path d="M55 50 L45 70" stroke="#2563EB" stroke-width="2.5" fill="none"/>
+            <!-- Cross on chest -->
+            <rect x="35" y="70" width="4" height="16" rx="2" fill="#4382DF" fill-opacity="0.5"/>
+            <rect x="30" y="75" width="14" height="4" rx="2" fill="#4382DF" fill-opacity="0.5"/>
+          </g>
+
+          <!-- Patient figure -->
+          <g transform="translate(230, 70)">
+            <!-- Head -->
+            <circle cx="40" cy="20" r="18" fill="white" fill-opacity="0.9"/>
+            <!-- Body -->
+            <path d="M22 45 L58 45 L62 105 L18 105 Z" fill="white" fill-opacity="0.7"/>
+            <!-- Arm reaching out -->
+            <path d="M58 55 Q75 60 80 70" stroke="white" stroke-width="5" fill="none" stroke-linecap="round" stroke-opacity="0.7"/>
+          </g>
+
+          <!-- Heartbeat line -->
+          <path d="M30 180 L70 180 L80 165 L95 195 L110 165 L125 195 L140 165 L155 195 L165 180 L370 180"
+                stroke="#10B981" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round" opacity="0.7"/>
+
+          <!-- Medical cross icon -->
+          <g transform="translate(295, 25)">
+            <rect x="8" y="0" width="4" height="20" rx="2" fill="white" fill-opacity="0.3"/>
+            <rect x="0" y="8" width="20" height="4" rx="2" fill="white" fill-opacity="0.3"/>
+          </g>
+
+          <!-- Small decorative circles -->
+          <circle cx="320" cy="185" r="4" fill="white" fill-opacity="0.15"/>
+          <circle cx="350" cy="170" r="3" fill="white" fill-opacity="0.12"/>
+          <circle cx="60" cy="195" r="3" fill="white" fill-opacity="0.12"/>
         </svg>
       </div>
-      <h1 class="text-xl font-bold text-[#161622]">Sign in</h1>
-      <p class="text-[#9a9aa5] text-sm mt-1">MSHFI Medical Appointment System</p>
+
+      <!-- Heading -->
+      <h1 class="text-white text-3xl md:text-4xl font-extrabold leading-tight mb-4 animate-fade-up">
+        Welcome to MSHFI<br/>
+        <span class="text-[#AACCD6]">Medical Appointment System</span>
+      </h1>
+      <p class="text-white/70 text-base md:text-lg leading-relaxed mb-10 animate-fade-up" style="animation-delay: 80ms">
+        Book appointments, manage your medical records, and connect with healthcare professionals securely.
+      </p>
+
+      <!-- Feature highlights -->
+      <div class="space-y-4 text-left animate-fade-up" style="animation-delay: 160ms">
+        <div class="flex items-center gap-3">
+          <div class="w-6 h-6 rounded-full bg-[#10B981]/20 flex items-center justify-center flex-shrink-0">
+            <svg class="w-3.5 h-3.5 text-[#10B981]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/>
+            </svg>
+          </div>
+          <span class="text-white/80 text-sm">Easy Appointment Booking</span>
+        </div>
+        <div class="flex items-center gap-3">
+          <div class="w-6 h-6 rounded-full bg-[#10B981]/20 flex items-center justify-center flex-shrink-0">
+            <svg class="w-3.5 h-3.5 text-[#10B981]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/>
+            </svg>
+          </div>
+          <span class="text-white/80 text-sm">Licensed Healthcare Professionals</span>
+        </div>
+        <div class="flex items-center gap-3">
+          <div class="w-6 h-6 rounded-full bg-[#10B981]/20 flex items-center justify-center flex-shrink-0">
+            <svg class="w-3.5 h-3.5 text-[#10B981]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/>
+            </svg>
+          </div>
+          <span class="text-white/80 text-sm">Secure Patient Records</span>
+        </div>
+      </div>
     </div>
+  </div>
 
-    <form method="post" class="space-y-3 hp-field">
-      {% csrf_token %}
+  <!-- ================================================================
+       RIGHT — Login Card
+       ================================================================ -->
+  <div class="flex-1 flex items-center justify-center p-6 lg:p-10 min-h-screen bg-[#F8FAFC]">
+    <div class="w-full max-w-md auth-card-shadow bg-white rounded-2xl p-8 md:p-10 animate-card-in">
 
-      <div class="flex items-center gap-2.5 bg-[#F5F5F7] rounded-xl px-4 py-3.5">
-        <svg class="w-4 h-4 text-[#9a9aa5] shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
-        </svg>
-        <input type="text" name="username" required autofocus
-               class="flex-1 bg-transparent border-0 p-0 text-sm text-[#161622] placeholder-[#9a9aa5] focus:outline-none focus:ring-0"
-               placeholder="Username" />
+      <!-- Logo -->
+      <div class="flex flex-col items-center mb-8">
+        <div class="w-14 h-14 bg-gradient-to-br from-[#112E81] to-[#4382DF] rounded-2xl flex items-center justify-center mb-4 shadow-md">
+          <span class="text-white font-extrabold text-xl">M</span>
+        </div>
+        <h2 class="text-[#0F172A] text-2xl font-bold">Sign In</h2>
+        <p class="text-slate-500 text-sm mt-1">Sign in to continue to your account.</p>
       </div>
 
-      <div class="flex items-center gap-2.5 bg-[#F5F5F7] rounded-xl px-4 py-3.5">
-        <svg class="w-4 h-4 text-[#9a9aa5] shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 11c0 1.1-.9 2-2 2s-2-.9-2-2 .9-2 2-2 2 .9 2 2zm6-2V8a6 6 0 10-12 0v1m-1 0h14a1 1 0 011 1v9a2 2 0 01-2 2H6a2 2 0 01-2-2v-9a1 1 0 011-1z"/>
-        </svg>
-        <input type="password" name="password" required
-               class="flex-1 bg-transparent border-0 p-0 text-sm text-[#161622] placeholder-[#9a9aa5] focus:outline-none focus:ring-0"
-               placeholder="Password" />
+      <!-- Flash Messages -->
+      {% if messages %}
+      <div class="mb-6 space-y-2">
+        {% for message in messages %}
+        <div class="flex items-start gap-2 px-4 py-3 rounded-lg text-sm
+          {% if message.tags == 'error' %}bg-red-50 text-soft-red border border-red-100
+          {% elif message.tags == 'success' %}bg-emerald-50 text-emerald-700 border border-emerald-100
+          {% elif message.tags == 'warning' %}bg-amber-50 text-amber-700 border border-amber-100
+          {% else %}bg-blue-50 text-medical-blue border border-blue-100{% endif %}">
+          <span class="flex-1">{{ message }}</span>
+          <button onclick="this.parentElement.remove()" class="opacity-60 hover:opacity-100 font-bold">&times;</button>
+        </div>
+        {% endfor %}
+      </div>
+      {% endif %}
+
+      <!-- Login Form -->
+      <form method="post" novalidate>
+        {% csrf_token %}
+
+        <!-- Username -->
+        <div class="mb-4">
+          <label for="login-username" class="block text-sm font-medium text-[#475569] mb-1.5">Username</label>
+          <div class="auth-input-wrapper">
+            <svg class="w-4 h-4 text-slate-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+            </svg>
+            <input type="text" id="login-username" name="username" required autofocus
+                   placeholder="Enter your username" autocomplete="username" aria-label="Username" />
+          </div>
+        </div>
+
+        <!-- Password -->
+        <div class="mb-2">
+          <label for="login-password" class="block text-sm font-medium text-[#475569] mb-1.5">Password</label>
+          <div class="auth-input-wrapper">
+            <svg class="w-4 h-4 text-slate-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 11c0 1.1-.9 2-2 2s-2-.9-2-2 .9-2 2-2 2 .9 2 2zm6-2V8a6 6 0 10-12 0v1m-1 0h14a1 1 0 011 1v9a2 2 0 01-2 2H6a2 2 0 01-2-2v-9a1 1 0 011-1z"/>
+            </svg>
+            <input type="password" id="login-password" name="password" required
+                   placeholder="Enter your password" autocomplete="current-password" aria-label="Password" />
+            <button type="button" class="password-toggle" onclick="togglePassword()"
+                    aria-label="Show password" id="password-toggle-btn">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- Remember Me + Forgot Password -->
+        <div class="flex items-center justify-between mt-4 mb-6">
+          <label class="flex items-center gap-2 cursor-pointer select-none">
+            <input type="checkbox" name="remember" class="auth-checkbox" />
+            <span class="text-sm text-[#475569]">Remember me</span>
+          </label>
+          <a href="#" class="text-sm text-medical-blue hover:text-[#1D4ED8] font-medium transition-colors">
+            Forgot password?
+          </a>
+        </div>
+
+        <!-- Submit Button -->
+        <button type="submit" class="auth-btn" data-loading-text="Signing in...">
+          Sign In
+        </button>
+      </form>
+
+      <!-- Divider -->
+      <div class="relative my-8">
+        <div class="absolute inset-0 flex items-center">
+          <div class="w-full border-t border-[#E2E8F0]"></div>
+        </div>
       </div>
 
-      <button type="submit" data-loading-text="Signing in…"
-              class="w-full bg-[#161622] hover:bg-[#22222f] text-white font-medium py-3.5 px-4 rounded-xl text-sm transition disabled:opacity-60 disabled:cursor-not-allowed mt-5">
-        Sign in
-      </button>
-    </form>
+      <!-- Create Account Link -->
+      <p class="text-center text-sm text-slate-500">
+        Don't have an account?
+        <a href="{% url 'accounts:register' %}" class="text-medical-blue hover:text-[#1D4ED8] font-semibold transition-colors">
+          Create one here &rarr;
+        </a>
+      </p>
 
-    <p class="text-center text-sm text-[#9a9aa5] mt-6">
-      New patient? <a href="{% url 'accounts:register' %}" class="text-[#161622] font-medium hover:underline">Create an account</a>
-    </p>
-    <p class="text-center mt-3">
-      <a href="/" class="text-xs text-[#c1c1c8] hover:text-[#9a9aa5]">&larr; Back to home</a>
-    </p>
+      <!-- Back to home -->
+      <p class="text-center mt-4">
+        <a href="/" class="text-xs text-slate-400 hover:text-slate-600 transition-colors">
+          &larr; Back to home
+        </a>
+      </p>
+    </div>
   </div>
 </div>
+
+{% block extra_js %}
+<script>
+  /* Show / Hide Password Toggle */
+  function togglePassword() {
+    const pwd = document.getElementById('login-password');
+    const btn = document.getElementById('password-toggle-btn');
+    if (pwd.type === 'password') {
+      pwd.type = 'text';
+      btn.setAttribute('aria-label', 'Hide password');
+      btn.innerHTML =
+        '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">' +
+          '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"/>' +
+          '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M1 1l22 22"/>' +
+        '</svg>';
+    } else {
+      pwd.type = 'password';
+      btn.setAttribute('aria-label', 'Show password');
+      btn.innerHTML =
+        '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">' +
+          '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>' +
+          '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>' +
+        '</svg>';
+    }
+  }
+</script>
+{% endblock %}
 {% endblock %}

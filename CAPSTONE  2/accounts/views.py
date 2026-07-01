@@ -5,8 +5,17 @@ from .forms import (
     PatientRegistrationForm, PatientProfileEditForm, DoctorProfileEditForm, SecretaryProfileEditForm,
     ProfilePictureForm, EmailNotificationSettingsForm,
 )
-from .models import PatientProfile, DoctorProfile, SecretaryProfile
+from .models import CustomUser, PatientProfile, DoctorProfile, SecretaryProfile
 from .decorators import role_required
+from notifications.models import Notification
+
+
+def _notify_admins(message):
+    """New patient self-registrations happen with nobody on staff in the
+    loop, unlike doctor/secretary accounts which admins create themselves.
+    Let every admin account know one landed."""
+    for admin_user in CustomUser.objects.filter(role='admin'):
+        Notification.objects.create(user=admin_user, message=message)
 
 
 def login_view(request):
@@ -36,6 +45,7 @@ def register_view(request):
     if request.method == 'POST' and form.is_valid():
         user = form.save()
         login(request, user)
+        _notify_admins(f"New patient account created: {user.get_full_name()} ({user.username}).")
         messages.success(request, 'Account created! Welcome to MSHFI.')
         return redirect('patient:dashboard')
     return render(request, 'accounts/register.html', {'form': form})

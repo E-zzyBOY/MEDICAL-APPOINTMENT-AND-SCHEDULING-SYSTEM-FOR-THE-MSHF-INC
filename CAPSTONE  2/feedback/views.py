@@ -2,9 +2,16 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from accounts.decorators import role_required
+from accounts.models import CustomUser
 from .models import Feedback
 from .forms import FeedbackForm
 from appointments.models import Appointment
+from notifications.models import Notification
+
+
+def _notify_admins(message):
+    for admin_user in CustomUser.objects.filter(role='admin'):
+        Notification.objects.create(user=admin_user, message=message)
 
 
 @role_required('patient')
@@ -45,6 +52,10 @@ def submit_feedback(request, appointment_id):
         fb.patient     = request.user
         fb.appointment = appointment
         fb.save()
+        _notify_admins(
+            f"{request.user.get_full_name()} left a {fb.rating}/5 rating for "
+            f"Dr. {appointment.doctor.get_full_name()}."
+        )
         messages.success(request, 'Thank you for your feedback!')
         if request.htmx:
             response = render(request, 'feedback/_submit_feedback_modal.html', {

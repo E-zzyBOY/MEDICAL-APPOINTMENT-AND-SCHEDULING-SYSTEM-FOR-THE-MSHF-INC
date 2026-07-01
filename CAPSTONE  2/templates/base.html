@@ -4,6 +4,9 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>{% block title %}MSHFI Medical Appointment System{% endblock %}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
   <script>
     // Back/Forward navigation can restore a page from the browser's
     // in-memory bfcache without making a new request at all, bypassing the
@@ -29,17 +32,45 @@
               700: '#4647AE',
               500: '#4382DF',
               200: '#AACCD6',
-              50:  '#EEF4FA', // derived light tint of brand-200, for subtle surfaces only
+              50:  '#EEF4FA',
             },
+            medical: {
+              blue:  '#2563EB',
+              soft:  '#EFF6FF',
+            },
+            slate: {
+              400: '#94A3B8',
+              500: '#64748B',
+              600: '#475569',
+            },
+            emerald: {
+              500: '#10B981',
+            },
+            soft: {
+              red: '#EF4444',
+            },
+          },
+          fontFamily: {
+            inter: ['Inter', 'system-ui', 'sans-serif'],
           },
           keyframes: {
             'fade-up': {
               '0%':   { opacity: 0, transform: 'translateY(6px)' },
               '100%': { opacity: 1, transform: 'translateY(0)' },
             },
+            float: {
+              '0%, 100%': { transform: 'translateY(0px)' },
+              '50%':      { transform: 'translateY(-10px)' },
+            },
+            'card-in': {
+              '0%':   { opacity: 0, transform: 'translateY(20px) scale(0.97)' },
+              '100%': { opacity: 1, transform: 'translateY(0) scale(1)' },
+            },
           },
           animation: {
             'fade-up': 'fade-up 0.35s ease-out both',
+            'float':   'float 4s ease-in-out infinite',
+            'card-in': 'card-in 0.5s ease-out forwards',
           },
         }
       }
@@ -48,7 +79,7 @@
   <link rel="stylesheet" href="/static/css/custom.css" />
   {% block extra_head %}{% endblock %}
 </head>
-<body class="bg-gray-50 min-h-screen font-sans">
+<body class="bg-gray-50 min-h-screen font-inter">
 
   <!-- Flash Messages -->
   {% if messages %}

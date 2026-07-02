@@ -26,7 +26,7 @@
   <div id="bookings-panel-upcoming" class="space-y-3">
     {% if upcoming %}
       {% for appt in upcoming %}
-      <div class="bg-white rounded-2xl border border-[#E5E7EB] p-4">
+      <div class="bg-white rounded-2xl border border-[#E5E7EB] p-4 shadow-soft-sm">
         <a hx-get="{% url 'patient:appointment_detail' pk=appt.pk %}" hx-target="#modal-root" hx-swap="innerHTML" class="block cursor-pointer">
           <p class="text-sm font-semibold text-[#1F2937] mb-3">
             {{ appt.appointment_date|date:"M j, Y" }}{% if appt.appointment_time %} - {{ appt.appointment_time|time:"g:i A" }}{% endif %}
@@ -82,7 +82,7 @@
   <div id="bookings-panel-completed" class="space-y-3 hidden">
     {% if completed %}
       {% for appt in completed %}
-      <div class="bg-white rounded-2xl border border-[#E5E7EB] p-4">
+      <div class="bg-white rounded-2xl border border-[#E5E7EB] p-4 shadow-soft-sm">
         <a hx-get="{% url 'patient:appointment_detail' pk=appt.pk %}" hx-target="#modal-root" hx-swap="innerHTML" class="block cursor-pointer">
           <p class="text-sm font-semibold text-[#1F2937] mb-3">
             {{ appt.appointment_date|date:"M j, Y" }}{% if appt.appointment_time %} - {{ appt.appointment_time|time:"g:i A" }}{% endif %}
@@ -133,7 +133,7 @@
   <div id="bookings-panel-cancelled" class="space-y-3 hidden">
     {% if cancelled %}
       {% for appt in cancelled %}
-      <div class="bg-white rounded-2xl border border-[#E5E7EB] p-4">
+      <div class="bg-white rounded-2xl border border-[#E5E7EB] p-4 shadow-soft-sm">
         <a hx-get="{% url 'patient:appointment_detail' pk=appt.pk %}" hx-target="#modal-root" hx-swap="innerHTML" class="block cursor-pointer">
           <p class="text-sm font-semibold text-[#1F2937] mb-3">
             {{ appt.appointment_date|date:"M j, Y" }}{% if appt.appointment_time %} - {{ appt.appointment_time|time:"g:i A" }}{% endif %}

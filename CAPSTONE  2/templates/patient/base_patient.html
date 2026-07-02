@@ -63,8 +63,8 @@
         </span>
       </a>
       <a href="/patient/appointments/book/" aria-label="Book" class="flex flex-1 items-center justify-center">
-        <span class="flex size-11 -mt-4 items-center justify-center rounded-full bg-brand-500 text-white shadow-soft ring-4 ring-softgray transition-transform active:scale-95">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+        <span class="flex size-10 items-center justify-center rounded-full transition-colors {% if active == 'book_step1' or active == 'book_step2' or active == 'book_step3' or active == 'book_step4' %}bg-brand-100 text-brand-700{% else %}text-gray-400{% endif %}">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v6m3-3H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
         </span>
       </a>
       {% endwith %}

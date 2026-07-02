@@ -3,19 +3,19 @@
 {% block page_title %}Patient Records — {{ patient.get_full_name }}{% endblock %}
 {% block doctor_content %}
 <div class="max-w-3xl space-y-4">
-  <div class="bg-white rounded-xl shadow p-6">
+  <div class="bg-white rounded-2xl shadow-soft p-6">
     <div class="flex items-center gap-4 mb-6">
-      <div class="w-12 h-12 bg-emerald-100 rounded-full flex items-center justify-center">
-        <span class="text-emerald-700 font-bold text-lg">{{ patient.first_name.0 }}{{ patient.last_name.0 }}</span>
+      <div class="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
+        <span class="text-green-600 font-semibold text-lg">{{ patient.first_name.0 }}{{ patient.last_name.0 }}</span>
       </div>
       <div>
-        <p class="font-bold text-gray-800 text-lg">{{ patient.get_full_name }}</p>
+        <p class="font-semibold text-gray-800 text-lg">{{ patient.get_full_name }}</p>
         <p class="text-gray-500 text-sm">{{ patient.email }}</p>
       </div>
     </div>
 
     {% if records %}
-    <h3 class="font-bold text-gray-700 mb-3">Medical Records</h3>
+    <h3 class="font-semibold text-gray-700 mb-3">Medical Records</h3>
     {% for record in records %}
     {% with color=record.doctor_id|doctor_color %}
     <div class="border-l-4 {{ color.border }} {{ color.bg }} rounded-r-lg p-4 mb-3">
@@ -64,7 +64,7 @@
     {% endif %}
 
     {% if vitals %}
-    <h3 class="font-bold text-gray-700 mt-6 mb-3">Vital Signs</h3>
+    <h3 class="font-semibold text-gray-700 mt-6 mb-3">Vital Signs</h3>
     <div class="hidden md:block overflow-x-auto">
       <table class="w-full text-sm">
         <thead class="text-left text-gray-500 border-b border-gray-100"><tr><th class="pb-2">Date</th><th class="pb-2">BP</th><th class="pb-2">Weight</th></tr></thead>
@@ -81,7 +81,7 @@
     </div>
     <div class="flex md:hidden flex-col gap-2">
       {% for v in vitals %}
-      <div class="flex items-center justify-between border border-gray-200 rounded-lg px-3 py-2 text-sm">
+      <div class="flex items-center justify-between border border-gray-200 rounded-xl px-3 py-2 text-sm">
         <span class="text-gray-500">{{ v.date_taken|date:"M j, Y" }}</span>
         <span class="text-gray-700 font-medium">{{ v.bp }}</span>
         <span class="text-gray-700">{{ v.weight }} kg</span>

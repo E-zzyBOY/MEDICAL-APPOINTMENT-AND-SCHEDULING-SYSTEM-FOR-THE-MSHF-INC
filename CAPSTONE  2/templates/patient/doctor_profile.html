@@ -4,24 +4,24 @@
 
 {% block patient_content %}
 <div class="max-w-3xl">
-  <a href="/patient/appointments/book/" class="inline-flex items-center gap-1.5 text-sm text-[#9a9aa5] hover:text-[#161622] mb-4">
+  <a href="/patient/appointments/book/" class="inline-flex items-center gap-1.5 text-sm text-[#6B7280] hover:text-[#1F2937] mb-4">
     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
     Back to doctor list
   </a>
 
-  <div class="bg-white rounded-2xl shadow-sm p-6 mb-4">
+  <div class="bg-white rounded-2xl shadow-soft-sm p-6 mb-4">
     <div class="flex items-center gap-4">
       {% if doctor.profile_picture %}
         <img src="{{ doctor.profile_picture.url }}" class="size-16 rounded-2xl object-cover" alt="">
       {% else %}
-        <div class="size-16 rounded-2xl bg-[#E9ECF5] flex items-center justify-center">
-          <span class="text-[#4382DF] font-semibold text-xl">{{ doctor.first_name.0 }}{{ doctor.last_name.0 }}</span>
+        <div class="size-16 rounded-2xl bg-[#E6EEF3] flex items-center justify-center">
+          <span class="text-[#4D7493] font-semibold text-xl">{{ doctor.first_name.0 }}{{ doctor.last_name.0 }}</span>
         </div>
       {% endif %}
       <div>
-        <p class="font-bold text-[#161622] text-lg">Dr. {{ doctor.get_full_name }}</p>
-        <p class="text-sm text-[#9a9aa5]">{{ doctor.doctor_profile.specialization|default:"General Medicine" }}</p>
-        <p class="text-xs text-[#b0b0bc] flex items-center gap-1 mt-0.5">
+        <p class="font-semibold text-[#1F2937] text-lg">Dr. {{ doctor.get_full_name }}</p>
+        <p class="text-sm text-[#6B7280]">{{ doctor.doctor_profile.specialization|default:"General Medicine" }}</p>
+        <p class="text-xs text-[#9CA3AF] flex items-center gap-1 mt-0.5">
           <svg class="w-3 h-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a2 2 0 01-2.828 0l-4.243-4.243a8 8 0 1111.314 0z"/><circle cx="12" cy="11" r="3" stroke-width="2"/></svg>
           MSHFI Medical Appointment System
         </p>
@@ -31,42 +31,42 @@
 
   <!-- Stat badges (rating/reviews intentionally omitted — feedback is admin-only) -->
   <div class="grid grid-cols-2 gap-2 mb-4 max-w-sm">
-    <div class="bg-white rounded-2xl shadow-sm p-3 text-center">
-      <div class="size-9 mx-auto mb-1.5 rounded-full bg-[#F5F5F7] flex items-center justify-center">
-        <svg class="w-4 h-4 text-[#161622]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m6-5.13a4 4 0 110-8 4 4 0 010 8zm-6 1a4 4 0 100-8 4 4 0 000 8z"/></svg>
+    <div class="bg-white rounded-2xl shadow-soft-sm p-3 text-center">
+      <div class="size-9 mx-auto mb-1.5 rounded-full bg-[#F5F7FA] flex items-center justify-center">
+        <svg class="w-4 h-4 text-[#1F2937]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m6-5.13a4 4 0 110-8 4 4 0 010 8zm-6 1a4 4 0 100-8 4 4 0 000 8z"/></svg>
       </div>
-      <p class="font-bold text-sm text-[#161622]">{{ doctor.patient_count }}{% if doctor.patient_count >= 50 %}+{% endif %}</p>
-      <p class="text-[10px] text-[#9a9aa5]">patients</p>
+      <p class="font-semibold text-sm text-[#1F2937]">{{ doctor.patient_count }}{% if doctor.patient_count >= 50 %}+{% endif %}</p>
+      <p class="text-[10px] text-[#6B7280]">patients</p>
     </div>
-    <div class="bg-white rounded-2xl shadow-sm p-3 text-center">
-      <div class="size-9 mx-auto mb-1.5 rounded-full bg-[#F5F5F7] flex items-center justify-center">
-        <svg class="w-4 h-4 text-[#161622]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+    <div class="bg-white rounded-2xl shadow-soft-sm p-3 text-center">
+      <div class="size-9 mx-auto mb-1.5 rounded-full bg-[#F5F7FA] flex items-center justify-center">
+        <svg class="w-4 h-4 text-[#1F2937]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
       </div>
-      <p class="font-bold text-sm text-[#161622]">{{ doctor.doctor_profile.years_of_experience|default:"—" }}{% if doctor.doctor_profile.years_of_experience %}+{% endif %}</p>
-      <p class="text-[10px] text-[#9a9aa5]">experience</p>
+      <p class="font-semibold text-sm text-[#1F2937]">{{ doctor.doctor_profile.years_of_experience|default:"—" }}{% if doctor.doctor_profile.years_of_experience %}+{% endif %}</p>
+      <p class="text-[10px] text-[#6B7280]">experience</p>
     </div>
   </div>
 
   {% if doctor.doctor_profile.bio %}
-  <div class="bg-white rounded-2xl shadow-sm p-6 mb-4">
-    <h2 class="font-semibold text-[#161622] mb-2">About me</h2>
-    <p class="text-sm text-[#5a5a66] leading-relaxed">{{ doctor.doctor_profile.bio }}</p>
+  <div class="bg-white rounded-2xl shadow-soft-sm p-6 mb-4">
+    <h2 class="font-semibold text-[#1F2937] mb-2">About me</h2>
+    <p class="text-sm text-[#4B5563] leading-relaxed">{{ doctor.doctor_profile.bio }}</p>
   </div>
   {% endif %}
 
-  <div class="bg-white rounded-2xl shadow-sm p-6 mb-24 md:mb-6">
+  <div class="bg-white rounded-2xl shadow-soft-sm p-6 mb-24 md:mb-6">
     {% if schedules %}
     <div class="hidden md:block overflow-x-auto">
       <table class="w-full text-sm">
-        <thead class="text-left text-[#9a9aa5] border-b border-[#ECECEF]">
+        <thead class="text-left text-[#6B7280] border-b border-[#E5E7EB]">
           <tr><th class="pb-3 font-medium">Day</th><th class="pb-3 font-medium">Start</th><th class="pb-3 font-medium">End</th></tr>
         </thead>
-        <tbody class="divide-y divide-[#F5F5F7]">
+        <tbody class="divide-y divide-[#F5F7FA]">
           {% for s in schedules %}
           <tr>
-            <td class="py-3 font-medium text-[#161622]">{{ s.specific_date|date:"D, M j, Y" }}</td>
-            <td class="py-3 text-[#5a5a66]">{{ s.start_time|time:"g:i A" }}</td>
-            <td class="py-3 text-[#5a5a66]">{{ s.end_time|time:"g:i A" }}</td>
+            <td class="py-3 font-medium text-[#1F2937]">{{ s.specific_date|date:"D, M j, Y" }}</td>
+            <td class="py-3 text-[#4B5563]">{{ s.start_time|time:"g:i A" }}</td>
+            <td class="py-3 text-[#4B5563]">{{ s.end_time|time:"g:i A" }}</td>
           </tr>
           {% endfor %}
         </tbody>
@@ -74,27 +74,27 @@
     </div>
     <div class="flex md:hidden flex-col gap-2">
       {% for s in schedules %}
-      <div class="flex items-center justify-between bg-[#F5F5F7] rounded-xl px-3.5 py-2.5 text-sm">
-        <span class="font-medium text-[#161622]">{{ s.specific_date|date:"D, M j, Y" }}</span>
-        <span class="text-[#5a5a66]">{{ s.start_time|time:"g:i A" }} – {{ s.end_time|time:"g:i A" }}</span>
+      <div class="flex items-center justify-between bg-[#F5F7FA] rounded-xl px-3.5 py-2.5 text-sm">
+        <span class="font-medium text-[#1F2937]">{{ s.specific_date|date:"D, M j, Y" }}</span>
+        <span class="text-[#4B5563]">{{ s.start_time|time:"g:i A" }} – {{ s.end_time|time:"g:i A" }}</span>
       </div>
       {% endfor %}
     </div>
     {% else %}
-    <p class="text-[#9a9aa5] text-center py-10">This doctor has no availability set yet.</p>
+    <p class="text-[#6B7280] text-center py-10">This doctor has no availability set yet.</p>
     {% endif %}
   </div>
 
   <!-- Sticky book button (mobile) -->
-  <div class="fixed bottom-16 inset-x-0 p-4 bg-white border-t border-[#ECECEF] md:hidden">
+  <div class="fixed bottom-16 inset-x-0 p-4 bg-white border-t border-[#E5E7EB] md:hidden">
     <a href="/patient/appointments/book/{{ doctor.pk }}/slots/"
-       class="block w-full text-center bg-[#161622] hover:bg-[#22222f] text-white font-medium py-3.5 rounded-xl text-sm transition">
+       class="block w-full text-center bg-brand-500 hover:bg-brand-600 text-white font-medium py-3.5 rounded-xl text-sm transition">
       Book Appointment
     </a>
   </div>
   <div class="hidden md:block">
     <a href="/patient/appointments/book/{{ doctor.pk }}/slots/"
-       class="inline-block bg-[#161622] hover:bg-[#22222f] text-white font-medium py-3 px-8 rounded-xl text-sm transition">
+       class="inline-block bg-brand-500 hover:bg-brand-600 text-white font-medium py-3 px-8 rounded-xl text-sm transition">
       Book Appointment
     </a>
   </div>

@@ -4,23 +4,23 @@
 {% block secretary_content %}
 <div class="max-w-3xl space-y-6">
   <!-- Patient header -->
-  <div class="bg-white rounded-xl shadow p-6 flex items-center gap-4">
+  <div class="bg-white rounded-2xl shadow-soft p-6 flex items-center gap-4">
     <div class="w-14 h-14 bg-purple-100 rounded-full flex items-center justify-center">
-      <span class="text-purple-700 font-bold text-xl">{{ patient.first_name.0 }}{{ patient.last_name.0 }}</span>
+      <span class="text-purple-600 font-semibold text-xl">{{ patient.first_name.0 }}{{ patient.last_name.0 }}</span>
     </div>
     <div>
-      <p class="font-bold text-gray-800 text-xl">{{ patient.get_full_name }}</p>
+      <p class="font-semibold text-gray-800 text-xl">{{ patient.get_full_name }}</p>
       <p class="text-gray-500 text-sm">{{ patient.email }}</p>
     </div>
     <a href="/secretary/walk-in/{{ patient.pk }}/vitals/add/"
-       class="ml-auto px-4 py-2 bg-purple-700 text-white text-sm font-medium rounded-lg hover:bg-purple-800 transition">
+       class="ml-auto px-4 py-2 bg-purple-600 text-white text-sm font-medium rounded-xl hover:bg-purple-700 transition">
       + Take Vitals
     </a>
   </div>
 
   <!-- Appointments -->
-  <div class="bg-white rounded-xl shadow p-6">
-    <h3 class="font-bold text-gray-800 mb-3">Appointment History</h3>
+  <div class="bg-white rounded-2xl shadow-soft p-6">
+    <h3 class="font-semibold text-gray-800 mb-3">Appointment History</h3>
     {% if appts %}
     <div class="space-y-2">
       {% for appt in appts %}
@@ -42,8 +42,8 @@
   </div>
 
   <!-- Medical Records (limited view for secretaries) -->
-  <div class="bg-white rounded-xl shadow p-6">
-    <h3 class="font-bold text-gray-800 mb-3">Medical Records</h3>
+  <div class="bg-white rounded-2xl shadow-soft p-6">
+    <h3 class="font-semibold text-gray-800 mb-3">Medical Records</h3>
     {% if records %}
     <div class="space-y-2">
       {% for record in records %}
@@ -69,8 +69,8 @@
 
   <!-- Vitals -->
   {% if vitals %}
-  <div class="bg-white rounded-xl shadow p-6">
-    <h3 class="font-bold text-gray-800 mb-3">Vital Signs</h3>
+  <div class="bg-white rounded-2xl shadow-soft p-6">
+    <h3 class="font-semibold text-gray-800 mb-3">Vital Signs</h3>
     <div class="hidden md:block overflow-x-auto">
       <table class="w-full text-sm">
         <thead class="text-left text-gray-500 border-b"><tr><th class="pb-2">Date</th><th class="pb-2">BP</th><th class="pb-2">Weight</th></tr></thead>
@@ -83,7 +83,7 @@
     </div>
     <div class="flex md:hidden flex-col gap-2">
       {% for v in vitals %}
-      <div class="flex items-center justify-between border border-gray-200 rounded-lg px-3 py-2 text-sm">
+      <div class="flex items-center justify-between border border-gray-200 rounded-xl px-3 py-2 text-sm">
         <span class="text-gray-500">{{ v.date_taken|date:"M j, Y" }}</span>
         <span class="text-gray-700 font-medium">{{ v.bp }}</span>
         <span class="text-gray-700">{{ v.weight }} kg</span>

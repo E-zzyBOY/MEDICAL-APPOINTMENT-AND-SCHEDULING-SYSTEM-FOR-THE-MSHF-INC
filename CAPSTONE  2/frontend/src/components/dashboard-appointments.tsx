@@ -20,21 +20,25 @@ import {
 import { formatDate } from "@/components/formater";
 import type { AppointmentRow } from "@/types";
 
+/* Design-system status badges — soft tint + text color per spec:
+ * Pending=amber · Approved/Scheduled=green · Completed=blue ·
+ * Rescheduled=purple · Cancelled=gray. Each is paired with a circular
+ * status dot (rendered alongside the label below). */
 const statusStyles: Record<string, string> = {
 	"Pending Time Assignment":
-		"border-transparent bg-amber-100 text-amber-700 hover:bg-amber-200",
-	Scheduled: "border-transparent bg-[#4382DF] text-white hover:bg-[#4382DF]/90",
+		"border-transparent bg-amber-100 text-amber-700 hover:bg-amber-200/80",
+	Scheduled: "border-transparent bg-green-100 text-green-700 hover:bg-green-200/70",
 	Rescheduled:
-		"border-transparent bg-[#4647AE] text-white hover:bg-[#4647AE]/90",
+		"border-transparent bg-violet-100 text-violet-700 hover:bg-violet-200/70",
 	"Pending Reschedule":
-		"border-transparent bg-purple-100 text-purple-700 hover:bg-purple-200",
+		"border-transparent bg-violet-100 text-violet-700 hover:bg-violet-200/70",
 	Completed:
-		"border-transparent bg-[#AACCD6]/40 text-[#112E81] hover:bg-[#AACCD6]/55",
+		"border-transparent bg-blue-100 text-blue-700 hover:bg-blue-200/70",
 	Cancelled:
-		"border-transparent bg-destructive text-destructive-foreground hover:bg-destructive/90",
+		"border-transparent bg-gray-100 text-gray-600 hover:bg-gray-200/70",
 };
 
-const avatarPalette = ["#4382DF", "#4647AE", "#112E81", "#6B9FE0"];
+const avatarPalette = ["#4D7493", "#34536A", "#2E8AB5", "#7395B5"];
 
 function initials(name: string) {
 	const parts = name.trim().split(/\s+/);
@@ -57,7 +61,7 @@ export function DashboardAppointments({
 	return (
 		<Card className="animate-fade-up border-border/70">
 			<CardHeader>
-				<CardTitle className="text-[#112E81]">{title}</CardTitle>
+				<CardTitle className="text-[#1F3342]">{title}</CardTitle>
 				<CardDescription>
 					{rows.length} {rows.length === 1 ? "appointment" : "appointments"}
 				</CardDescription>
@@ -115,9 +119,12 @@ export function DashboardAppointments({
 										>
 											{r.status === "Pending Reschedule" && (
 												<span className="relative mr-1.5 flex size-1.5">
-													<span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-purple-400 opacity-75" />
-													<span className="relative inline-flex size-1.5 rounded-full bg-purple-500" />
+													<span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-violet-400 opacity-75" />
+													<span className="relative inline-flex size-1.5 rounded-full bg-violet-500" />
 												</span>
+											)}
+											{r.status !== "Pending Reschedule" && (
+												<span className="mr-1.5 inline-flex size-1.5 rounded-full bg-current opacity-60" />
 											)}
 											{r.status}
 										</Badge>

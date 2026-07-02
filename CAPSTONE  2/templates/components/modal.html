@@ -1,13 +1,15 @@
 {# Reusable Modal Shell — usage: {% extends "components/modal.html" %} + {% block modal_content %}...{% endblock %}, passing title (and optionally content_class) into the render context. #}
 {# Below md: breakpoint, the panel becomes a full-screen slide-up sheet instead of a centered card. #}
-<div id="modal-overlay" class="fixed inset-0 bg-black/50 z-40 transition-opacity opacity-0" style="transition-duration: 300ms;" role="dialog" aria-modal="true" aria-labelledby="modal-title" tabindex="-1">
+<div id="modal-overlay" class="fixed inset-0 bg-brand-900/40 backdrop-blur-[2px] z-40 transition-opacity opacity-0" style="transition-duration: 300ms;" role="dialog" aria-modal="true" aria-labelledby="modal-title" tabindex="-1">
   <div class="fixed inset-0 z-40 overflow-y-auto flex items-end md:items-center justify-center">
     <div class="modal-panel w-full h-full md:!h-auto md:w-full {{ content_class|default:'max-w-md' }} md:mx-4 md:my-8 translate-y-full md:!translate-y-0 transition-transform" style="transition-duration: 300ms;">
-      <div class="bg-white h-full md:!h-auto max-h-full rounded-t-2xl md:!rounded-xl shadow-xl flex flex-col">
+      <div class="bg-white h-full md:!h-auto max-h-full rounded-t-3xl md:!rounded-3xl shadow-soft-lg flex flex-col">
         <!-- Header -->
-        <div class="flex items-center justify-between px-6 py-4 border-b border-gray-200 flex-shrink-0">
-          <h2 id="modal-title" class="text-lg font-bold text-gray-800">{{ title }}</h2>
-          <button type="button" onclick="closeModal()" aria-label="Close" class="w-8 h-8 flex items-center justify-center rounded-full text-gray-400 hover:text-gray-600 hover:bg-gray-100 text-2xl leading-none">&times;</button>
+        <div class="flex items-center justify-between px-6 py-5 border-b border-gray-100 flex-shrink-0">
+          <h2 id="modal-title" class="text-lg font-semibold text-ink">{{ title }}</h2>
+          <button type="button" onclick="closeModal()" aria-label="Close" class="flex size-9 items-center justify-center rounded-full bg-softgray text-ink-soft hover:text-ink hover:bg-gray-200 transition-colors">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+          </button>
         </div>
         <!-- Content -->
         <div class="px-6 py-6 overflow-y-auto">

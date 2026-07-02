@@ -34,10 +34,10 @@
   </div>
 
   <div class="flex gap-3 pt-1">
-    <button type="submit" class="flex-1 bg-blue-700 text-white font-bold py-3 rounded-lg hover:bg-blue-800 transition">
+    <button type="submit" class="flex-1 bg-brand-600 text-white font-semibold py-3 rounded-xl hover:bg-brand-700 transition">
       Submit Feedback
     </button>
-    <button type="button" onclick="closeModal()" class="flex-1 border border-gray-300 text-gray-700 font-bold py-3 rounded-lg hover:bg-gray-50 transition">
+    <button type="button" onclick="closeModal()" class="flex-1 border border-gray-300 text-gray-700 font-semibold py-3 rounded-xl hover:bg-gray-50 transition">
       Skip
     </button>
   </div>
@@ -54,14 +54,14 @@
      :has() targets the checked star's own icon; the sibling combinator
      reaches every label that comes after it in markup (= every lower-
      numbered, visually-earlier star) to fill those too. */
-  #feedback-star-rating .star-radio-label input { position: absolute; opacity: 0; width: 0; height: 0; }
-  #feedback-star-rating .star-radio-label:has(input:checked) .star-icon,
-  #feedback-star-rating .star-radio-label:has(input:checked) ~ .star-radio-label .star-icon,
-  #feedback-star-rating .star-radio-label:hover .star-icon,
-  #feedback-star-rating .star-radio-label:hover ~ .star-radio-label .star-icon {
-    color: #FBC02D;
+  #FEF3C7ck-star-rating .star-radio-label input { position: absolute; opacity: 0; width: 0; height: 0; }
+  #FEF3C7ck-star-rating .star-radio-label:has(input:checked) .star-icon,
+  #FEF3C7ck-star-rating .star-radio-label:has(input:checked) ~ .star-radio-label .star-icon,
+  #FEF3C7ck-star-rating .star-radio-label:hover .star-icon,
+  #FEF3C7ck-star-rating .star-radio-label:hover ~ .star-radio-label .star-icon {
+    color: #FBBF24;
   }
-  #feedback-star-rating .star-radio-label:has(input:checked) .star-icon {
+  #FEF3C7ck-star-rating .star-radio-label:has(input:checked) .star-icon {
     transform: scale(1.08);
   }
 </style>

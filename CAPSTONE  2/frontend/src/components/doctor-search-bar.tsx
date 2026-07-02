@@ -12,8 +12,8 @@ export function DoctorSearchBar({ baseHref }: { baseHref: string }) {
 	};
 
 	return (
-		<div className="animate-fade-up flex items-center gap-2.5 bg-[#F5F5F7] rounded-xl px-4 py-3">
-			<Search className="size-4 text-[#9a9aa5] shrink-0" />
+		<div className="animate-fade-up flex items-center gap-2.5 bg-[#F5F7FA] rounded-xl px-4 py-3">
+			<Search className="size-4 text-[#6B7280] shrink-0" />
 			<input
 				type="text"
 				value={query}
@@ -22,7 +22,7 @@ export function DoctorSearchBar({ baseHref }: { baseHref: string }) {
 					if (e.key === "Enter") go();
 				}}
 				placeholder="Search doctor..."
-				className="flex-1 bg-transparent border-0 p-0 text-sm text-[#161622] placeholder-[#9a9aa5] focus:outline-none focus:ring-0"
+				className="flex-1 bg-transparent border-0 p-0 text-sm text-[#1F2937] placeholder-[#6B7280] focus:outline-none focus:ring-0"
 			/>
 		</div>
 	);

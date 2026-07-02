@@ -23,9 +23,9 @@ const ICONS = {
 // fully-written-out lookup by a short "theme" key, rather than letting the
 // backend send a raw Tailwind class string that would never get compiled.
 const THEMES: Record<CarouselSlide["theme"], string> = {
-	navy: "bg-gradient-to-br from-[#112E81] via-[#1d3a8f] to-[#4647AE]",
-	teal: "bg-gradient-to-br from-[#2C7A72] via-[#256b64] to-[#1d4f4a]",
-	violet: "bg-gradient-to-br from-[#6750A4] via-[#5a4592] to-[#473570]",
+	navy: "bg-gradient-to-br from-[#34536A] via-[#416581] to-[#4D7493]",
+	teal: "bg-gradient-to-br from-[#276F92] via-[#2E8AB5] to-[#3FA8D6]",
+	violet: "bg-gradient-to-br from-[#524699] via-[#5E51A8] to-[#6B5FB8]",
 };
 
 export function PromoCarousel({
@@ -103,7 +103,7 @@ export function PromoCarousel({
 									<p className="text-sm text-white/80 mt-1 mb-4">
 										{slide.description}
 									</p>
-									<span className="inline-flex items-center gap-1.5 text-sm font-medium bg-white rounded-lg px-3.5 py-2 text-[#161622]">
+									<span className="inline-flex items-center gap-1.5 text-sm font-medium bg-white rounded-lg px-3.5 py-2 text-[#1F2937]">
 										<Icon className="size-4" />
 										{slide.ctaLabel}
 									</span>
@@ -122,7 +122,7 @@ export function PromoCarousel({
 							aria-label={`Go to slide ${i + 1}`}
 							onClick={() => goTo(i)}
 							className={`h-1.5 rounded-full transition-all ${
-								i === index ? "w-6 bg-[#161622]" : "w-1.5 bg-[#d4d4db]"
+								i === index ? "w-6 bg-[#1F2937]" : "w-1.5 bg-[#D1D5DB]"
 							}`}
 						/>
 					))}

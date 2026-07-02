@@ -1,4 +1,10 @@
-/* Global form field styling — applies Tailwind-compatible styles to Django form widgets */
+/* ==========================================================================
+   MSHFI Healthcare design system — global styles
+   Primary #4D7493 · Secondary #8DD2EF · Soft gray #F5F7FA · Border #E5E7EB
+   ========================================================================== */
+
+/* Global form field styling — applies the design system to Django form widgets.
+   Inputs: 12px radius, soft border, calm primary focus ring. */
 input[type="text"],
 input[type="email"],
 input[type="password"],
@@ -9,15 +15,20 @@ input[type="tel"],
 select,
 textarea {
   width: 100%;
-  border: 1px solid #d1d5db;
-  border-radius: 0.5rem;
-  padding: 0.625rem 1rem;
+  border: 1px solid #E5E7EB;
+  border-radius: 0.75rem; /* 12px per design spec */
+  padding: 0.7rem 1rem;
   font-size: 0.875rem;
   line-height: 1.25rem;
-  color: #111827;
+  color: #1F2937;
   background-color: #ffffff;
   outline: none;
-  transition: border-color 0.15s, box-shadow 0.15s;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: #9CA3AF;
 }
 
 input[type="text"]:focus,
@@ -29,8 +40,8 @@ input[type="time"]:focus,
 input[type="tel"]:focus,
 select:focus,
 textarea:focus {
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+  border-color: #4D7493;
+  box-shadow: 0 0 0 3px rgba(77, 116, 147, 0.18);
 }
 
 input[type="radio"],
@@ -38,7 +49,43 @@ input[type="checkbox"] {
   width: 1rem;
   height: 1rem;
   margin-right: 0.5rem;
-  accent-color: #1d4ed8;
+  accent-color: #4D7493;
+}
+
+input[type="file"] {
+  width: 100%;
+  font-size: 0.875rem;
+  color: #4B5563;
+  border: 1px solid #E5E7EB;
+  border-radius: 0.75rem;
+  padding: 0.5rem 0.75rem;
+  background-color: #ffffff;
+}
+
+input[type="file"]::file-selector-button {
+  border: none;
+  border-radius: 0.625rem;
+  padding: 0.45rem 0.85rem;
+  margin-right: 0.75rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #ffffff;
+  background-color: #4D7493;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+input[type="file"]::file-selector-button:hover {
+  background-color: #416581;
+}
+
+/* Visible keyboard focus everywhere — accessible by default. */
+a:focus-visible,
+button:focus-visible,
+[tabindex]:focus-visible {
+  outline: 2px solid #4D7493;
+  outline-offset: 2px;
+  border-radius: 0.5rem;
 }
 
 /* Table responsiveness */
@@ -46,29 +93,52 @@ input[type="checkbox"] {
   table { font-size: 0.75rem; }
 }
 
-input[type="file"] {
-  width: 100%;
-  font-size: 0.875rem;
-  color: #374151;
-  border: 1px solid #d1d5db;
-  border-radius: 0.5rem;
-  padding: 0.5rem 0.75rem;
-  background-color: #ffffff;
+/* Soft, unobtrusive scrollbars to match the calm aesthetic. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #CDDDE8 transparent;
+}
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+*::-webkit-scrollbar-thumb {
+  background-color: #CDDDE8;
+  border-radius: 9999px;
+}
+*::-webkit-scrollbar-thumb:hover {
+  background-color: #A2BFD3;
 }
 
-input[type="file"]::file-selector-button {
-  border: none;
-  border-radius: 0.375rem;
-  padding: 0.4rem 0.75rem;
-  margin-right: 0.75rem;
-  font-size: 0.8125rem;
-  font-weight: 600;
-  color: #ffffff;
-  background-color: #1d4ed8;
-  cursor: pointer;
-  transition: background-color 0.15s;
+/* Skeleton / shimmer loading — lightweight, GPU-friendly. */
+.skeleton {
+  position: relative;
+  overflow: hidden;
+  background-color: #E9EEF3;
+  border-radius: 0.75rem;
+}
+.skeleton::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background-image: linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.65) 50%, rgba(255,255,255,0) 100%);
+  animation: mshfi-shimmer 1.4s infinite;
+}
+@keyframes mshfi-shimmer {
+  100% { transform: translateX(100%); }
 }
 
-input[type="file"]::file-selector-button:hover {
-  background-color: #1e40af;
+/* Respect users who prefer reduced motion. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

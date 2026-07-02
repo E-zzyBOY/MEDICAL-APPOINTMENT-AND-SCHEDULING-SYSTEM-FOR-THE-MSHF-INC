@@ -1,26 +1,19 @@
 {# Mobile-only top bar — shown below md:. The desktop page-title header stays untouched above md:. #}
-<header class="md:!hidden flex items-center justify-between gap-3 px-4 py-3 bg-white border-b border-slate-200 flex-shrink-0">
-  <div class="flex items-center gap-2">
-    <span class="flex size-8 shrink-0 items-center justify-center rounded-lg bg-brand-500 text-white">
-      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"/></svg>
+<header class="md:!hidden flex items-center justify-between gap-3 px-4 py-3 bg-white border-b border-gray-100 flex-shrink-0">
+  <div class="flex items-center gap-2.5">
+    <span class="flex size-9 shrink-0 items-center justify-center rounded-xl bg-brand-500 text-white shadow-soft-sm">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M11 3a1 1 0 00-1 1v5a1 1 0 01-1 1H4a1 1 0 00-1 1v2a1 1 0 001 1h5a1 1 0 011 1v5a1 1 0 001 1h2a1 1 0 001-1v-5a1 1 0 011-1h5a1 1 0 001-1v-2a1 1 0 00-1-1h-5a1 1 0 01-1-1V4a1 1 0 00-1-1h-2z"/></svg>
     </span>
-    <span class="font-bold text-slate-900 text-base leading-tight">MSHFI</span>
+    <span class="font-semibold text-ink text-base leading-tight">MSHFI</span>
   </div>
   <div class="flex items-center gap-1">
-    {# Notification bell — opens the panel modal via HTMX #}
-    <button type="button"
-            id="notif-bell-mobile"
-            aria-label="Notifications"
-            hx-get="{% url 'notifications:panel' %}"
-            hx-target="#modal-root"
-            hx-swap="innerHTML"
-            class="relative flex size-10 items-center justify-center rounded-full text-slate-500 hover:bg-slate-100 transition-colors">
+    <a href="/notifications/" aria-label="Notifications" class="relative flex size-10 items-center justify-center rounded-full text-ink-soft hover:bg-brand-50 hover:text-brand-600 transition-colors">
       <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
       {% if unread_notification_count > 0 %}
-      <span class="absolute top-1 right-1 min-w-[16px] h-4 px-1 flex items-center justify-center rounded-full bg-red-500 text-white text-[10px] font-bold leading-none">{{ unread_notification_count }}</span>
+      <span class="absolute top-1 right-1 min-w-[16px] h-4 px-1 flex items-center justify-center rounded-full bg-danger text-white text-[10px] font-semibold leading-none ring-2 ring-white">{{ unread_notification_count }}</span>
       {% endif %}
-    </button>
-    <button type="button" onclick="toggleMobileDrawer()" aria-label="Open menu" aria-controls="mobile-drawer" class="flex size-10 items-center justify-center rounded-full text-slate-600 hover:bg-slate-100">
+    </a>
+    <button type="button" onclick="toggleMobileDrawer()" aria-label="Open menu" aria-controls="mobile-drawer" class="flex size-10 items-center justify-center rounded-full text-ink-soft hover:bg-brand-50 hover:text-brand-600 transition-colors">
       <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
     </button>
   </div>

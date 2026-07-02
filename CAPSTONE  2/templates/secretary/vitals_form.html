@@ -2,8 +2,8 @@
 {% block page_title %}Vital Signs — {{ patient.get_full_name }}{% endblock %}
 {% block secretary_content %}
 <div class="max-w-2xl space-y-6">
-  <div class="bg-white rounded-xl shadow p-8">
-    <h2 class="text-xl font-bold text-gray-800 mb-2">Record Vital Signs</h2>
+  <div class="bg-white rounded-2xl shadow-soft p-8">
+    <h2 class="text-xl font-semibold text-gray-800 mb-2">Record Vital Signs</h2>
     <p class="text-gray-500 text-sm mb-6">Patient: <strong>{{ patient.get_full_name }}</strong></p>
     <form method="post" class="space-y-4">
       {% csrf_token %}
@@ -14,13 +14,13 @@
         {% if field.errors %}<p class="text-red-600 text-xs mt-1">{{ field.errors.0 }}</p>{% endif %}
       </div>
       {% endfor %}
-      <button type="submit" class="w-full bg-purple-700 text-white font-bold py-3 rounded-lg hover:bg-purple-800 transition">Save Vitals</button>
+      <button type="submit" class="w-full bg-purple-600 text-white font-semibold py-3 rounded-xl hover:bg-purple-700 transition">Save Vitals</button>
     </form>
   </div>
 
   {% if vitals %}
-  <div class="bg-white rounded-xl shadow p-6">
-    <h3 class="font-bold text-gray-800 mb-3">Previous Readings</h3>
+  <div class="bg-white rounded-2xl shadow-soft p-6">
+    <h3 class="font-semibold text-gray-800 mb-3">Previous Readings</h3>
     <div class="hidden md:block overflow-x-auto">
       <table class="w-full text-sm">
         <thead class="text-left text-gray-500 border-b border-gray-100"><tr><th class="pb-2">Date</th><th class="pb-2">BP</th><th class="pb-2">Weight</th></tr></thead>
@@ -33,7 +33,7 @@
     </div>
     <div class="flex md:hidden flex-col gap-2">
       {% for v in vitals %}
-      <div class="flex items-center justify-between border border-gray-200 rounded-lg px-3 py-2 text-sm">
+      <div class="flex items-center justify-between border border-gray-200 rounded-xl px-3 py-2 text-sm">
         <span class="text-gray-500">{{ v.date_taken|date:"M j, Y" }}</span>
         <span class="text-gray-700 font-medium">{{ v.bp }}</span>
         <span class="text-gray-700">{{ v.weight }} kg</span>

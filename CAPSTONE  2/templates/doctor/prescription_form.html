@@ -3,16 +3,16 @@
 {% block doctor_content %}
 <div class="max-w-xl space-y-6">
   {% if prescriptions %}
-  <div class="bg-white rounded-xl shadow p-6">
-    <h3 class="font-bold text-gray-800 mb-3">Existing Prescriptions</h3>
+  <div class="bg-white rounded-2xl shadow-soft p-6">
+    <h3 class="font-semibold text-gray-800 mb-3">Existing Prescriptions</h3>
     {% for rx in prescriptions %}
-    <div class="border border-gray-200 rounded-lg p-4 mb-3 text-sm">
+    <div class="border border-gray-200 rounded-xl p-4 mb-3 text-sm">
       <p class="font-semibold text-gray-700">{{ rx.medication_names }}</p>
       {% if rx.treatment %}<p class="text-gray-500 mt-1">Treatment: {{ rx.treatment }}</p>{% endif %}
       {% if rx.notes %}<p class="text-gray-500 mt-1">Notes: {{ rx.notes }}</p>{% endif %}
       {% if rx.attachment %}
       <a href="{% url 'records:prescription_attachment' pk=rx.pk %}" target="_blank" rel="noopener"
-         class="inline-flex items-center gap-1.5 mt-2 text-blue-600 hover:text-blue-800 font-medium">
+         class="inline-flex items-center gap-1.5 mt-2 text-brand-600 hover:text-brand-700 font-medium">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4">
           <path fill-rule="evenodd" d="M15.621 4.379a3 3 0 00-4.242 0l-7 7a3 3 0 004.241 4.243h.001l.497-.5a.75.75 0 011.064 1.057l-.498.501-.002.002a4.5 4.5 0 01-6.364-6.364l7-7a4.5 4.5 0 116.368 6.36l-3.455 3.553A2.625 2.625 0 119.52 9.52l3.45-3.451a.75.75 0 111.061 1.06l-3.45 3.451a1.125 1.125 0 001.587 1.595l3.454-3.553a3 3 0 000-4.242z" clip-rule="evenodd" />
         </svg>
@@ -24,8 +24,8 @@
   </div>
   {% endif %}
 
-  <div class="bg-white rounded-xl shadow p-8">
-    <h2 class="text-xl font-bold text-gray-800 mb-6">Add Prescription</h2>
+  <div class="bg-white rounded-2xl shadow-soft p-8">
+    <h2 class="text-xl font-semibold text-gray-800 mb-6">Add Prescription</h2>
     <form method="post" enctype="multipart/form-data" class="space-y-4">
       {% csrf_token %}
       {% for field in form %}
@@ -39,8 +39,8 @@
       </div>
       {% endfor %}
       <div class="flex gap-3 pt-2">
-        <button type="submit" class="flex-1 bg-emerald-700 text-white font-bold py-3 rounded-lg hover:bg-emerald-800 transition">Save Prescription</button>
-        <a href="/doctor/appointments/" class="flex-1 text-center border border-gray-300 text-gray-700 font-bold py-3 rounded-lg hover:bg-gray-50 transition">Done</a>
+        <button type="submit" class="flex-1 bg-green-600 text-white font-semibold py-3 rounded-xl hover:bg-green-700 transition">Save Prescription</button>
+        <a href="/doctor/appointments/" class="flex-1 text-center border border-gray-300 text-gray-700 font-semibold py-3 rounded-xl hover:bg-gray-50 transition">Done</a>
       </div>
     </form>
   </div>

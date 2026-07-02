@@ -9,31 +9,31 @@ step is filled; later steps are dimmed and not clickable.
 <div class="flex items-center gap-1.5 mb-6 text-xs flex-wrap">
   {% if current >= 1 %}
     {% if current > 1 %}
-    <a href="{% url 'patient:book_step1' %}" class="px-3 py-1.5 rounded-full font-medium bg-[#F5F5F7] text-[#161622] hover:bg-[#ebebee]">1. Doctor</a>
+    <a href="{% url 'patient:book_step1' %}" class="px-3 py-1.5 rounded-full font-medium bg-[#F5F7FA] text-[#1F2937] hover:bg-[#E5E7EB]">1. Doctor</a>
     {% else %}
-    <span class="px-3 py-1.5 rounded-full font-medium bg-[#161622] text-white">1. Doctor</span>
+    <span class="px-3 py-1.5 rounded-full font-medium bg-brand-500 text-white">1. Doctor</span>
     {% endif %}
   {% endif %}
-  <span class="text-[#c1c1c8]">&rarr;</span>
+  <span class="text-[#9CA3AF]">&rarr;</span>
   {% if current > 2 %}
-  <a href="/patient/appointments/book/{{ doctor_id }}/slots/?date={{ appointment_date }}" class="px-3 py-1.5 rounded-full font-medium bg-[#F5F5F7] text-[#161622] hover:bg-[#ebebee]">2. Date</a>
+  <a href="/patient/appointments/book/{{ doctor_id }}/slots/?date={{ appointment_date }}" class="px-3 py-1.5 rounded-full font-medium bg-[#F5F7FA] text-[#1F2937] hover:bg-[#E5E7EB]">2. Date</a>
   {% elif current == 2 %}
-  <span class="px-3 py-1.5 rounded-full font-medium bg-[#161622] text-white">2. Date</span>
+  <span class="px-3 py-1.5 rounded-full font-medium bg-brand-500 text-white">2. Date</span>
   {% else %}
-  <span class="px-3 py-1.5 rounded-full font-medium bg-[#F5F5F7] text-[#c1c1c8]">2. Date</span>
+  <span class="px-3 py-1.5 rounded-full font-medium bg-[#F5F7FA] text-[#9CA3AF]">2. Date</span>
   {% endif %}
-  <span class="text-[#c1c1c8]">&rarr;</span>
+  <span class="text-[#9CA3AF]">&rarr;</span>
   {% if current > 3 %}
-  <a href="/patient/appointments/book/{{ doctor_id }}/details/?appointment_date={{ appointment_date }}" class="px-3 py-1.5 rounded-full font-medium bg-[#F5F5F7] text-[#161622] hover:bg-[#ebebee]">3. Patient Details</a>
+  <a href="/patient/appointments/book/{{ doctor_id }}/details/?appointment_date={{ appointment_date }}" class="px-3 py-1.5 rounded-full font-medium bg-[#F5F7FA] text-[#1F2937] hover:bg-[#E5E7EB]">3. Patient Details</a>
   {% elif current == 3 %}
-  <span class="px-3 py-1.5 rounded-full font-medium bg-[#161622] text-white">3. Patient Details</span>
+  <span class="px-3 py-1.5 rounded-full font-medium bg-brand-500 text-white">3. Patient Details</span>
   {% else %}
-  <span class="px-3 py-1.5 rounded-full font-medium bg-[#F5F5F7] text-[#c1c1c8]">3. Patient Details</span>
+  <span class="px-3 py-1.5 rounded-full font-medium bg-[#F5F7FA] text-[#9CA3AF]">3. Patient Details</span>
   {% endif %}
-  <span class="text-[#c1c1c8]">&rarr;</span>
+  <span class="text-[#9CA3AF]">&rarr;</span>
   {% if current == 4 %}
-  <span class="px-3 py-1.5 rounded-full font-medium bg-[#161622] text-white">4. Review &amp; Confirm</span>
+  <span class="px-3 py-1.5 rounded-full font-medium bg-brand-500 text-white">4. Review &amp; Confirm</span>
   {% else %}
-  <span class="px-3 py-1.5 rounded-full font-medium bg-[#F5F5F7] text-[#c1c1c8]">4. Review &amp; Confirm</span>
+  <span class="px-3 py-1.5 rounded-full font-medium bg-[#F5F7FA] text-[#9CA3AF]">4. Review &amp; Confirm</span>
   {% endif %}
 </div>

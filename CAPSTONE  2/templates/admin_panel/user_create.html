@@ -2,12 +2,12 @@
 {% block page_title %}Create {{ role|capfirst }} Account{% endblock %}
 {% block admin_content %}
 <div class="max-w-2xl">
-  <div class="bg-white rounded-xl shadow p-8">
-    <h2 class="text-xl font-bold text-gray-800 mb-6">Create {{ role|capfirst }} Account</h2>
+  <div class="bg-white rounded-2xl shadow-soft p-8">
+    <h2 class="text-xl font-semibold text-gray-800 mb-6">Create {{ role|capfirst }} Account</h2>
     <form method="post" class="space-y-4" novalidate>
       {% csrf_token %}
       {% if form.non_field_errors %}
-      <div class="bg-red-50 border border-red-200 text-red-700 rounded-lg p-3 text-sm">
+      <div class="bg-red-50 border border-red-200 text-red-700 rounded-xl p-3 text-sm">
         {% for error in form.non_field_errors %}{{ error }}{% endfor %}
       </div>
       {% endif %}
@@ -21,8 +21,8 @@
         {% endfor %}
       </div>
       <div class="flex gap-3 pt-2">
-        <button type="submit" class="flex-1 bg-rose-700 text-white font-bold py-3 rounded-lg hover:bg-rose-800 transition">Create Account</button>
-        <a href="/admin-panel/users/" class="flex-1 text-center border border-gray-300 text-gray-700 font-bold py-3 rounded-lg hover:bg-gray-50 transition">Cancel</a>
+        <button type="submit" class="flex-1 bg-red-600 text-white font-semibold py-3 rounded-xl hover:bg-red-700 transition">Create Account</button>
+        <a href="/admin-panel/users/" class="flex-1 text-center border border-gray-300 text-gray-700 font-semibold py-3 rounded-xl hover:bg-gray-50 transition">Cancel</a>
       </div>
     </form>
   </div>

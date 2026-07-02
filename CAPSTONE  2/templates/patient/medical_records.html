@@ -3,19 +3,22 @@
 
 {% block patient_content %}
 <div class="space-y-6">
-  <div class="bg-white rounded-xl shadow p-6">
-    <h2 class="text-lg font-bold text-gray-800 mb-4">Medical Records</h2>
+  <div class="bg-white rounded-2xl shadow-soft p-6">
+    <h2 class="text-lg font-semibold text-gray-800 mb-4">Medical Records</h2>
     {% if records %}
     <div class="divide-y divide-gray-100">
       {% for record in records %}
       <div hx-get="{% url 'patient:medical_record_detail' pk=record.pk %}" hx-target="#modal-root" hx-swap="innerHTML"
-           class="flex items-center justify-between gap-4 py-3 cursor-pointer hover:bg-gray-50 rounded-lg px-2 group">
+           class="flex items-center justify-between gap-4 py-3 cursor-pointer hover:bg-gray-50 rounded-xl px-2 group">
         <div class="min-w-0">
-          <p class="font-bold text-gray-800">Visit on {{ record.visit_date|date:"F j, Y" }}</p>
+          <p class="font-semibold text-gray-800">Visit on {{ record.visit_date|date:"F j, Y" }}</p>
           <p class="text-sm text-gray-500">Dr. {{ record.doctor.get_full_name }}</p>
+          {% if record.results %}
+          <p class="text-sm text-gray-500 truncate">{{ record.results.diagnosis|truncatechars:80 }}</p>
+          {% endif %}
         </div>
-        <div class="flex items-center gap-1.5 text-blue-600 shrink-0">
-          <span class="text-xs font-medium opacity-0 group-hover:opacity-100 transition-opacity hidden sm:inline">View details</span>
+        <div class="flex items-center gap-1.5 text-brand-600 shrink-0">
+          <span class="text-xs font-medium opacity-0 group-hover:opacity-100 transition-opacity hidden sm:inline">View full record</span>
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5">
             <path fill-rule="evenodd" d="M7.21 14.77a.75.75 0 01.02-1.06L11.168 10 7.23 6.29a.75.75 0 111.04-1.08l4.5 4.25a.75.75 0 010 1.08l-4.5 4.25a.75.75 0 01-1.06-.02z" clip-rule="evenodd" />
           </svg>
@@ -30,8 +33,8 @@
 
   <!-- Vital Signs -->
   {% if vitals %}
-  <div class="bg-white rounded-xl shadow p-6">
-    <h2 class="text-lg font-bold text-gray-800 mb-4">Vital Signs History</h2>
+  <div class="bg-white rounded-2xl shadow-soft p-6">
+    <h2 class="text-lg font-semibold text-gray-800 mb-4">Vital Signs History</h2>
     <div class="hidden md:block overflow-x-auto">
       <table class="w-full text-sm">
         <thead class="text-left text-gray-500 border-b border-gray-200">
@@ -54,7 +57,7 @@
     </div>
     <div class="flex md:hidden flex-col gap-2">
       {% for v in vitals %}
-      <div class="flex items-center justify-between border border-gray-200 rounded-lg px-3 py-2 text-sm">
+      <div class="flex items-center justify-between border border-gray-200 rounded-xl px-3 py-2 text-sm">
         <span class="text-gray-500">{{ v.date_taken|date:"M j, Y" }}</span>
         <span class="text-gray-700 font-medium">{{ v.bp }}</span>
         <span class="text-gray-700">{{ v.weight }} kg</span>

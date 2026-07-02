@@ -21,36 +21,36 @@ The prev/next month arrows always go through the server (different month
 carried along via the hidden #schedule-selected-dates input's value so
 it survives the round trip.
 {% endcomment %}
-<div id="schedule-calendar-widget" class="bg-[#F5F5F7] rounded-2xl p-4">
+<div id="schedule-calendar-widget" class="bg-[#F5F7FA] rounded-2xl p-4">
   <!-- Month header + nav -->
   <div class="flex items-center justify-between mb-4">
-    <p class="font-semibold text-[#161622] text-sm">{{ calendar_month_name }} {{ calendar_year }}</p>
+    <p class="font-semibold text-[#1F2937] text-sm">{{ calendar_month_name }} {{ calendar_year }}</p>
     <div class="flex items-center gap-1">
       <button type="button"
               hx-get="{% if schedule %}{% url 'doctor:schedule_edit_calendar_partial' pk=schedule.pk %}?year={% if calendar_month == 1 %}{{ calendar_year|add:'-1' }}{% else %}{{ calendar_year }}{% endif %}&month={% if calendar_month == 1 %}12{% else %}{{ calendar_month|add:'-1' }}{% endif %}&selected_date={{ selected_date }}{% else %}{% url 'doctor:schedule_add_calendar_partial' %}?year={% if calendar_month == 1 %}{{ calendar_year|add:'-1' }}{% else %}{{ calendar_year }}{% endif %}&month={% if calendar_month == 1 %}12{% else %}{{ calendar_month|add:'-1' }}{% endif %}{% endif %}"
               hx-vals="js:{selected_dates: (document.getElementById('schedule-selected-dates') || {}).value || ''}"
               hx-target="#schedule-calendar-widget" hx-swap="outerHTML"
-              class="size-7 flex items-center justify-center rounded-full bg-white text-[#5a5a66] hover:bg-[#ebebee] transition cursor-pointer">
+              class="size-7 flex items-center justify-center rounded-full bg-white text-[#4B5563] hover:bg-[#E5E7EB] transition cursor-pointer">
         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
       </button>
       <button type="button"
               hx-get="{% if schedule %}{% url 'doctor:schedule_edit_calendar_partial' pk=schedule.pk %}?year={% if calendar_month == 12 %}{{ calendar_year|add:'1' }}{% else %}{{ calendar_year }}{% endif %}&month={% if calendar_month == 12 %}1{% else %}{{ calendar_month|add:'1' }}{% endif %}&selected_date={{ selected_date }}{% else %}{% url 'doctor:schedule_add_calendar_partial' %}?year={% if calendar_month == 12 %}{{ calendar_year|add:'1' }}{% else %}{{ calendar_year }}{% endif %}&month={% if calendar_month == 12 %}1{% else %}{{ calendar_month|add:'1' }}{% endif %}{% endif %}"
               hx-vals="js:{selected_dates: (document.getElementById('schedule-selected-dates') || {}).value || ''}"
               hx-target="#schedule-calendar-widget" hx-swap="outerHTML"
-              class="size-7 flex items-center justify-center rounded-full bg-white text-[#5a5a66] hover:bg-[#ebebee] transition cursor-pointer">
+              class="size-7 flex items-center justify-center rounded-full bg-white text-[#4B5563] hover:bg-[#E5E7EB] transition cursor-pointer">
         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
       </button>
     </div>
   </div>
 
   {% if not schedule %}
-  <p class="text-[11px] text-[#9a9aa5] mb-3">Click multiple days to add the same time block to all of them.</p>
+  <p class="text-[11px] text-[#6B7280] mb-3">Click multiple days to add the same time block to all of them.</p>
   {% endif %}
 
   <!-- Weekday labels -->
   <div class="grid grid-cols-7 gap-1 mb-1 text-center">
     {% for label in "MTWTFSS" %}
-    <span class="text-[11px] font-medium text-[#9a9aa5]">{{ label }}</span>
+    <span class="text-[11px] font-medium text-[#6B7280]">{{ label }}</span>
     {% endfor %}
   </div>
 
@@ -61,7 +61,7 @@ it survives the round trip.
         {% if cell == None %}
         <span class="aspect-square"></span>
         {% elif cell.status == 'past' %}
-        <span class="aspect-square rounded-full text-sm flex items-center justify-center text-[#d4d4db] cursor-not-allowed" title="Past date">
+        <span class="aspect-square rounded-full text-sm flex items-center justify-center text-[#D1D5DB] cursor-not-allowed" title="Past date">
           {{ cell.day }}
         </span>
         {% elif schedule %}
@@ -70,9 +70,9 @@ it survives the round trip.
                 hx-get="{% url 'doctor:schedule_edit' pk=schedule.pk %}?date={{ cell.date }}"
                 hx-target="#modal-root" hx-swap="innerHTML"
                 class="schedule-calendar-day aspect-square rounded-full text-sm font-medium flex items-center justify-center transition cursor-pointer
-                  {% if cell.date == selected_date %}bg-[#161622] text-white
-                  {% elif cell.status == 'has_slots' %}bg-[#D9EDE2] text-[#2F8F5B] hover:bg-[#c9e6d4]
-                  {% else %}bg-white text-[#161622] hover:bg-[#ebebee]{% endif %}">
+                  {% if cell.date == selected_date %}bg-brand-500 text-white
+                  {% elif cell.status == 'has_slots' %}bg-[#DCFCE7] text-[#16A34A] hover:bg-[#BBF7D0]
+                  {% else %}bg-white text-[#1F2937] hover:bg-[#E5E7EB]{% endif %}">
           {{ cell.day }}
         </button>
         {% else %}
@@ -83,11 +83,11 @@ it survives the round trip.
                 onclick="scheduleCalendarToggleDay(this)"
                 hx-get="{% url 'doctor:schedule_day_info' %}?date={{ cell.date }}"
                 hx-target="#schedule-day-info" hx-swap="innerHTML"
-                {% if cell.date in selected_dates_list %}style="background-color: #161622; color: #ffffff;"{% endif %}
+                {% if cell.date in selected_dates_list %}style="background-color: #1F2937; color: #ffffff;"{% endif %}
                 class="schedule-calendar-day aspect-square rounded-full text-sm font-medium flex items-center justify-center transition cursor-pointer
                   {% if cell.date in selected_dates_list %}
-                  {% elif cell.status == 'has_slots' %}bg-[#D9EDE2] text-[#2F8F5B] hover:bg-[#c9e6d4]
-                  {% else %}bg-white text-[#161622] hover:bg-[#ebebee]{% endif %}">
+                  {% elif cell.status == 'has_slots' %}bg-[#DCFCE7] text-[#16A34A] hover:bg-[#BBF7D0]
+                  {% else %}bg-white text-[#1F2937] hover:bg-[#E5E7EB]{% endif %}">
           {{ cell.day }}
         </button>
         {% endif %}
@@ -96,9 +96,9 @@ it survives the round trip.
   </div>
 
   <!-- Legend -->
-  <div class="flex items-center gap-4 mt-3 pt-3 border-t border-[#e5e5ea] text-[11px] text-[#9a9aa5]">
-    <span class="flex items-center gap-1.5"><span class="size-2.5 rounded-full bg-[#D9EDE2]"></span> Has slot(s)</span>
-    <span class="flex items-center gap-1.5"><span class="size-2.5 rounded-full bg-[#161622]"></span> Selected</span>
+  <div class="flex items-center gap-4 mt-3 pt-3 border-t border-[#E5E7EB] text-[11px] text-[#6B7280]">
+    <span class="flex items-center gap-1.5"><span class="size-2.5 rounded-full bg-[#DCFCE7]"></span> Has slot(s)</span>
+    <span class="flex items-center gap-1.5"><span class="size-2.5 rounded-full bg-brand-500"></span> Selected</span>
   </div>
 </div>
 
@@ -146,8 +146,8 @@ it survives the round trip.
   // the fill appears the instant the click handler runs, no race with
   // anything htmx does to the same element afterward.
   function scheduleCalendarPaintSelected(btn) {
-    btn.classList.remove('bg-white', 'text-[#161622]', 'bg-[#D9EDE2]', 'text-[#2F8F5B]');
-    btn.style.backgroundColor = '#161622';
+    btn.classList.remove('bg-white', 'text-[#1F2937]', 'bg-[#DCFCE7]', 'text-[#16A34A]');
+    btn.style.backgroundColor = '#1F2937';
     btn.style.color = '#ffffff';
   }
 
@@ -155,9 +155,9 @@ it survives the round trip.
     btn.style.backgroundColor = '';
     btn.style.color = '';
     if (status === 'has_slots') {
-      btn.classList.add('bg-[#D9EDE2]', 'text-[#2F8F5B]');
+      btn.classList.add('bg-[#DCFCE7]', 'text-[#16A34A]');
     } else {
-      btn.classList.add('bg-white', 'text-[#161622]');
+      btn.classList.add('bg-white', 'text-[#1F2937]');
     }
   }
 </script>

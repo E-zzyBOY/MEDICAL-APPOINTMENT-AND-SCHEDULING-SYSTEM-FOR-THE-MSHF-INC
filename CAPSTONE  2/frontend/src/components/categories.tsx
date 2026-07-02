@@ -48,9 +48,9 @@ export function Categories({
 	return (
 		<div className="animate-fade-up" style={{ animationDelay: "120ms" }}>
 			<div className="flex items-center justify-between mb-3">
-				<h2 className="font-semibold text-base text-[#161622]">Categories</h2>
+				<h2 className="font-semibold text-base text-[#1F2937]">Categories</h2>
 				{href && (
-					<a href={href} className="text-sm text-[#4382DF] hover:underline">
+					<a href={href} className="text-sm text-[#4D7493] hover:underline">
 						See All
 					</a>
 				)}
@@ -70,7 +70,7 @@ export function Categories({
 							>
 								<Icon className="size-6" />
 							</span>
-							<span className="text-xs text-center text-[#5a5a66] leading-tight line-clamp-2">
+							<span className="text-xs text-center text-[#4B5563] leading-tight line-clamp-2">
 								{item.name}
 							</span>
 						</a>

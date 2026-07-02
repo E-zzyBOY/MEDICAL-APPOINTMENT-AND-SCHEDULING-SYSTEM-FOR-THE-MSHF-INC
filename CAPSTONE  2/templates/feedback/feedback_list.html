@@ -4,17 +4,17 @@
 {% block patient_content %}
 <div class="space-y-6">
   {% if to_review %}
-  <div class="bg-yellow-50 border border-yellow-200 rounded-xl p-5">
-    <h3 class="font-bold text-yellow-800 mb-3">Leave Feedback</h3>
+  <div class="bg-amber-50 border border-amber-200 rounded-xl p-5">
+    <h3 class="font-semibold text-amber-800 mb-3">Leave Feedback</h3>
     <div class="space-y-2">
       {% for appt in to_review %}
-      <div class="flex items-center justify-between py-2 border-b border-yellow-100">
+      <div class="flex items-center justify-between py-2 border-b border-amber-100">
         <div>
           <p class="font-medium text-gray-800">Dr. {{ appt.doctor.get_full_name }}</p>
           <p class="text-sm text-gray-500">{{ appt.appointment_date|date:"F j, Y" }}</p>
         </div>
         <a hx-get="{% url 'feedback:submit' appointment_id=appt.pk %}" hx-target="#modal-root" hx-swap="innerHTML"
-           class="px-4 py-1.5 bg-yellow-400 text-yellow-900 text-sm font-semibold rounded-lg hover:bg-yellow-500 transition cursor-pointer">
+           class="px-4 py-1.5 bg-amber-400 text-amber-900 text-sm font-semibold rounded-xl hover:bg-amber-500 transition cursor-pointer">
           Rate this visit
         </a>
       </div>
@@ -23,13 +23,13 @@
   </div>
   {% endif %}
 
-  <div class="bg-white rounded-xl shadow p-6">
-    <h2 class="text-lg font-bold text-gray-800 mb-4">My Feedback History</h2>
+  <div class="bg-white rounded-2xl shadow-soft p-6">
+    <h2 class="text-lg font-semibold text-gray-800 mb-4">My Feedback History</h2>
     {% if feedbacks %}
     <div class="divide-y divide-gray-100">
       {% for fb in feedbacks %}
       <div hx-get="{% url 'feedback:detail' pk=fb.pk %}" hx-target="#modal-root" hx-swap="innerHTML"
-           class="flex items-center justify-between gap-4 py-3 cursor-pointer hover:bg-gray-50 rounded-lg px-2">
+           class="flex items-center justify-between gap-4 py-3 cursor-pointer hover:bg-gray-50 rounded-xl px-2">
         <div class="min-w-0">
           {% if fb.appointment %}
           <p class="font-semibold text-gray-800">Dr. {{ fb.appointment.doctor.get_full_name }}</p>
@@ -40,7 +40,7 @@
         </div>
         <div class="flex gap-0.5 flex-shrink-0">
           {% for i in "12345" %}
-          <span class="text-sm {% if forloop.counter <= fb.rating %}text-yellow-400{% else %}text-gray-200{% endif %}">★</span>
+          <span class="text-sm {% if forloop.counter <= fb.rating %}text-amber-400{% else %}text-gray-200{% endif %}">★</span>
           {% endfor %}
         </div>
       </div>

@@ -3,26 +3,26 @@
 {% block title %}Patient Portal — MSHFI{% endblock %}
 
 {% block body %}
-<div class="flex h-screen bg-slate-50 overflow-hidden">
+<div class="flex h-screen bg-softgray overflow-hidden">
 
   <!-- Sidebar -->
-  <aside class="hidden md:flex w-64 bg-brand-900 border-r border-white/10 text-blue-100 flex-col flex-shrink-0">
-    <div class="px-5 py-5 border-b border-white/10">
-      <div class="flex items-center gap-3">
-        <span class="flex size-10 shrink-0 items-center justify-center rounded-xl bg-brand-500 text-white shadow-sm shadow-brand-500/30">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"/></svg>
+  <aside class="hidden md:flex w-64 bg-white flex-col flex-shrink-0 border-r border-gray-100 shadow-[4px_0_24px_rgba(15,23,42,0.04)] z-20">
+    <div class="px-5 pt-6 pb-4">
+      <a href="/patient/" class="flex items-center gap-3">
+        <span class="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-brand-500 text-white shadow-soft-sm">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M11 3a1 1 0 00-1 1v5a1 1 0 01-1 1H4a1 1 0 00-1 1v2a1 1 0 001 1h5a1 1 0 011 1v5a1 1 0 001 1h2a1 1 0 001-1v-5a1 1 0 011-1h5a1 1 0 001-1v-2a1 1 0 00-1-1h-5a1 1 0 01-1-1V4a1 1 0 00-1-1h-2z"/></svg>
         </span>
         <div>
-          <p class="font-bold text-white text-lg leading-tight">MSHFI</p>
-          <span class="inline-flex items-center rounded-full bg-brand-200 px-2 py-0.5 text-[11px] font-semibold text-brand-900 tracking-wide">PATIENT</span>
+          <p class="font-semibold text-ink text-lg leading-tight">MSHFI</p>
+          <span class="inline-flex items-center rounded-full bg-brand-50 px-2.5 py-0.5 text-[11px] font-semibold text-brand-600 tracking-wide">PATIENT</span>
         </div>
-      </div>
+      </a>
     </div>
-    <p class="px-5 pt-4 pb-1 text-[11px] font-semibold text-blue-300/70 tracking-widest">MAIN</p>
+    <p class="px-6 pt-3 pb-1.5 text-[11px] font-semibold text-gray-400 tracking-widest">MAIN MENU</p>
     <nav class="flex-1 px-3 py-1 space-y-1 overflow-y-auto">
       {% include "patient/_nav_links.html" %}
     </nav>
-    <div class="px-3 py-4 border-t border-white/10 space-y-1">
+    <div class="px-3 py-4 border-t border-gray-100 space-y-1">
       {% include "components/_profile_signout_links.html" %}
     </div>
   </aside>
@@ -30,9 +30,18 @@
   <!-- Main content -->
   <div class="flex-1 flex flex-col overflow-hidden">
     <!-- Top bar (desktop) -->
-    <header class="hidden md:flex items-center justify-between bg-white border-b border-slate-200 px-6 py-4 flex-shrink-0">
-      <h1 class="text-xl font-semibold text-slate-900">{% block page_title %}Dashboard{% endblock %}</h1>
-      {% include "components/user_menu.html" %}
+    <header class="hidden md:flex items-center justify-between gap-4 bg-white border-b border-gray-100 px-8 py-4 flex-shrink-0">
+      <h1 class="text-2xl font-semibold text-ink tracking-tight">{% block page_title %}Dashboard{% endblock %}</h1>
+      <div class="flex items-center gap-3">
+        <a href="/notifications/" aria-label="Notifications" class="relative flex size-10 items-center justify-center rounded-full bg-softgray text-ink-soft hover:bg-brand-50 hover:text-brand-600 transition-colors">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
+          {% if unread_notification_count > 0 %}
+          <span class="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 flex items-center justify-center rounded-full bg-danger text-white text-[10px] font-semibold leading-none ring-2 ring-white">{{ unread_notification_count }}</span>
+          {% endif %}
+        </a>
+        <span class="h-6 w-px bg-gray-200" aria-hidden="true"></span>
+        {% include "components/user_menu.html" %}
+      </div>
     </header>
     <!-- Top bar (mobile) -->
     {% include "components/_mobile_topbar.html" %}
@@ -43,24 +52,24 @@
     <!-- Bottom tab bar (mobile) -->
     <nav class="md:!hidden fixed bottom-0 inset-x-0 z-30 flex items-stretch bg-white border-t border-slate-200 h-16 pb-[env(safe-area-inset-bottom)]">
       <a href="/patient/" aria-label="Home" class="flex flex-1 items-center justify-center">
-        <span class="flex size-10 items-center justify-center rounded-full transition-colors {% if request.path == '/patient/' %}bg-[#F0F0F2] text-[#161622]{% else %}text-[#9a9aa5]{% endif %}">
+        <span class="flex size-10 items-center justify-center rounded-full transition-colors {% if request.path == '/patient/' %}bg-brand-100 text-brand-700{% else %}text-gray-400{% endif %}">
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
         </span>
       </a>
       {% with active=request.resolver_match.url_name %}
       <a href="/patient/appointments/" aria-label="Appointments" class="flex flex-1 items-center justify-center">
-        <span class="flex size-10 items-center justify-center rounded-full transition-colors {% if active == 'appointment_list' or active == 'reschedule' or active == 'cancel' %}bg-[#F0F0F2] text-[#161622]{% else %}text-[#9a9aa5]{% endif %}">
+        <span class="flex size-10 items-center justify-center rounded-full transition-colors {% if active == 'appointment_list' or active == 'reschedule' or active == 'cancel' %}bg-brand-100 text-brand-700{% else %}text-gray-400{% endif %}">
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
         </span>
       </a>
       <a href="/patient/appointments/book/" aria-label="Book" class="flex flex-1 items-center justify-center">
-        <span class="flex size-10 items-center justify-center rounded-full transition-colors {% if active == 'book_step1' or active == 'book_step2' or active == 'book_step3' %}bg-[#F0F0F2] text-[#161622]{% else %}text-[#9a9aa5]{% endif %}">
+        <span class="flex size-11 -mt-4 items-center justify-center rounded-full bg-brand-500 text-white shadow-soft ring-4 ring-softgray transition-transform active:scale-95">
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
         </span>
       </a>
       {% endwith %}
       <a href="{% url 'accounts:profile_view' %}" aria-label="Profile" class="flex flex-1 items-center justify-center">
-        <span class="flex size-10 items-center justify-center rounded-full transition-colors {% if request.path == '/accounts/profile/' %}bg-[#F0F0F2] text-[#161622]{% else %}text-[#9a9aa5]{% endif %}">
+        <span class="flex size-10 items-center justify-center rounded-full transition-colors {% if request.path == '/accounts/profile/' %}bg-brand-100 text-brand-700{% else %}text-gray-400{% endif %}">
           {% if request.user.profile_picture %}
             <img src="{{ request.user.profile_picture.url }}" class="size-6 rounded-full object-cover" alt="">
           {% else %}
@@ -71,7 +80,7 @@
     </nav>
   </div>
 
-  {% include "components/_mobile_drawer.html" with nav_template="patient/_nav_links.html" role_label="PATIENT" role_badge_class="bg-brand-200 text-brand-900" %}
+  {% include "components/_mobile_drawer.html" with nav_template="patient/_nav_links.html" role_label="PATIENT" role_badge_class="bg-brand-50 text-brand-600" %}
 
 </div>
 {% endblock %}

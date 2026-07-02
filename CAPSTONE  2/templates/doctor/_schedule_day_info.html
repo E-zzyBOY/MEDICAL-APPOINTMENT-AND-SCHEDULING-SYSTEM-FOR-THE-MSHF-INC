@@ -5,20 +5,20 @@ before deciding to add another block (or pick a different day instead).
 Purely informational; doesn't affect the multi-select toggle in any way.
 {% endcomment %}
 {% if date_str %}
-<div class="rounded-xl bg-[#F5F5F7] p-3.5 text-sm">
-  <p class="font-semibold text-[#161622] mb-1">{{ date_display }}</p>
+<div class="rounded-xl bg-[#F5F7FA] p-3.5 text-sm">
+  <p class="font-semibold text-[#1F2937] mb-1">{{ date_display }}</p>
   {% if existing_slots %}
-  <p class="text-[#9a9aa5] text-xs mb-2">Already scheduled on this date:</p>
+  <p class="text-[#6B7280] text-xs mb-2">Already scheduled on this date:</p>
   <ul class="space-y-1">
     {% for slot in existing_slots %}
-    <li class="flex items-center gap-2 text-[#2F8F5B] font-medium">
-      <span class="size-1.5 rounded-full bg-[#2F8F5B] shrink-0"></span>
+    <li class="flex items-center gap-2 text-[#16A34A] font-medium">
+      <span class="size-1.5 rounded-full bg-[#16A34A] shrink-0"></span>
       {{ slot.start_time|time:"g:i A" }}–{{ slot.end_time|time:"g:i A" }}
     </li>
     {% endfor %}
   </ul>
   {% else %}
-  <p class="text-[#b0b0bc]">No slots scheduled yet on this date.</p>
+  <p class="text-[#9CA3AF]">No slots scheduled yet on this date.</p>
   {% endif %}
 </div>
 {% endif %}

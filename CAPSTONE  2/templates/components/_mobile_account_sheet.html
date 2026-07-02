@@ -6,7 +6,7 @@ Independent of the htmx modal system (#modal-root) so it can't be clobbered by a
 {% load static %}
 <div id="account-sheet" class="md:!hidden fixed inset-0 z-50 pointer-events-none" aria-hidden="true">
   <div id="account-sheet-backdrop" class="absolute inset-0 bg-black/50 opacity-0 transition-opacity" style="transition-duration: 300ms;"></div>
-  <div id="account-sheet-panel" class="absolute bottom-0 inset-x-0 max-h-[85vh] bg-white rounded-t-2xl shadow-xl flex flex-col translate-y-full transition-transform" style="transition-duration: 300ms;" role="dialog" aria-modal="true" aria-label="Account menu">
+  <div id="account-sheet-panel" class="absolute bottom-0 inset-x-0 max-h-[85vh] bg-white rounded-t-2xl shadow-soft-lg flex flex-col translate-y-full transition-transform" style="transition-duration: 300ms;" role="dialog" aria-modal="true" aria-label="Account menu">
 
     <!-- Drag handle -->
     <div class="relative flex justify-center pt-2.5 pb-1 flex-shrink-0">
@@ -24,7 +24,7 @@ Independent of the htmx modal system (#modal-root) so it can't be clobbered by a
         <img src="{% static 'img/default-avatar.svg' %}" class="size-12 rounded-full object-cover" alt="">
       {% endif %}
       <div class="min-w-0 flex-1">
-        <p class="font-bold text-slate-900 text-base leading-tight truncate">{% if request.user.role == 'doctor' %}Dr. {% endif %}{{ request.user.get_full_name|default:request.user.username }}</p>
+        <p class="font-semibold text-slate-900 text-base leading-tight truncate">{% if request.user.role == 'doctor' %}Dr. {% endif %}{{ request.user.get_full_name|default:request.user.username }}</p>
         <p class="text-slate-400 text-xs truncate">{{ request.user.email }}</p>
       </div>
       <svg class="w-5 h-5 shrink-0 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
@@ -72,7 +72,7 @@ Independent of the htmx modal system (#modal-root) so it can't be clobbered by a
     <div class="px-3 py-3 border-t border-slate-100 flex-shrink-0 pb-[calc(env(safe-area-inset-bottom)+0.75rem)]">
       <form method="post" action="/accounts/logout/">
         {% csrf_token %}
-        <button type="submit" class="w-full flex items-center justify-center gap-2 px-3 py-3 rounded-xl text-sm font-bold text-red-600 bg-red-50 transition-colors hover:bg-red-100">
+        <button type="submit" class="w-full flex items-center justify-center gap-2 px-3 py-3 rounded-xl text-sm font-semibold text-red-600 bg-red-50 transition-colors hover:bg-red-100">
           <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
           Sign Out
         </button>

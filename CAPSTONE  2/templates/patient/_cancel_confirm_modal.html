@@ -2,31 +2,31 @@
 <div id="modal-overlay" class="fixed inset-0 bg-black/50 z-40 transition-opacity opacity-0" style="transition-duration: 300ms;" role="dialog" aria-modal="true" aria-labelledby="modal-title" tabindex="-1">
   <div class="fixed inset-0 z-40 overflow-y-auto flex items-end md:items-center justify-center">
     <div class="modal-panel w-full md:!h-auto md:w-full max-w-md md:mx-4 md:my-8 translate-y-full md:!translate-y-0 transition-transform" style="transition-duration: 300ms;">
-      <div class="bg-white md:!h-auto max-h-full rounded-t-2xl md:!rounded-xl shadow-xl flex flex-col">
+      <div class="bg-white md:!h-auto max-h-full rounded-t-2xl md:!rounded-2xl shadow-soft-lg flex flex-col">
         <!-- Content -->
         <div class="px-6 py-8 text-center">
           <div class="flex justify-center mb-5">
-            <div class="w-16 h-16 bg-[#F5F5F7] rounded-full flex items-center justify-center">
-              <svg class="w-8 h-8 text-[#161622]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div class="w-16 h-16 bg-[#F5F7FA] rounded-full flex items-center justify-center">
+              <svg class="w-8 h-8 text-[#1F2937]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
               </svg>
             </div>
           </div>
-          <h2 id="modal-title" class="text-lg font-bold text-[#161622] mb-2">Cancel Appointment?</h2>
-          <p class="text-[#9a9aa5] text-sm mb-1">
+          <h2 id="modal-title" class="text-lg font-semibold text-[#1F2937] mb-2">Cancel Appointment?</h2>
+          <p class="text-[#6B7280] text-sm mb-1">
             Your appointment with Dr. {{ appointment.doctor.get_full_name }}
             is scheduled for {{ appointment.appointment_date|date:"F j, Y" }}{% if appointment.appointment_time %} at {{ appointment.appointment_time|time:"g:i A" }}{% else %} (time to be confirmed){% endif %}.
           </p>
-          <p class="text-sm text-[#b0b0bc] mb-6">A cancellation notice will be sent to your email.</p>
+          <p class="text-sm text-[#9CA3AF] mb-6">A cancellation notice will be sent to your email.</p>
           <form method="post" action="{% url 'patient:cancel' pk=appointment.pk %}"
                 hx-post="{% url 'patient:cancel' pk=appointment.pk %}"
                 hx-target="#modal-root" hx-swap="innerHTML">
             {% csrf_token %}
-            <button type="submit" class="w-full bg-[#161622] text-white font-bold py-4 rounded-full text-sm hover:bg-[#22222f] transition">
+            <button type="submit" class="w-full bg-brand-500 text-white font-semibold py-4 rounded-full text-sm hover:bg-brand-600 transition">
               Yes, Cancel
             </button>
           </form>
-          <button type="button" onclick="closeModal()" class="mt-4 text-sm text-[#9a9aa5] hover:text-[#161622] transition">
+          <button type="button" onclick="closeModal()" class="mt-4 text-sm text-[#6B7280] hover:text-[#1F2937] transition">
             Keep it
           </button>
         </div>

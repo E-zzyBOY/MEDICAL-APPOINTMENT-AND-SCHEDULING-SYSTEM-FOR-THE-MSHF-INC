@@ -3,61 +3,60 @@
 @tailwind utilities;
 
 /*
- * Brand palette (single source of truth — fixed per request):
- *   --brand-900  #112E81   224.5 76.7% 28.6%   deep navy   — headings, active icons
- *   --brand-700  #4647AE   239.4 42.6% 47.8%   indigo      — secondary accents, gradients
- *   --brand-500  #4382DF   215.8 70.9% 56.9%   primary blue— buttons, links, focus rings
- *   --brand-200  #AACCD6   193.6 34.9% 75.3%   powder blue — soft surfaces, badges, borders
- * All "tint" values below (--muted, --accent, --border, etc.) are mathematically
- * lightened versions of brand-200/brand-500, not new unrelated colors, so every
- * surface in the dashboard stays inside this one family. All 4 roles now share
- * this single palette instead of the old per-role blue/emerald/purple/rose split.
+ * MSHFI Healthcare design system (single source of truth):
+ *   Primary   #4D7493   hsl(207 31% 44%)  "Hospital Green" — buttons, links, focus rings
+ *   Secondary #8DD2EF   hsl(198 75% 75%)  soft sky blue    — accents, soft surfaces
+ *   Soft gray #F5F7FA   hsl(210 33% 97%)  app background / muted surfaces
+ *   Border    #E5E7EB   hsl(220 13% 91%)
+ *   Text      #1F2937 / #6B7280
+ * All tint values below are derived from this one family so every surface in
+ * the dashboard stays calm, clinical, and consistent across all 4 roles.
  */
 @layer base {
   :root {
     --background: 0 0% 100%;
-    --foreground: 224.5 40% 14%;
+    --foreground: 215 28% 17%;
     --card: 0 0% 100%;
-    --card-foreground: 224.5 40% 14%;
+    --card-foreground: 215 28% 17%;
     --popover: 0 0% 100%;
-    --popover-foreground: 224.5 40% 14%;
-    --primary: 215.8 70.9% 56.9%;
+    --popover-foreground: 215 28% 17%;
+    --primary: 207 31% 44%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 205 45% 95%;
-    --secondary-foreground: 224.5 76.7% 28.6%;
-    --muted: 205 45% 95.5%;
-    --muted-foreground: 220 20% 46%;
-    --accent: 193.6 55% 92%;
-    --accent-foreground: 224.5 76.7% 28.6%;
-    --destructive: 0 72% 51%;
+    --secondary: 198 65% 94%;
+    --secondary-foreground: 208 34% 31%;
+    --muted: 210 33% 97%;
+    --muted-foreground: 220 9% 46%;
+    --accent: 198 65% 93%;
+    --accent-foreground: 208 34% 31%;
+    --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
-    --border: 200 30% 88%;
-    --input: 200 30% 88%;
-    --ring: 215.8 70.9% 56.9%;
-    --radius: 0.75rem;
-    --chart-1: 215.8 70.9% 56.9%;
-    --chart-2: 239.4 42.6% 47.8%;
-    --chart-3: 224.5 76.7% 28.6%;
-    --chart-4: 193.6 34.9% 75.3%;
-    --chart-5: 205 45% 88%;
-    --sidebar-background: 0 0% 98%;
-    --sidebar-foreground: 240 5.3% 26.1%;
-    --sidebar-primary: 240 5.9% 10%;
-    --sidebar-primary-foreground: 0 0% 98%;
-    --sidebar-accent: 240 4.8% 95.9%;
-    --sidebar-accent-foreground: 240 5.9% 10%;
+    --border: 220 13% 91%;
+    --input: 220 13% 91%;
+    --ring: 207 31% 44%;
+    --radius: 1rem; /* 16px cards per design spec */
+    --chart-1: 207 31% 44%;
+    --chart-2: 198 75% 62%;
+    --chart-3: 208 34% 31%;
+    --chart-4: 207 31% 58%;
+    --chart-5: 207 31% 85%;
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 220 9% 46%;
+    --sidebar-primary: 207 31% 44%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 210 33% 97%;
+    --sidebar-accent-foreground: 208 34% 31%;
     --sidebar-border: 220 13% 91%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --sidebar-ring: 207 31% 44%;
   }
   .dark {
-    --sidebar-background: 240 5.9% 10%;
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 224.3 76.3% 48%;
+    --sidebar-background: 209 36% 12%;
+    --sidebar-foreground: 210 33% 92%;
+    --sidebar-primary: 207 31% 52%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --sidebar-accent: 208 34% 18%;
+    --sidebar-accent-foreground: 210 33% 92%;
+    --sidebar-border: 208 34% 18%;
+    --sidebar-ring: 207 31% 52%;
   }
 }
 
@@ -75,5 +74,8 @@
   }
   .animate-fade-up {
     animation: dash-fade-up 0.35s ease-out both;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .animate-fade-up { animation: none; }
   }
 }

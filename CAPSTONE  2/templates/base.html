@@ -16,30 +16,91 @@
       }
     });
   </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="/static/js/htmx.min.js"></script>
   <script>
     tailwind.config = {
       theme: {
         extend: {
+          fontFamily: {
+            // Inter everywhere — modern, highly readable, per the design system.
+            sans: ['Inter', 'ui-sans-serif', 'system-ui', '-apple-system', 'Segoe UI', 'Roboto', 'sans-serif'],
+          },
           colors: {
-            // Fixed brand palette — same 4 colors used across every role's portal.
+            // ── MSHFI Healthcare design system ─────────────────────────────
+            // Primary "Hospital Green" #4D7493 with a full derived scale.
             brand: {
-              900: '#112E81',
-              700: '#4647AE',
-              500: '#4382DF',
-              200: '#AACCD6',
-              50:  '#EEF4FA', // derived light tint of brand-200, for subtle surfaces only
+              50:  '#F4F8FA',
+              100: '#E6EEF3',
+              200: '#CDDDE8',
+              300: '#A2BFD3',
+              400: '#7395B5',
+              500: '#4D7493', // Primary
+              600: '#416581', // Primary hover
+              700: '#34536A',
+              800: '#294356',
+              900: '#1F3342',
             },
+            // Secondary Blue #8DD2EF scale — soft sky accents.
+            secondary: {
+              50:  '#F2FAFD',
+              100: '#E3F4FB',
+              200: '#C8E9F7',
+              300: '#8DD2EF', // Secondary
+              400: '#63BFE5',
+              500: '#3FA8D6',
+              600: '#2E8AB5',
+              700: '#276F92',
+            },
+            surface: '#FEFEFE',   // Light background
+            softgray: '#F5F7FA',  // Soft gray surfaces / app background
+            line: '#E5E7EB',      // Border gray
+            ink: {
+              DEFAULT: '#1F2937', // Text primary
+              soft: '#6B7280',    // Text secondary
+            },
+            // Semantic status colors.
+            success: { DEFAULT: '#22C55E', 50: '#F0FDF4', 100: '#DCFCE7', 600: '#16A34A', 700: '#15803D' },
+            warning: { DEFAULT: '#F59E0B', 50: '#FFFBEB', 100: '#FEF3C7', 600: '#D97706', 700: '#B45309' },
+            danger:  { DEFAULT: '#EF4444', 50: '#FEF2F2', 100: '#FEE2E2', 600: '#DC2626', 700: '#B91C1C' },
+            info:    { DEFAULT: '#3B82F6', 50: '#EFF6FF', 100: '#DBEAFE', 600: '#2563EB', 700: '#1D4ED8' },
+            pending: { DEFAULT: '#FBBF24', 50: '#FFFBEB', 100: '#FEF3C7', 700: '#B45309' },
+          },
+          boxShadow: {
+            // Subtle elevation only — the system prefers elevation over borders.
+            'soft-sm': '0 2px 12px rgba(15, 23, 42, 0.06)',
+            'soft':    '0 8px 30px rgba(0, 0, 0, 0.08)',
+            'soft-lg': '0 18px 50px rgba(15, 23, 42, 0.12)',
           },
           keyframes: {
             'fade-up': {
               '0%':   { opacity: 0, transform: 'translateY(6px)' },
               '100%': { opacity: 1, transform: 'translateY(0)' },
             },
+            'fade-in': {
+              '0%':   { opacity: 0 },
+              '100%': { opacity: 1 },
+            },
+            'slide-in-right': {
+              '0%':   { opacity: 0, transform: 'translateX(16px)' },
+              '100%': { opacity: 1, transform: 'translateX(0)' },
+            },
+            'scale-in': {
+              '0%':   { opacity: 0, transform: 'scale(0.97)' },
+              '100%': { opacity: 1, transform: 'scale(1)' },
+            },
+            shimmer: {
+              '100%': { transform: 'translateX(100%)' },
+            },
           },
           animation: {
             'fade-up': 'fade-up 0.35s ease-out both',
+            'fade-in': 'fade-in 0.3s ease-out both',
+            'slide-in-right': 'slide-in-right 0.3s ease-out both',
+            'scale-in': 'scale-in 0.2s ease-out both',
           },
         }
       }
@@ -48,19 +109,34 @@
   <link rel="stylesheet" href="/static/css/custom.css" />
   {% block extra_head %}{% endblock %}
 </head>
-<body class="bg-gray-50 min-h-screen font-sans">
+<body class="bg-softgray min-h-screen font-sans text-ink antialiased">
 
   <!-- Flash Messages -->
   {% if messages %}
-  <div class="fixed top-4 right-4 z-50 space-y-2 max-w-sm w-full">
+  <div class="fixed top-4 right-4 z-[60] space-y-2.5 max-w-sm w-[calc(100%-2rem)]" aria-live="polite">
     {% for message in messages %}
-    <div class="flex items-start gap-3 px-4 py-3 rounded-lg shadow-lg
-      {% if message.tags == 'error' %}bg-red-500 text-white
-      {% elif message.tags == 'success' %}bg-green-500 text-white
-      {% elif message.tags == 'warning' %}bg-yellow-400 text-gray-900
-      {% else %}bg-blue-500 text-white{% endif %}">
-      <span class="flex-1 text-sm font-medium">{{ message }}</span>
-      <button onclick="this.parentElement.remove()" class="text-white/80 hover:text-white font-bold leading-none">&times;</button>
+    <div data-flash-toast class="animate-slide-in-right flex items-start gap-3 px-4 py-3.5 rounded-2xl bg-white shadow-soft-lg border border-line/60">
+      {% if message.tags == 'error' %}
+      <span class="flex size-8 shrink-0 items-center justify-center rounded-full bg-danger-50 text-danger-600">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>
+      </span>
+      {% elif message.tags == 'success' %}
+      <span class="flex size-8 shrink-0 items-center justify-center rounded-full bg-success-50 text-success-600">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M22 11.08V12a10 10 0 11-5.93-9.14"/><path stroke-linecap="round" stroke-linejoin="round" d="M22 4L12 14.01l-3-3"/></svg>
+      </span>
+      {% elif message.tags == 'warning' %}
+      <span class="flex size-8 shrink-0 items-center justify-center rounded-full bg-warning-50 text-warning-600">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4m0 4h.01M12 22a10 10 0 100-20 10 10 0 000 20z"/></svg>
+      </span>
+      {% else %}
+      <span class="flex size-8 shrink-0 items-center justify-center rounded-full bg-info-50 text-info-600">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 16v-4m0-4h.01M12 22a10 10 0 100-20 10 10 0 000 20z"/></svg>
+      </span>
+      {% endif %}
+      <span class="flex-1 text-sm font-medium text-ink pt-1">{{ message }}</span>
+      <button onclick="this.closest('[data-flash-toast]').remove()" aria-label="Dismiss" class="flex size-7 shrink-0 items-center justify-center rounded-full text-ink-soft/60 hover:text-ink hover:bg-softgray transition-colors">
+        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+      </button>
     </div>
     {% endfor %}
   </div>
@@ -74,6 +150,26 @@
   {% block extra_js %}{% endblock %}
 
   <script>
+    // Flash toasts auto-dismiss after 6s (hover pauses removal feel by simply keeping it short & subtle).
+    document.querySelectorAll('[data-flash-toast]').forEach(function (toast) {
+      setTimeout(function () {
+        toast.style.transition = 'opacity 0.4s ease, transform 0.4s ease';
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateX(12px)';
+        setTimeout(function () { toast.remove(); }, 400);
+      }, 6000);
+    });
+
+    // Submit buttons with data-loading-text swap their label and disable while the form submits.
+    document.addEventListener('submit', function (event) {
+      const btn = event.target.querySelector('button[type="submit"][data-loading-text]');
+      if (btn && !btn.disabled) {
+        btn.dataset.originalText = btn.textContent;
+        btn.textContent = btn.dataset.loadingText;
+        btn.disabled = true;
+      }
+    });
+
     // Modal management: open/close, focus trap, and htmx triggers
     let modalTrigger = null;
 

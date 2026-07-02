@@ -1,10 +1,10 @@
 {% load static %}
 <div class="max-w-2xl mx-auto">
-  <div class="bg-white rounded-2xl shadow p-8">
+  <div class="bg-white rounded-2xl shadow-soft p-8">
     <div class="flex items-center justify-between mb-6">
-      <h1 class="text-2xl font-bold text-gray-800">My Profile</h1>
+      <h1 class="text-2xl font-semibold text-gray-800">My Profile</h1>
       <a hx-get="{% url 'accounts:profile_edit' %}" hx-target="#modal-root" hx-swap="innerHTML"
-         class="px-4 py-2 bg-blue-700 text-white rounded-lg text-sm font-medium hover:bg-blue-800 transition cursor-pointer">
+         class="px-4 py-2 bg-brand-600 text-white rounded-xl text-sm font-medium hover:bg-brand-700 transition cursor-pointer">
         Edit Profile
       </a>
     </div>
@@ -18,7 +18,7 @@
         {% endif %}
       </div>
       <div>
-        <p class="text-xl font-bold text-gray-900">{{ request.user.get_full_name }}</p>
+        <p class="text-xl font-semibold text-gray-900">{{ request.user.get_full_name }}</p>
         <p class="text-gray-500 capitalize">{{ request.user.role }}</p>
         <p class="text-gray-500 text-sm">{{ request.user.email }}</p>
       </div>

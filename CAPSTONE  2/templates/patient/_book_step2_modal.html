@@ -4,18 +4,18 @@
   {% if doctor.profile_picture %}
     <img src="{{ doctor.profile_picture.url }}" class="w-12 h-12 rounded-full object-cover" alt="">
   {% else %}
-    <div class="w-12 h-12 bg-[#F5F5F7] rounded-full flex items-center justify-center">
-      <span class="text-[#161622] font-semibold">{{ doctor.first_name.0 }}{{ doctor.last_name.0 }}</span>
+    <div class="w-12 h-12 bg-[#F5F7FA] rounded-full flex items-center justify-center">
+      <span class="text-[#1F2937] font-semibold">{{ doctor.first_name.0 }}{{ doctor.last_name.0 }}</span>
     </div>
   {% endif %}
   <div>
-    <p class="font-semibold text-[#161622]">Dr. {{ doctor.get_full_name }}</p>
-    <p class="text-sm text-[#9a9aa5]">{% if doctor.doctor_profile.specialization %}{{ doctor.doctor_profile.specialization }}{% endif %}</p>
+    <p class="font-semibold text-[#1F2937]">Dr. {{ doctor.get_full_name }}</p>
+    <p class="text-sm text-[#6B7280]">{% if doctor.doctor_profile.specialization %}{{ doctor.doctor_profile.specialization }}{% endif %}</p>
   </div>
 </div>
 
 <div class="mb-4">
-  <label class="block text-sm font-medium text-[#161622] mb-2">Select Date</label>
+  <label class="block text-sm font-medium text-[#1F2937] mb-2">Select Date</label>
   {% include "patient/_calendar_widget_fragment.html" %}
 </div>
 

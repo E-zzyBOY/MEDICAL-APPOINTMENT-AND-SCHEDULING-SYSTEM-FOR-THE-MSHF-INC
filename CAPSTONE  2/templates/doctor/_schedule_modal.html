@@ -2,10 +2,10 @@
 <div id="modal-overlay" class="fixed inset-0 bg-black/50 z-40 transition-opacity opacity-0" style="transition-duration: 300ms;" role="dialog" aria-modal="true" aria-labelledby="modal-title" tabindex="-1">
   <div class="fixed inset-0 z-40 overflow-y-auto flex items-end md:items-center justify-center">
     <div class="modal-panel w-full h-full md:!h-auto md:w-full max-w-md md:mx-4 md:my-8 translate-y-full md:!translate-y-0 transition-transform" style="transition-duration: 300ms;">
-      <div class="bg-white h-full md:!h-auto max-h-full rounded-t-2xl md:!rounded-xl shadow-xl flex flex-col">
+      <div class="bg-white h-full md:!h-auto max-h-full rounded-t-2xl md:!rounded-2xl shadow-soft-lg flex flex-col">
         <!-- Header -->
         <div class="flex items-center justify-between px-6 py-4 border-b border-gray-200 flex-shrink-0">
-          <h2 id="modal-title" class="text-lg font-bold text-[#161622]">{{ action }} Schedule Slot</h2>
+          <h2 id="modal-title" class="text-lg font-semibold text-[#1F2937]">{{ action }} Schedule Slot</h2>
           <button type="button" onclick="closeModal()" aria-label="Close" class="w-8 h-8 flex items-center justify-center rounded-full text-gray-400 hover:text-gray-600 hover:bg-gray-100 text-2xl leading-none">&times;</button>
         </div>
         <!-- Content -->
@@ -13,16 +13,16 @@
           <style>
             .hp-field input,
             .hp-field select {
-              background-color: #F5F5F7 !important;
+              background-color: #F5F7FA !important;
               border: none !important;
               border-radius: 0.75rem !important;
               padding: 0.875rem 1rem !important;
               font-size: 0.875rem !important;
-              color: #161622 !important;
+              color: #1F2937 !important;
             }
             .hp-field input:focus,
             .hp-field select:focus {
-              box-shadow: 0 0 0 2px #16162233 !important;
+              box-shadow: 0 0 0 2px #1F293733 !important;
             }
           </style>
           {% include "doctor/_schedule_calendar_fragment.html" %}
@@ -30,16 +30,16 @@
           {% if schedule %}
           <!-- Edit mode: single date, unchanged -->
           {% if selected_date %}
-          <p class="text-sm text-[#9a9aa5]">
-            Selected date: <span class="font-semibold text-[#161622]">{{ selected_date_display }}</span>
+          <p class="text-sm text-[#6B7280]">
+            Selected date: <span class="font-semibold text-[#1F2937]">{{ selected_date_display }}</span>
           </p>
           {% else %}
-          <p class="text-sm text-[#b0b0bc]">Pick a date on the calendar above to continue.</p>
+          <p class="text-sm text-[#9CA3AF]">Pick a date on the calendar above to continue.</p>
           {% endif %}
           {% else %}
           <!-- Add mode: multi-select -->
           <div id="schedule-day-info"></div>
-          <p id="schedule-selected-count" class="text-sm font-medium text-[#5a5a66]">
+          <p id="schedule-selected-count" class="text-sm font-medium text-[#4B5563]">
             {% if selected_dates_list %}{{ selected_dates_list|length }} date{{ selected_dates_list|length|pluralize }} selected.{% else %}No dates selected yet.{% endif %}
           </p>
           {% endif %}
@@ -56,36 +56,36 @@
                 {{ field }}
               {% else %}
               <div>
-                <label class="block text-xs font-medium text-[#9a9aa5] mb-1.5 ml-1">{{ field.label }}</label>
+                <label class="block text-xs font-medium text-[#6B7280] mb-1.5 ml-1">{{ field.label }}</label>
                 {{ field }}
-                {% if field.errors %}<p class="text-[#A32D2D] text-xs mt-1 ml-1">{{ field.errors.0 }}</p>{% endif %}
+                {% if field.errors %}<p class="text-[#DC2626] text-xs mt-1 ml-1">{{ field.errors.0 }}</p>{% endif %}
               </div>
               {% endif %}
               {% endfor %}
             {% else %}
               <input type="hidden" id="schedule-selected-dates" name="dates" value="{{ selected_dates }}" />
-              {% if form.dates.errors %}<p class="text-[#A32D2D] text-xs">{{ form.dates.errors.0 }}</p>{% endif %}
+              {% if form.dates.errors %}<p class="text-[#DC2626] text-xs">{{ form.dates.errors.0 }}</p>{% endif %}
               <div>
-                <label class="block text-xs font-medium text-[#9a9aa5] mb-1.5 ml-1">Start Time</label>
+                <label class="block text-xs font-medium text-[#6B7280] mb-1.5 ml-1">Start Time</label>
                 {{ form.start_time }}
-                {% if form.start_time.errors %}<p class="text-[#A32D2D] text-xs mt-1 ml-1">{{ form.start_time.errors.0 }}</p>{% endif %}
+                {% if form.start_time.errors %}<p class="text-[#DC2626] text-xs mt-1 ml-1">{{ form.start_time.errors.0 }}</p>{% endif %}
               </div>
               <div>
-                <label class="block text-xs font-medium text-[#9a9aa5] mb-1.5 ml-1">End Time</label>
+                <label class="block text-xs font-medium text-[#6B7280] mb-1.5 ml-1">End Time</label>
                 {{ form.end_time }}
-                {% if form.end_time.errors %}<p class="text-[#A32D2D] text-xs mt-1 ml-1">{{ form.end_time.errors.0 }}</p>{% endif %}
+                {% if form.end_time.errors %}<p class="text-[#DC2626] text-xs mt-1 ml-1">{{ form.end_time.errors.0 }}</p>{% endif %}
               </div>
             {% endif %}
             {% if form.non_field_errors %}
-            <p class="text-[#A32D2D] text-sm bg-[#FCEBEB] p-3 rounded-xl">{{ form.non_field_errors.0 }}</p>
+            <p class="text-[#DC2626] text-sm bg-[#FEF2F2] p-3 rounded-xl">{{ form.non_field_errors.0 }}</p>
             {% endif %}
             <div class="flex gap-3 pt-4">
-              <button type="button" onclick="closeModal()" class="flex-1 bg-[#F5F5F7] text-[#161622] font-medium py-3.5 rounded-xl text-sm hover:bg-[#ebebee] transition">
+              <button type="button" onclick="closeModal()" class="flex-1 bg-[#F5F7FA] text-[#1F2937] font-medium py-3.5 rounded-xl text-sm hover:bg-[#E5E7EB] transition">
                 Cancel
               </button>
               <button type="submit" id="schedule-save-btn"
                       {% if schedule %}{% if not selected_date %}disabled{% endif %}{% else %}{% if not selected_dates_list %}disabled{% endif %}{% endif %}
-                      class="flex-1 bg-[#161622] hover:bg-[#22222f] text-white font-medium py-3.5 rounded-xl text-sm transition disabled:opacity-50 disabled:cursor-not-allowed">
+                      class="flex-1 bg-brand-500 hover:bg-brand-600 text-white font-medium py-3.5 rounded-xl text-sm transition disabled:opacity-50 disabled:cursor-not-allowed">
                 Save
               </button>
             </div>

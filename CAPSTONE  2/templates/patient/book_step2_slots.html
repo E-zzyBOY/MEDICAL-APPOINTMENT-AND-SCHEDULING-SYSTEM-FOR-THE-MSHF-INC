@@ -4,30 +4,30 @@
 
 {% block patient_content %}
 <div class="max-w-3xl">
-  <a href="{% url 'patient:book_step1' %}" class="inline-flex items-center gap-1.5 text-sm text-[#9a9aa5] hover:text-[#161622] mb-4">
+  <a href="{% url 'patient:book_step1' %}" class="inline-flex items-center gap-1.5 text-sm text-[#6B7280] hover:text-[#1F2937] mb-4">
     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
     Back
   </a>
 
-  <div class="bg-white rounded-2xl shadow-sm p-6 mb-4">
+  <div class="bg-white rounded-2xl shadow-soft-sm p-6 mb-4">
     <div class="flex items-center gap-3 mb-6">
       {% if doctor.profile_picture %}
         <img src="{{ doctor.profile_picture.url }}" class="w-12 h-12 rounded-full object-cover" alt="">
       {% else %}
-        <div class="w-12 h-12 bg-[#F5F5F7] rounded-full flex items-center justify-center">
-          <span class="text-[#161622] font-semibold">{{ doctor.first_name.0 }}{{ doctor.last_name.0 }}</span>
+        <div class="w-12 h-12 bg-[#F5F7FA] rounded-full flex items-center justify-center">
+          <span class="text-[#1F2937] font-semibold">{{ doctor.first_name.0 }}{{ doctor.last_name.0 }}</span>
         </div>
       {% endif %}
       <div>
-        <p class="font-semibold text-[#161622]">Dr. {{ doctor.get_full_name }}</p>
-        <p class="text-sm text-[#9a9aa5]">{% if doctor.doctor_profile.specialization %}{{ doctor.doctor_profile.specialization }}{% endif %}</p>
+        <p class="font-semibold text-[#1F2937]">Dr. {{ doctor.get_full_name }}</p>
+        <p class="text-sm text-[#6B7280]">{% if doctor.doctor_profile.specialization %}{{ doctor.doctor_profile.specialization }}{% endif %}</p>
       </div>
-      <a hx-get="{% url 'patient:doctor_profile' doctor_id=doctor.pk %}" hx-target="#modal-root" hx-swap="innerHTML" class="ml-auto text-sm text-[#4382DF] hover:underline cursor-pointer">View Profile</a>
+      <a hx-get="{% url 'patient:doctor_profile' doctor_id=doctor.pk %}" hx-target="#modal-root" hx-swap="innerHTML" class="ml-auto text-sm text-[#4D7493] hover:underline cursor-pointer">View Profile</a>
     </div>
 
     <!-- Date picker -->
     <div class="mb-4">
-      <label class="block text-sm font-medium text-[#161622] mb-2">Select Date</label>
+      <label class="block text-sm font-medium text-[#1F2937] mb-2">Select Date</label>
       {% include "patient/_calendar_widget_fragment.html" %}
     </div>
 

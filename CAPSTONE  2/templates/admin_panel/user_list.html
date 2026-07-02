@@ -2,17 +2,17 @@
 {% block page_title %}Manage Users{% endblock %}
 
 {% block admin_content %}
-<div class="bg-white rounded-xl shadow p-6">
+<div class="bg-white rounded-2xl shadow-soft p-6">
   <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
     <div class="flex gap-2 flex-wrap">
-      <a href="?role=" class="px-3 py-1.5 rounded-full text-sm font-medium {% if not role_filter %}bg-rose-700 text-white{% else %}bg-gray-100 text-gray-600 hover:bg-gray-200{% endif %}">All</a>
-      <a href="?role=patient" class="px-3 py-1.5 rounded-full text-sm font-medium {% if role_filter == 'patient' %}bg-rose-700 text-white{% else %}bg-gray-100 text-gray-600 hover:bg-gray-200{% endif %}">Patients</a>
-      <a href="?role=doctor" class="px-3 py-1.5 rounded-full text-sm font-medium {% if role_filter == 'doctor' %}bg-rose-700 text-white{% else %}bg-gray-100 text-gray-600 hover:bg-gray-200{% endif %}">Doctors</a>
-      <a href="?role=secretary" class="px-3 py-1.5 rounded-full text-sm font-medium {% if role_filter == 'secretary' %}bg-rose-700 text-white{% else %}bg-gray-100 text-gray-600 hover:bg-gray-200{% endif %}">Secretaries</a>
+      <a href="?role=" class="px-3 py-1.5 rounded-full text-sm font-medium {% if not role_filter %}bg-red-600 text-white{% else %}bg-gray-100 text-gray-600 hover:bg-gray-200{% endif %}">All</a>
+      <a href="?role=patient" class="px-3 py-1.5 rounded-full text-sm font-medium {% if role_filter == 'patient' %}bg-red-600 text-white{% else %}bg-gray-100 text-gray-600 hover:bg-gray-200{% endif %}">Patients</a>
+      <a href="?role=doctor" class="px-3 py-1.5 rounded-full text-sm font-medium {% if role_filter == 'doctor' %}bg-red-600 text-white{% else %}bg-gray-100 text-gray-600 hover:bg-gray-200{% endif %}">Doctors</a>
+      <a href="?role=secretary" class="px-3 py-1.5 rounded-full text-sm font-medium {% if role_filter == 'secretary' %}bg-red-600 text-white{% else %}bg-gray-100 text-gray-600 hover:bg-gray-200{% endif %}">Secretaries</a>
     </div>
     <div class="flex gap-2">
-      <a hx-get="/admin-panel/users/create/?role=doctor" hx-target="#modal-root" hx-swap="innerHTML" class="flex-1 sm:flex-initial text-center px-4 py-2 bg-emerald-700 text-white text-sm font-medium rounded-lg hover:bg-emerald-800 transition cursor-pointer">+ Doctor</a>
-      <a hx-get="/admin-panel/users/create/?role=secretary" hx-target="#modal-root" hx-swap="innerHTML" class="flex-1 sm:flex-initial text-center px-4 py-2 bg-purple-700 text-white text-sm font-medium rounded-lg hover:bg-purple-800 transition cursor-pointer">+ Secretary</a>
+      <a hx-get="/admin-panel/users/create/?role=doctor" hx-target="#modal-root" hx-swap="innerHTML" class="flex-1 sm:flex-initial text-center px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-xl hover:bg-green-700 transition cursor-pointer">+ Doctor</a>
+      <a hx-get="/admin-panel/users/create/?role=secretary" hx-target="#modal-root" hx-swap="innerHTML" class="flex-1 sm:flex-initial text-center px-4 py-2 bg-purple-600 text-white text-sm font-medium rounded-xl hover:bg-purple-700 transition cursor-pointer">+ Secretary</a>
     </div>
   </div>
 
@@ -34,8 +34,8 @@
           <td class="py-3">
             <span class="px-2 py-0.5 rounded-full text-xs font-semibold capitalize
               {% if user.role == 'patient' %}bg-blue-100 text-blue-700
-              {% elif user.role == 'doctor' %}bg-emerald-100 text-emerald-700
-              {% else %}bg-purple-100 text-purple-700{% endif %}">
+              {% elif user.role == 'doctor' %}bg-green-100 text-green-600
+              {% else %}bg-purple-100 text-purple-600{% endif %}">
               {{ user.role }}
             </span>
           </td>
@@ -67,12 +67,12 @@
         </a>
         <span class="shrink-0 px-2 py-0.5 rounded-full text-xs font-semibold capitalize
           {% if user.role == 'patient' %}bg-blue-100 text-blue-700
-          {% elif user.role == 'doctor' %}bg-emerald-100 text-emerald-700
-          {% else %}bg-purple-100 text-purple-700{% endif %}">
+          {% elif user.role == 'doctor' %}bg-green-100 text-green-600
+          {% else %}bg-purple-100 text-purple-600{% endif %}">
           {{ user.role }}
         </span>
       </div>
-      <div class="mt-3 bg-gray-50 rounded-lg p-3 text-sm space-y-1.5">
+      <div class="mt-3 bg-gray-50 rounded-xl p-3 text-sm space-y-1.5">
         <div class="flex justify-between"><span class="text-gray-500">Username</span><span class="font-medium text-gray-800">{{ user.username }}</span></div>
         <div class="flex justify-between gap-3"><span class="text-gray-500 shrink-0">Email</span><span class="font-medium text-gray-800 text-right truncate">{{ user.email }}</span></div>
         <div class="flex justify-between"><span class="text-gray-500">Status</span>
@@ -84,8 +84,8 @@
         </div>
       </div>
       <div class="mt-3 flex gap-2">
-        <a hx-get="/admin-panel/users/{{ user.pk }}/edit/" hx-target="#modal-root" hx-swap="innerHTML" class="flex-1 text-center px-3 py-2 bg-blue-100 text-blue-700 rounded-lg text-xs font-medium hover:bg-blue-200 cursor-pointer">Edit</a>
-        <a hx-get="/admin-panel/users/{{ user.pk }}/delete/" hx-target="#modal-root" hx-swap="innerHTML" class="flex-1 text-center px-3 py-2 bg-red-100 text-red-600 rounded-lg text-xs font-medium hover:bg-red-200 cursor-pointer">Delete</a>
+        <a hx-get="/admin-panel/users/{{ user.pk }}/edit/" hx-target="#modal-root" hx-swap="innerHTML" class="flex-1 text-center px-3 py-2 bg-blue-100 text-blue-700 rounded-xl text-xs font-medium hover:bg-blue-200 cursor-pointer">Edit</a>
+        <a hx-get="/admin-panel/users/{{ user.pk }}/delete/" hx-target="#modal-root" hx-swap="innerHTML" class="flex-1 text-center px-3 py-2 bg-red-100 text-red-600 rounded-xl text-xs font-medium hover:bg-red-200 cursor-pointer">Delete</a>
       </div>
     </div>
     {% endfor %}

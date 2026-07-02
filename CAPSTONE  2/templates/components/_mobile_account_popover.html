@@ -1,7 +1,7 @@
 {# Mobile bottom-tab "Menu" item — opens a bottom sheet (profile header, Details, Others, Sign Out) instead of a dropdown. #}
 {% load static %}
 <div class="relative flex-1 h-full" id="mobile-account-menu">
-  <button type="button" onclick="openAccountSheet()" aria-label="Menu" aria-haspopup="dialog" class="flex items-center justify-center w-full h-full text-[#9a9aa5] hover:text-[#161622]">
+  <button type="button" onclick="openAccountSheet()" aria-label="Menu" aria-haspopup="dialog" class="flex items-center justify-center w-full h-full text-[#6B7280] hover:text-[#1F2937]">
     <span class="flex size-10 items-center justify-center rounded-full">
       {% if request.user.profile_picture %}
         <img src="{{ request.user.profile_picture.url }}" class="size-7 rounded-full object-cover" alt="">

@@ -3,11 +3,11 @@
 {% block page_title %}Doctor Profile &amp; Schedule{% endblock %}
 {% block secretary_content %}
 {% if not doctor %}
-<div class="bg-white rounded-xl shadow p-10 text-center text-gray-400">
+<div class="bg-white rounded-2xl shadow-soft p-10 text-center text-gray-400">
   You are not currently assigned to a doctor. Please contact the administrator.
 </div>
 {% else %}
-<div class="bg-white rounded-xl shadow p-6 mb-6">
+<div class="bg-white rounded-2xl shadow-soft p-6 mb-6">
   <div class="flex items-center gap-4">
     {% if doctor.profile_picture %}
       <img src="{{ doctor.profile_picture.url }}" class="size-16 rounded-full object-cover" alt="">
@@ -15,15 +15,15 @@
       <img src="{% static 'img/default-avatar.svg' %}" class="size-16 rounded-full object-cover" alt="">
     {% endif %}
     <div>
-      <p class="font-bold text-gray-800 text-lg">Dr. {{ doctor.get_full_name }}</p>
+      <p class="font-semibold text-gray-800 text-lg">Dr. {{ doctor.get_full_name }}</p>
       <p class="text-sm text-gray-500">{{ doctor.doctor_profile.specialization|default:"General Medicine" }}</p>
       <p class="text-sm text-gray-400">{{ doctor.email }}</p>
     </div>
   </div>
 </div>
 
-<div class="bg-white rounded-xl shadow p-6">
-  <h2 class="text-lg font-bold text-gray-800 mb-4">Upcoming Availability</h2>
+<div class="bg-white rounded-2xl shadow-soft p-6">
+  <h2 class="text-lg font-semibold text-gray-800 mb-4">Upcoming Availability</h2>
   {% if schedules %}
   <div class="hidden md:block overflow-x-auto">
     <table class="w-full text-sm">
@@ -43,7 +43,7 @@
   </div>
   <div class="flex md:hidden flex-col gap-2">
     {% for s in schedules %}
-    <div class="flex items-center justify-between border border-gray-200 rounded-lg px-3 py-2 text-sm">
+    <div class="flex items-center justify-between border border-gray-200 rounded-xl px-3 py-2 text-sm">
       <span class="font-medium text-gray-800">{{ s.specific_date|date:"D, M j, Y" }}</span>
       <span class="text-gray-600">{{ s.start_time|time:"g:i A" }} – {{ s.end_time|time:"g:i A" }}</span>
     </div>

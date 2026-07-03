@@ -1,5 +1,6 @@
 import { createRoot } from "react-dom/client";
 import { Dashboard } from "@/components/dashboard";
+import { PatientDashboard } from "@/components/patient-dashboard";
 import type { DashboardData } from "@/types";
 import "@/index.css";
 
@@ -15,5 +16,14 @@ export function mountDashboard(role: string) {
 		role === "admin" ? "admin-panel" : role;
 	const dataUrl = `/${rolePrefix}/dashboard/data/`;
 
-	createRoot(root).render(<Dashboard data={data} dataUrl={dataUrl} />);
+	// The patient home has its own dedicated layout (ported from the mobile
+	// app design); doctor/secretary/admin keep the shared Dashboard.
+	const page =
+		role === "patient" ? (
+			<PatientDashboard data={data} dataUrl={dataUrl} />
+		) : (
+			<Dashboard data={data} dataUrl={dataUrl} />
+		);
+
+	createRoot(root).render(page);
 }

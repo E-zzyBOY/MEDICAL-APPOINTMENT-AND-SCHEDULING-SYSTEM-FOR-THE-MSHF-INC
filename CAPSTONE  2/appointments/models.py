@@ -113,5 +113,29 @@ class Appointment(models.Model):
     def needs_time_assignment(self):
         return self.status == 'Pending Time Assignment'
 
+    @classmethod
+    def has_active_appointment(cls, patient):
+        """Check if a patient has any active/upcoming appointment.
+        Active statuses are those that prevent booking a new appointment:
+        - Pending Time Assignment (awaiting staff to assign time)
+        - Scheduled (confirmed with date/time)
+        - Rescheduled (rescheduled appointment, still active)
+        - Pending Reschedule (waiting for staff to approve reschedule)
+
+        Patients can only book new appointments once their previous one reaches:
+        - Completed (visit finished)
+        - Cancelled (patient or staff cancelled)
+        """
+        active_statuses = [
+            'Pending Time Assignment',
+            'Scheduled',
+            'Rescheduled',
+            'Pending Reschedule',
+        ]
+        return cls.objects.filter(
+            patient=patient,
+            status__in=active_statuses
+        ).exists()
+
     def __str__(self):
         return f"{self.patient.get_full_name()} + Dr. {self.doctor.get_full_name()} on {self.appointment_date} [{self.status}]"

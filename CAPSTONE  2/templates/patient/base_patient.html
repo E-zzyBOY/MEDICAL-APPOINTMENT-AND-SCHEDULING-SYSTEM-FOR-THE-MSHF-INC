@@ -62,9 +62,10 @@
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
         </span>
       </a>
-      <a href="/patient/appointments/book/" aria-label="Book" class="flex flex-1 items-center justify-center">
-        <span class="flex size-10 items-center justify-center rounded-full transition-colors {% if active == 'book_step1' or active == 'book_step2' or active == 'book_step3' or active == 'book_step4' %}bg-brand-100 text-brand-700{% else %}text-gray-400{% endif %}">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v6m3-3H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+      <a href="/patient/appointments/book/" aria-label="Book" class="relative flex flex-1 items-center justify-center">
+        {# Raised center FAB — matches the mobile design's floating + button #}
+        <span class="absolute -top-6 flex size-14 items-center justify-center rounded-full bg-gradient-to-b from-brand-400 to-brand-500 text-white shadow-[0_8px_20px_rgba(42,175,196,0.45)] ring-4 ring-white transition-transform active:scale-95">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M12 5v14m7-7H5"/></svg>
         </span>
       </a>
       {% endwith %}

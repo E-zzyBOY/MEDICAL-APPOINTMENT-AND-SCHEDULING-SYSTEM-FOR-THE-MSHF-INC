@@ -96,7 +96,19 @@ export interface DoctorCard {
   id: string;
   name: string;
   specialization: string;
+  yearsExperience?: number | null;
+  availability?: string | null;
   photoUrl?: string;
+  href: string;
+}
+
+export interface HeroAppointment {
+  doctorName: string;
+  specialty?: string;
+  photoUrl?: string | null;
+  date: string;
+  time: string;
+  location?: string;
   href: string;
 }
 
@@ -112,7 +124,10 @@ export interface CarouselSlideData {
 
 export interface DashboardData {
   userName?: string;
+  userPhotoUrl?: string | null;
+  unreadCount?: number;
   greeting?: string;
+  heroAppointment?: HeroAppointment | null;
   searchHref?: string;
   carouselSlides?: CarouselSlideData[];
   stats: DashboardStat[];

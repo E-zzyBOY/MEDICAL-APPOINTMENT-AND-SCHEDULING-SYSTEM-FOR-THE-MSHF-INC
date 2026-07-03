@@ -94,7 +94,7 @@ def _build_patient_dashboard_data(request):
         patient=request.user,
         status__in=['Pending Time Assignment', 'Scheduled', 'Rescheduled', 'Pending Reschedule'],
         appointment_date__gte=date.today()
-    ).select_related('doctor')[:5]
+    ).select_related('doctor').order_by('appointment_date', 'appointment_time')[:5]
     past = Appointment.objects.filter(
         patient=request.user,
         status='Completed'
@@ -107,9 +107,48 @@ def _build_patient_dashboard_data(request):
         if getattr(d, 'doctor_profile', None) and d.doctor_profile.specialization
     })
 
+    # "Available Today / Tomorrow" pills on the featured doctor cards —
+    # derived from real Schedule rows rather than hardcoded.
+    today = date.today()
+    tomorrow = today + timedelta(days=1)
+    doctor_ids = [d.id for d in doctors_qs]
+    available_today = set(
+        Schedule.objects.filter(doctor_id__in=doctor_ids, specific_date=today)
+        .values_list('doctor_id', flat=True)
+    )
+    available_tomorrow = set(
+        Schedule.objects.filter(doctor_id__in=doctor_ids, specific_date=tomorrow)
+        .values_list('doctor_id', flat=True)
+    )
+
+    def _availability(doctor_id):
+        if doctor_id in available_today:
+            return 'Available Today'
+        if doctor_id in available_tomorrow:
+            return 'Available Tomorrow'
+        return None
+
+    # The single highlighted "Upcoming Appointment" hero card.
+    next_appt = upcoming[0] if upcoming else None
+    hero_appointment = None
+    if next_appt:
+        doc_profile = getattr(next_appt.doctor, 'doctor_profile', None)
+        hero_appointment = {
+            'doctorName': f'Dr. {next_appt.doctor.get_full_name()}',
+            'specialty': doc_profile.specialization if doc_profile else '',
+            'photoUrl': next_appt.doctor.profile_picture.url if next_appt.doctor.profile_picture else None,
+            'date': next_appt.appointment_date.isoformat(),
+            'time': next_appt.appointment_time.strftime('%I:%M %p').lstrip('0') if next_appt.appointment_time else 'Time to be confirmed',
+            'location': 'MSHFI Medical Clinic',
+            'href': '/patient/appointments/?tab=upcoming',
+        }
+
     return {
         'userName': request.user.get_full_name() or request.user.username,
+        'userPhotoUrl': request.user.profile_picture.url if request.user.profile_picture else None,
+        'unreadCount': Notification.objects.filter(user=request.user, is_read=False).count(),
         'greeting': _time_aware_greeting(),
+        'heroAppointment': hero_appointment,
         'searchHref': '/patient/appointments/book/',
         'carouselSlides': [
             {
@@ -182,6 +221,8 @@ def _build_patient_dashboard_data(request):
                 'id': str(d.id),
                 'name': f'Dr. {d.get_full_name()}',
                 'specialization': d.doctor_profile.specialization if getattr(d, 'doctor_profile', None) else '',
+                'yearsExperience': d.doctor_profile.years_of_experience if getattr(d, 'doctor_profile', None) else None,
+                'availability': _availability(d.id),
                 'photoUrl': d.profile_picture.url if d.profile_picture else None,
                 'href': f'/patient/doctors/{d.id}/',
             }
@@ -230,6 +271,9 @@ def appointment_list(request):
 
 @role_required('patient')
 def book_step1(request):
+    # Check if the patient has an active appointment
+    has_active = Appointment.has_active_appointment(request.user)
+
     doctors = CustomUser.objects.filter(role='doctor').select_related('doctor_profile').annotate(
         patient_count=models.Count('doctor_appointments__patient', distinct=True),
     )
@@ -250,7 +294,7 @@ def book_step1(request):
     })
     return render(request, 'patient/book_step1.html', {
         'doctors': doctors, 'query': query, 'specializations': specializations,
-        'selected_specialty': specialty,
+        'selected_specialty': specialty, 'has_active_appointment': has_active,
     })
 
 
@@ -348,6 +392,9 @@ def book_step2_slots(request, doctor_id):
     year, month = _resolve_calendar_month(request, selected_date_str)
     calendar_weeks = _compute_month_availability(doctor, year, month)
 
+    # Check if the patient has an active appointment
+    has_active = Appointment.has_active_appointment(request.user)
+
     context = {
         'doctor': doctor,
         'selected_date': selected_date_str,
@@ -359,6 +406,7 @@ def book_step2_slots(request, doctor_id):
         'calendar_month': month,
         'calendar_month_name': calendar_module.month_name[month],
         'today_iso': date.today().isoformat(),
+        'has_active_appointment': has_active,
     }
     if request.htmx:
         return render(request, 'patient/_book_step2_modal.html', context)
@@ -467,6 +515,16 @@ def book_step4_details(request, doctor_id):
         # Can't proceed without knowing which date this is for.
         return redirect('patient:book_step2', doctor_id=doctor.pk)
 
+    # Check if the patient has an active appointment
+    has_active = Appointment.has_active_appointment(request.user)
+    if has_active:
+        messages.error(
+            request,
+            'You already have an active appointment. Please complete or cancel '
+            'your current appointment before booking a new one.'
+        )
+        return redirect('patient:book_step1')
+
     already_consented = _patient_already_consented(request.user)
 
     if request.method == 'POST':
@@ -544,6 +602,27 @@ def book_step3_confirm(request):
             return render(request, 'patient/book_step4_details.html', response_ctx)
 
         details = form.cleaned_data
+
+        # Check if the patient already has an active appointment.
+        # This validation is enforced at the backend level to prevent
+        # bypass attempts through developer tools or direct API requests.
+        if Appointment.has_active_appointment(request.user):
+            messages.error(
+                request,
+                'You already have an active appointment. Please complete or cancel '
+                'your current appointment before booking a new one.'
+            )
+            response_ctx = {
+                'doctor': doctor,
+                'appointment_date': date_str,
+                'appointment_date_display': _format_date_str(date_str),
+                'form': form,
+                'already_consented': already_consented,
+                'title': 'Patient Details',
+            }
+            if request.htmx:
+                return render(request, 'patient/_book_step4_modal.html', response_ctx)
+            return render(request, 'patient/book_step4_details.html', response_ctx)
 
         # No time-based conflict check here — there's no time yet. Staff
         # checks for double-booking when they assign the actual time

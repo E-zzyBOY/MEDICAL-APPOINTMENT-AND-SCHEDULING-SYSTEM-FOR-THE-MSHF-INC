@@ -1,68 +1,256 @@
-{# Modal for doctor to assign the actual time on a pending appointment — non-extending partial #}
-<div id="modal-overlay" class="fixed inset-0 bg-black/50 z-40 transition-opacity opacity-0" style="transition-duration: 300ms;" role="dialog" aria-modal="true" aria-labelledby="modal-title" tabindex="-1">
+{# Doctor assign-time modal — unified visual time-slot grid #}
+<div id="modal-overlay" class="fixed inset-0 bg-black/50 z-40 transition-opacity opacity-0" style="transition-duration:300ms;" role="dialog" aria-modal="true" aria-labelledby="modal-title" tabindex="-1">
   <div class="fixed inset-0 z-40 overflow-y-auto flex items-end md:items-center justify-center">
-    <div class="modal-panel w-full h-full md:!h-auto md:w-full max-w-md md:mx-4 md:my-8 translate-y-full md:!translate-y-0 transition-transform" style="transition-duration: 300ms;">
-      <div class="bg-white h-full md:!h-auto max-h-full rounded-t-2xl md:!rounded-2xl shadow-soft-lg flex flex-col">
+    <div class="modal-panel w-full h-full md:!h-auto md:w-full max-w-2xl md:mx-4 md:my-8 translate-y-full md:!translate-y-0 transition-transform" style="transition-duration:300ms;">
+      <div class="bg-white h-full md:!h-auto max-h-[92vh] rounded-t-2xl md:!rounded-2xl shadow-soft-lg flex flex-col">
+
         <!-- Header -->
-        <div class="flex items-center justify-between px-6 py-4 border-b border-gray-200 flex-shrink-0">
-          <h2 id="modal-title" class="text-lg font-semibold text-gray-800">Assign Appointment Time</h2>
+        <div class="flex items-center justify-between px-6 py-4 border-b border-gray-100 flex-shrink-0">
+          <div class="flex items-center gap-2.5">
+            <span class="flex size-8 shrink-0 items-center justify-center rounded-full bg-green-100 text-green-600">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            </span>
+            <h2 id="modal-title" class="text-lg font-semibold text-gray-800">Assign Appointment Time</h2>
+          </div>
           <button type="button" onclick="closeModal()" aria-label="Close" class="w-8 h-8 flex items-center justify-center rounded-full text-gray-400 hover:text-gray-600 hover:bg-gray-100 text-2xl leading-none">&times;</button>
         </div>
-        <!-- Content -->
-        <div class="px-6 py-6 space-y-4 flex-1 overflow-y-auto">
+
+        <!-- Scrollable body -->
+        <div class="px-6 py-5 space-y-5 flex-1 overflow-y-auto">
+
+          <!-- Appointment summary -->
+          <div class="bg-gray-50 rounded-2xl p-4 text-sm space-y-2">
+            <div class="flex justify-between"><span class="text-gray-500">Patient</span><span class="font-semibold text-gray-800">{{ appt.patient.get_full_name }}</span></div>
+            <div class="flex justify-between"><span class="text-gray-500">Date</span><span class="font-semibold text-gray-800">{{ appt.appointment_date|date:"l, F j, Y" }}</span></div>
+            {% if appt.reason %}<div class="flex justify-between"><span class="text-gray-500">Reason</span><span class="font-medium text-gray-700 text-right max-w-[60%]">{{ appt.reason }}</span></div>{% endif %}
+          </div>
+
           {% if form.non_field_errors %}
           <div class="bg-red-50 border border-red-200 text-red-700 rounded-xl p-3 text-sm">
             {% for error in form.non_field_errors %}{{ error }}{% endfor %}
           </div>
           {% endif %}
-          <div class="bg-gray-50 rounded-xl p-4 text-sm space-y-2">
-            <div class="flex justify-between"><span class="text-gray-500">Patient</span><span class="font-medium">{{ appt.patient.get_full_name }}</span></div>
-            <div class="flex justify-between"><span class="text-gray-500">Date</span><span class="font-medium">{{ appt.appointment_date|date:"F j, Y" }}</span></div>
-            <div class="flex justify-between"><span class="text-gray-500">Reason</span><span class="font-medium">{{ appt.reason|default:"—" }}</span></div>
-          </div>
+
+          <!-- Working hours banner -->
           {% if blocks %}
-          <div class="bg-blue-50 rounded-xl p-3 text-sm text-blue-800">
-            Working hours this day:
-            {% for start, end in blocks %}{{ start|time:"g:i A" }}–{{ end|time:"g:i A" }}{% if not forloop.last %}, {% endif %}{% endfor %}
+          <div class="flex items-center gap-2 bg-green-50 border border-green-200 rounded-xl px-4 py-2.5 text-sm text-green-800">
+            <svg class="w-4 h-4 shrink-0 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+            <span><strong>Your working hours:</strong>
+              {% for start, end in blocks %}{{ start|time:"g:i A" }} – {{ end|time:"g:i A" }}{% if not forloop.last %}&nbsp;&nbsp;·&nbsp;&nbsp;{% endif %}{% endfor %}
+            </span>
           </div>
           {% else %}
-          <div class="bg-amber-50 border border-amber-200 rounded-xl p-3 text-sm text-amber-800">
-            No working hours are set for this date. Add a schedule slot for this date first.
+          <div class="bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm text-amber-800 flex items-center gap-2">
+            <svg class="w-4 h-4 shrink-0 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            You have <strong>no working hours set</strong> for this date. Add a schedule slot first.
           </div>
           {% endif %}
+
+          {% if blocks %}
+          <!-- Legend -->
+          <div class="flex items-center gap-4 text-xs text-gray-500 flex-wrap">
+            <span class="flex items-center gap-1.5"><span class="inline-block w-3 h-3 rounded-full bg-green-400"></span> Available</span>
+            <span class="flex items-center gap-1.5"><span class="inline-block w-3 h-3 rounded-full bg-red-400"></span> Occupied</span>
+            <span class="flex items-center gap-1.5"><span class="inline-block w-3 h-3 rounded-full bg-gray-300"></span> Past / unavailable</span>
+            <span class="flex items-center gap-1.5"><span class="inline-block w-3 h-3 rounded-full bg-green-600"></span> Selected</span>
+          </div>
+
+          <!-- Loading skeleton -->
+          <div id="slotLoadingState" class="grid grid-cols-3 sm:grid-cols-4 gap-2">
+            {% for i in "123456789012" %}
+            <div class="h-[60px] bg-gray-100 rounded-xl animate-pulse"></div>
+            {% endfor %}
+          </div>
+
+          <!-- Unified slot grid — populated by JS -->
+          <div id="slotGrid" class="grid grid-cols-3 sm:grid-cols-4 gap-2 hidden"></div>
+
+          <!-- Empty state -->
+          <div id="slotEmptyState" class="hidden bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm text-amber-800 text-center">
+            All time slots for this date are occupied. Please choose a different date.
+          </div>
+          {% endif %}
+
+          <!-- Form -->
           <form method="post" action="{% url 'doctor:assign_time' pk=appt.pk %}"
                 hx-post="{% url 'doctor:assign_time' pk=appt.pk %}"
                 hx-target="#modal-root" hx-swap="innerHTML"
                 class="space-y-4">
             {% csrf_token %}
-            <div>
-              <label class="block text-sm font-semibold text-gray-700 mb-1">Appointment Time</label>
-              <input type="time" name="appointment_time" required
-                     value="{{ form.appointment_time.value|default:'' }}"
-                     class="w-full border {% if form.appointment_time.errors %}border-red-400{% else %}border-gray-300{% endif %} rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500" />
-              {% if form.appointment_time.errors %}<p class="text-red-600 text-xs mt-1">{{ form.appointment_time.errors.0 }}</p>{% endif %}
+
+            <!-- Hidden input driven by slot clicks -->
+            <input type="hidden" id="appointmentTimeInput" name="appointment_time"
+                   value="{{ form.appointment_time.value|default:'' }}" />
+
+            <!-- Selected time display -->
+            <div id="selectedTimeDisplay" class="hidden bg-green-50 border border-green-200 rounded-xl px-4 py-3 text-sm flex items-center justify-between">
+              <div class="flex items-center gap-2 text-green-800">
+                <svg class="w-4 h-4 text-green-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                <span>Selected: <strong id="selectedTimeLabel">—</strong></span>
+              </div>
+              <button type="button" onclick="clearSelectedTime()" class="text-green-500 hover:text-green-700 text-xs font-medium">Clear</button>
             </div>
+
+            <!-- Manual entry fallback -->
+            <details class="group">
+              <summary class="cursor-pointer text-xs text-gray-400 hover:text-gray-600 select-none flex items-center gap-1">
+                <svg class="w-3 h-3 transition-transform group-open:rotate-90" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                Or enter a custom time manually
+              </summary>
+              <div class="mt-2 pl-4">
+                <input type="time" id="manualTimeInput"
+                       value="{{ form.appointment_time.value|default:'' }}"
+                       class="border border-gray-300 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-400 w-full"
+                       oninput="onManualTimeInput(this.value)" />
+                <p class="text-xs text-gray-400 mt-1">Backend validation still applies (working hours + conflict check).</p>
+              </div>
+            </details>
+
+            <!-- Inline validation message -->
+            <p id="timeValidationError" class="hidden text-red-600 text-xs bg-red-50 border border-red-200 rounded-xl px-3 py-2"></p>
+
+            <!-- Actions -->
             <div class="flex gap-3 pt-2">
-              <button type="submit" {% if not blocks %}disabled{% endif %}
-                      class="flex-1 bg-brand-600 text-white font-semibold py-3 rounded-xl hover:bg-brand-700 transition disabled:opacity-50 disabled:cursor-not-allowed">
+              <button type="submit" id="confirmTimeBtn" {% if not blocks %}disabled{% else %}disabled{% endif %}
+                      class="flex-1 bg-green-600 text-white font-semibold py-3 rounded-xl hover:bg-green-700 transition disabled:opacity-40 disabled:cursor-not-allowed">
                 Confirm Time
               </button>
-              <button type="button" onclick="closeModal()" class="flex-1 border border-gray-300 text-gray-700 font-semibold py-3 rounded-xl hover:bg-gray-50 transition">
+              <button type="button" onclick="closeModal()" class="flex-1 border border-gray-200 text-gray-700 font-semibold py-3 rounded-xl hover:bg-gray-50 transition">
                 Cancel
               </button>
             </div>
           </form>
-        </div>
+
+        </div><!-- /body -->
       </div>
     </div>
   </div>
 </div>
 
 <style>
-  #modal-overlay.open {
-    opacity: 1 !important;
+  #modal-overlay.open { opacity: 1 !important; }
+  #modal-overlay.open .modal-panel { transform: translateY(0) !important; }
+
+  .slot-btn {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 2px; padding: 0.5rem 0.25rem; border-radius: 0.75rem;
+    border: 2px solid transparent; font-size: 0.8rem; font-weight: 600;
+    line-height: 1.2; text-align: center; cursor: pointer;
+    transition: all 0.15s ease; min-height: 60px; width: 100%;
   }
-  #modal-overlay.open .modal-panel {
-    transform: translateY(0) !important;
-  }
+  .slot-btn.available { background:#dcfce7; color:#15803d; border-color:#bbf7d0; }
+  .slot-btn.available:hover { background:#bbf7d0; border-color:#86efac; transform:translateY(-1px); box-shadow:0 2px 8px rgba(21,128,61,.15); }
+  .slot-btn.available.selected { background:#d1fae5; color:#065f46; border-color:#34d399; box-shadow:0 0 0 3px rgba(52,211,153,.3); }
+  .slot-btn.occupied { background:#fee2e2; color:#b91c1c; border-color:#fecaca; cursor:not-allowed; opacity:.85; }
+  .slot-btn.past { background:#f3f4f6; color:#9ca3af; border-color:#e5e7eb; cursor:not-allowed; opacity:.6; }
+  .slot-btn .slot-label { font-size:.8rem; font-weight:700; }
+  .slot-btn .slot-sub { font-size:.6rem; font-weight:500; line-height:1.1; opacity:.8; white-space:normal; word-break:break-word; max-width:90%; }
 </style>
+
+<script>
+(function () {
+  const APPT_ID    = '{{ appt.pk }}';
+  const APPT_DATE  = '{{ appt.appointment_date|date:"Y-m-d" }}';
+  const BLOCKS_RAW = `{% for start, end in blocks %}{{ start|time:"H:i" }}-{{ end|time:"H:i" }}{% if not forloop.last %},{% endif %}{% endfor %}`;
+
+  let occupiedMap  = {};
+  let selectedTime = null;
+
+  function toMin(t) { const [h,m]=t.split(':').map(Number); return h*60+m; }
+  function fromMin(m) { return `${String(Math.floor(m/60)).padStart(2,'0')}:${String(m%60).padStart(2,'0')}`; }
+  function to12(t) { const [h,m]=t.split(':').map(Number); const ap=h<12?'AM':'PM'; const hr=h%12||12; return `${hr}:${String(m).padStart(2,'0')} ${ap}`; }
+  function isToday() { const n=new Date(); return `${n.getFullYear()}-${String(n.getMonth()+1).padStart(2,'0')}-${String(n.getDate()).padStart(2,'0')}`===APPT_DATE; }
+  function nowMin()  { const n=new Date(); return n.getHours()*60+n.getMinutes(); }
+
+  function getSlots() {
+    if (!BLOCKS_RAW.trim()) return [];
+    const slots=[];
+    BLOCKS_RAW.split(',').forEach(b=>{ const[s,e]=b.trim().split('-'); for(let m=toMin(s);m<toMin(e);m+=30) slots.push(fromMin(m)); });
+    return slots;
+  }
+
+  function fetchOccupied() {
+    return fetch(`/doctor/appointments/${APPT_ID}/occupied-times/`)
+      .then(r=>r.json()).then(d=>{ occupiedMap={}; d.occupied_times.forEach(t=>{ occupiedMap[t.time]=t; }); })
+      .catch(()=>{ occupiedMap={}; });
+  }
+
+  function renderGrid() {
+    const slots=getSlots(), grid=document.getElementById('slotGrid');
+    const loading=document.getElementById('slotLoadingState'), empty=document.getElementById('slotEmptyState');
+    if (!grid) return;
+    if (loading) loading.classList.add('hidden');
+    if (!slots.length) { grid.classList.add('hidden'); if(empty) empty.classList.remove('hidden'); return; }
+
+    const now=isToday()?nowMin():-1;
+    let hasAvail=false;
+    grid.innerHTML='';
+
+    slots.forEach(time=>{
+      const btn=document.createElement('button'); btn.type='button'; btn.classList.add('slot-btn');
+      const label=document.createElement('span'); label.classList.add('slot-label'); label.textContent=to12(time);
+      const sub=document.createElement('span');   sub.classList.add('slot-sub');
+
+      const isPast=now>=0&&toMin(time)<=now, isOcc=!!occupiedMap[time];
+
+      if (isPast) { btn.classList.add('past'); btn.disabled=true; sub.textContent='Past'; }
+      else if (isOcc) { btn.classList.add('occupied'); btn.disabled=true; sub.textContent=occupiedMap[time].patient; btn.title=`Occupied — ${occupiedMap[time].patient}`; }
+      else { btn.classList.add('available'); hasAvail=true; sub.textContent='Available'; btn.addEventListener('click',()=>selectTime(time)); }
+
+      if (time===selectedTime) btn.classList.add('selected');
+      btn.appendChild(label); btn.appendChild(sub); grid.appendChild(btn);
+    });
+
+    grid.classList.remove('hidden');
+    if (empty) empty.classList.toggle('hidden', hasAvail);
+  }
+
+  function selectTime(time) {
+    selectedTime=time;
+    document.getElementById('appointmentTimeInput').value=time;
+    const manual=document.getElementById('manualTimeInput'); if(manual) manual.value=time;
+    const disp=document.getElementById('selectedTimeDisplay'), lbl=document.getElementById('selectedTimeLabel');
+    if(disp&&lbl){ lbl.textContent=to12(time); disp.classList.remove('hidden'); }
+    const btn=document.getElementById('confirmTimeBtn'); if(btn) btn.disabled=false;
+    const err=document.getElementById('timeValidationError'); if(err) err.classList.add('hidden');
+    renderGrid();
+  }
+
+  window.clearSelectedTime=function(){ selectedTime=null; document.getElementById('appointmentTimeInput').value='';
+    const m=document.getElementById('manualTimeInput'); if(m) m.value='';
+    const d=document.getElementById('selectedTimeDisplay'); if(d) d.classList.add('hidden');
+    const b=document.getElementById('confirmTimeBtn'); if(b) b.disabled=true; renderGrid(); };
+
+  window.onManualTimeInput=function(val){
+    if(!val){ clearSelectedTime(); return; }
+    document.getElementById('appointmentTimeInput').value=val;
+    const err=document.getElementById('timeValidationError'), btn=document.getElementById('confirmTimeBtn');
+    if(occupiedMap[val]){
+      if(err){ err.textContent=`⚠ This time is occupied by ${occupiedMap[val].patient}. Choose another slot.`; err.classList.remove('hidden'); }
+      if(btn) btn.disabled=true; selectedTime=null; renderGrid();
+    } else {
+      if(err) err.classList.add('hidden'); if(btn) btn.disabled=false;
+      selectedTime=val;
+      const d=document.getElementById('selectedTimeDisplay'),l=document.getElementById('selectedTimeLabel');
+      if(d&&l){ l.textContent=to12(val); d.classList.remove('hidden'); }
+      renderGrid();
+    }
+  };
+
+  function init() {
+    if (BLOCKS_RAW.trim()) { fetchOccupied().then(renderGrid); }
+    else { const l=document.getElementById('slotLoadingState'); if(l) l.classList.add('hidden'); }
+
+    const existing=document.getElementById('appointmentTimeInput').value;
+    if(existing){
+      selectedTime=existing;
+      const b=document.getElementById('confirmTimeBtn'); if(b) b.disabled=false;
+      const d=document.getElementById('selectedTimeDisplay'),l=document.getElementById('selectedTimeLabel');
+      if(d&&l){ l.textContent=to12(existing); d.classList.remove('hidden'); }
+    }
+  }
+
+  if (document.readyState==='loading') document.addEventListener('DOMContentLoaded',init);
+  else init();
+})();
+</script>

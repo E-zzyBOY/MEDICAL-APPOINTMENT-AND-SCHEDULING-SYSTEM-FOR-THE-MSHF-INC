@@ -519,6 +519,35 @@ def assign_appointment_time(request, pk):
 
 
 @role_required('doctor')
+def get_occupied_times(request, pk):
+    """API endpoint — occupied appointment times for a doctor's appointment date.
+    Returns JSON: {'occupied_times': [{'time', 'time_display', 'patient', 'status'}]}"""
+    appt = get_object_or_404(
+        Appointment, pk=pk, doctor=request.user,
+        status__in=['Pending Assignment', 'Scheduled', 'Rescheduled']
+    )
+    occupied = Appointment.objects.filter(
+        doctor=request.user,
+        appointment_date=appt.appointment_date,
+        appointment_time__isnull=False,
+        status__in=['Scheduled', 'Rescheduled', 'Confirmed'],
+    ).exclude(pk=appt.pk).select_related('patient').values_list(
+        'appointment_time', 'patient__first_name', 'patient__last_name', 'status'
+    ).order_by('appointment_time')
+
+    occupied_list = [
+        {
+            'time':         t.strftime('%H:%M'),
+            'time_display': t.strftime('%I:%M %p'),
+            'patient':      f"{fn} {ln}",
+            'status':       st,
+        }
+        for t, fn, ln, st in occupied
+    ]
+    return JsonResponse({'occupied_times': occupied_list, 'appointment_id': pk})
+
+
+@role_required('doctor')
 def appointment_accept(request, pk):
     appt = get_object_or_404(Appointment, pk=pk, doctor=request.user, status='Scheduled')
     if request.method == 'POST':

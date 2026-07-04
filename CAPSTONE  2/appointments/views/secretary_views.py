@@ -481,7 +481,7 @@ def get_occupied_times(request, pk):
         doctor=appt.doctor,
         appointment_date=appt.appointment_date,
         appointment_time__isnull=False,
-        status__in=['Scheduled', 'Rescheduled'],
+        status__in=['Scheduled', 'Rescheduled', 'Confirmed'],
     ).exclude(pk=appt.pk).select_related('patient').values_list(
         'appointment_time', 'patient__first_name', 'patient__last_name', 'status'
     ).order_by('appointment_time')

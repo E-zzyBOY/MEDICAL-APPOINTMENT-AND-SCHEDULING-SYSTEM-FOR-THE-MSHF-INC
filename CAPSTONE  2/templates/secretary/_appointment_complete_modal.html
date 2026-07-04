@@ -1,0 +1,78 @@
+{# Modal for secretary to mark a Confirmed appointment as Completed — non-extending partial #}
+<div id="modal-overlay" class="fixed inset-0 bg-black/50 z-40 transition-opacity opacity-0" style="transition-duration: 300ms;" role="dialog" aria-modal="true" aria-labelledby="modal-title" tabindex="-1">
+  <div class="fixed inset-0 z-40 overflow-y-auto flex items-end md:items-center justify-center">
+    <div class="modal-panel w-full h-full md:!h-auto md:w-full max-w-md md:mx-4 md:my-8 translate-y-full md:!translate-y-0 transition-transform" style="transition-duration: 300ms;">
+      <div class="bg-white h-full md:!h-auto max-h-full rounded-t-2xl md:!rounded-2xl shadow-soft-lg flex flex-col">
+        <!-- Header -->
+        <div class="flex items-center justify-between px-6 py-4 border-b border-gray-200 flex-shrink-0">
+          <div class="flex items-center gap-2.5">
+            <span class="flex size-8 shrink-0 items-center justify-center rounded-full bg-blue-100 text-blue-600">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+            </span>
+            <h2 id="modal-title" class="text-lg font-semibold text-gray-800">Mark Appointment Complete</h2>
+          </div>
+          <button type="button" onclick="closeModal()" aria-label="Close" class="w-8 h-8 flex items-center justify-center rounded-full text-gray-400 hover:text-gray-600 hover:bg-gray-100 text-2xl leading-none">&times;</button>
+        </div>
+        <!-- Content -->
+        <div class="px-6 py-6 space-y-4 flex-1 overflow-y-auto">
+          <!-- Patient info summary -->
+          <div class="bg-gray-50 rounded-xl p-4 text-sm space-y-2">
+            <div class="flex justify-between">
+              <span class="text-gray-500">Patient</span>
+              <span class="font-medium">{{ appt.patient.get_full_name }}</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-gray-500">Doctor</span>
+              <span class="font-medium">Dr. {{ appt.doctor.get_full_name }}</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-gray-500">Date</span>
+              <span class="font-medium">{{ appt.appointment_date|date:"F j, Y" }}</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-gray-500">Time</span>
+              <span class="font-medium">{% if appt.appointment_time %}{{ appt.appointment_time|time:"g:i A" }}{% else %}&mdash;{% endif %}</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-gray-500">Current Status</span>
+              <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-teal-100 text-teal-700">Confirmed</span>
+            </div>
+          </div>
+
+          <!-- Info callout -->
+          <div class="bg-blue-50 border border-blue-200 rounded-xl p-4 text-sm text-blue-800">
+            <div class="flex items-start gap-2">
+              <svg class="w-4 h-4 mt-0.5 shrink-0 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+              <p>Marking this as <strong>Completed</strong> confirms the patient's consultation has finished. The patient will be notified and the appointment will become read-only.</p>
+            </div>
+          </div>
+
+          <form method="post"
+                hx-post="{% url 'secretary:appointment_complete' pk=appt.pk %}"
+                hx-target="#modal-root" hx-swap="innerHTML"
+                class="space-y-4">
+            {% csrf_token %}
+            <div class="flex gap-3 pt-2">
+              <button type="submit"
+                      class="flex-1 bg-blue-600 text-white font-semibold py-3 rounded-xl hover:bg-blue-700 transition">
+                Mark as Completed
+              </button>
+              <button type="button" onclick="closeModal()" class="flex-1 border border-gray-300 text-gray-700 font-semibold py-3 rounded-xl hover:bg-gray-50 transition">
+                Cancel
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  #modal-overlay.open {
+    opacity: 1 !important;
+  }
+  #modal-overlay.open .modal-panel {
+    transform: translateY(0) !important;
+  }
+</style>

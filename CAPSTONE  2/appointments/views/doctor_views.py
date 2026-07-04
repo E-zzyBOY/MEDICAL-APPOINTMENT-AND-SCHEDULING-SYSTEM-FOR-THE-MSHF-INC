@@ -463,7 +463,7 @@ def assign_appointment_time(request, pk):
     """Doctor sets the actual time on one of their own appointments that's
     awaiting time assignment. Mirrors secretary_views' version of this
     action — both roles can do this, whichever gets to it first."""
-    appt = get_object_or_404(Appointment, pk=pk, doctor=request.user, status='Pending Time Assignment')
+    appt = get_object_or_404(Appointment, pk=pk, doctor=request.user, status='Pending Assignment')
     blocks = _working_hours_for_date(appt.doctor, appt.appointment_date)
 
     if request.method == 'POST':
@@ -569,7 +569,7 @@ def appointment_decline(request, pk):
 def appointment_reschedule_approve(request, pk):
     """Doctor approves a patient's pending reschedule request: the new
     date becomes the appointment's date and the status moves to
-    'Pending Time Assignment' so the doctor or secretary can assign the
+    'Pending Assignment' so the doctor or secretary can assign the
     actual time next (same as a fresh booking)."""
     appt = get_object_or_404(Appointment, pk=pk, status='Pending Reschedule', doctor=request.user)
     if request.method == 'POST':
@@ -580,7 +580,7 @@ def appointment_reschedule_approve(request, pk):
         appt.requested_date      = None
         appt.requested_time      = None
         appt.requested_reason    = ''
-        appt.status              = 'Pending Time Assignment'
+        appt.status              = 'Pending Assignment'
         appt.save()
 
         try:
@@ -642,7 +642,7 @@ def appointment_reschedule_reject(request, pk):
 def appointment_reschedule(request, pk):
     """Doctor directly moves one of their own appointments to a new date
     (separate from approving a patient's reschedule *request*). Date-only
-    — the new appointment lands in 'Pending Time Assignment' just like a
+    — the new appointment lands in 'Pending Assignment' just like a
     fresh booking, since RescheduleForm's clean_appointment_date already
     rejects past dates."""
     appt = get_object_or_404(Appointment, pk=pk, doctor=request.user, status__in=['Scheduled', 'Rescheduled'])
@@ -656,7 +656,7 @@ def appointment_reschedule(request, pk):
         new_appt = Appointment.objects.create(
             patient=appt.patient, doctor=request.user,
             appointment_date=new_date, appointment_time=None,
-            status='Pending Time Assignment', reason=new_reason
+            status='Pending Assignment', reason=new_reason
         )
         try:
             send_booking_received_email(new_appt)

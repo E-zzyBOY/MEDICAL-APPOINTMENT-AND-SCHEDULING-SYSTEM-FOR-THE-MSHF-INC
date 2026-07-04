@@ -67,12 +67,13 @@ class AppointmentPatientDetails(models.Model):
 
 class Appointment(models.Model):
     STATUS_CHOICES = [
-        ('Pending Time Assignment', 'Pending Time Assignment'),
-        ('Scheduled',           'Scheduled'),
-        ('Completed',           'Completed'),
-        ('Cancelled',           'Cancelled'),
-        ('Rescheduled',         'Rescheduled'),
-        ('Pending Reschedule',  'Pending Reschedule'),
+        ('Pending Assignment',  'Pending Assignment'),
+        ('Scheduled',          'Scheduled'),
+        ('Confirmed',          'Confirmed'),
+        ('Completed',          'Completed'),
+        ('Cancelled',          'Cancelled'),
+        ('Rescheduled',        'Rescheduled'),
+        ('Pending Reschedule', 'Pending Reschedule'),
     ]
     patient          = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
@@ -93,7 +94,7 @@ class Appointment(models.Model):
     # booking or requesting a reschedule; the doctor or secretary assigns
     # the actual time afterward, which is when this gets filled in.
     appointment_time = models.TimeField(null=True, blank=True)
-    status           = models.CharField(max_length=30, choices=STATUS_CHOICES, default='Pending Time Assignment')
+    status           = models.CharField(max_length=30, choices=STATUS_CHOICES, default='Pending Assignment')
     reason           = models.TextField(blank=True)
 
     # When a patient requests a reschedule, the original date/time/reason stay
@@ -114,24 +115,26 @@ class Appointment(models.Model):
 
     @property
     def needs_time_assignment(self):
-        return self.status == 'Pending Time Assignment'
+        return self.status == 'Pending Assignment'
 
     @classmethod
     def has_active_appointment(cls, patient):
         """Check if a patient has any active/upcoming appointment.
         Active statuses are those that prevent booking a new appointment:
-        - Pending Time Assignment (awaiting staff to assign time)
-        - Scheduled (confirmed with date/time)
+        - Pending Assignment (awaiting staff to assign time)
+        - Scheduled (assigned date/time, awaiting check-in)
+        - Confirmed (patient has checked in, in progress)
         - Rescheduled (rescheduled appointment, still active)
         - Pending Reschedule (waiting for staff to approve reschedule)
 
         Patients can only book new appointments once their previous one reaches:
-        - Completed (visit finished)
+        - Completed (consultation finished)
         - Cancelled (patient or staff cancelled)
         """
         active_statuses = [
-            'Pending Time Assignment',
+            'Pending Assignment',
             'Scheduled',
+            'Confirmed',
             'Rescheduled',
             'Pending Reschedule',
         ]

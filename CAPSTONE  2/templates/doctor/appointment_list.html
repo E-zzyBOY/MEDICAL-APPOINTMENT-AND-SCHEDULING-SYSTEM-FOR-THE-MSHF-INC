@@ -7,7 +7,7 @@
   <div class="flex gap-3 mb-5 flex-wrap">
     {% for status, label in status_choices %}{% endfor %}
     <a href="?status=" class="px-4 py-1.5 rounded-full text-sm font-medium {% if not status_filter %}bg-green-600 text-white{% else %}bg-gray-100 text-gray-600 hover:bg-gray-200{% endif %}">All</a>
-    <a href="?status=Pending Time Assignment" class="px-4 py-1.5 rounded-full text-sm font-medium {% if status_filter == 'Pending Time Assignment' %}bg-amber-600 text-white{% else %}bg-gray-100 text-gray-600 hover:bg-gray-200{% endif %}">Awaiting Time</a>
+    <a href="?status=Pending Assignment" class="px-4 py-1.5 rounded-full text-sm font-medium {% if status_filter == 'Pending Assignment' %}bg-amber-600 text-white{% else %}bg-gray-100 text-gray-600 hover:bg-gray-200{% endif %}">Pending Assignment</a>
     <a href="?status=Scheduled" class="px-4 py-1.5 rounded-full text-sm font-medium {% if status_filter == 'Scheduled' %}bg-green-600 text-white{% else %}bg-gray-100 text-gray-600 hover:bg-gray-200{% endif %}">Scheduled</a>
     <a href="?status=Pending Reschedule" class="px-4 py-1.5 rounded-full text-sm font-medium {% if status_filter == 'Pending Reschedule' %}bg-purple-600 text-white{% else %}bg-gray-100 text-gray-600 hover:bg-gray-200{% endif %}">Pending Reschedule</a>
     <a href="?status=Completed" class="px-4 py-1.5 rounded-full text-sm font-medium {% if status_filter == 'Completed' %}bg-green-600 text-white{% else %}bg-gray-100 text-gray-600 hover:bg-gray-200{% endif %}">Completed</a>
@@ -40,10 +40,11 @@
           <td class="py-3">
             <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-semibold
               {% if appt.status == 'Scheduled' %}bg-green-100 text-green-700
+              {% elif appt.status == 'Confirmed' %}bg-teal-100 text-teal-700
               {% elif appt.status == 'Completed' %}bg-blue-100 text-blue-700
               {% elif appt.status == 'Cancelled' %}bg-red-100 text-red-600
               {% elif appt.status == 'Pending Reschedule' %}bg-purple-100 text-purple-600
-              {% elif appt.status == 'Pending Time Assignment' %}bg-amber-100 text-amber-700
+              {% elif appt.status == 'Pending Assignment' %}bg-amber-100 text-amber-700
               {% else %}bg-amber-100 text-amber-700{% endif %}">
               {% if appt.status == 'Pending Reschedule' %}
               <span class="relative flex size-1.5">
@@ -68,7 +69,7 @@
               <a hx-get="{% url 'doctor:reschedule_approve' pk=appt.pk %}" hx-target="#modal-root" hx-swap="innerHTML" class="px-2 py-1 bg-purple-100 text-purple-600 rounded text-xs font-medium hover:bg-purple-200 cursor-pointer">Approve</a>
               <a hx-get="{% url 'doctor:reschedule_reject' pk=appt.pk %}" hx-target="#modal-root" hx-swap="innerHTML" class="px-2 py-1 bg-red-100 text-red-600 rounded text-xs font-medium hover:bg-red-200 cursor-pointer">Reject</a>
             </div>
-            {% elif appt.status == 'Pending Time Assignment' %}
+            {% elif appt.status == 'Pending Assignment' %}
             <a hx-get="{% url 'doctor:assign_time' pk=appt.pk %}" hx-target="#modal-root" hx-swap="innerHTML" class="px-2 py-1 bg-amber-100 text-amber-700 rounded text-xs font-medium hover:bg-amber-200 cursor-pointer">Assign Time</a>
             {% elif appt.status == 'Scheduled' or appt.status == 'Rescheduled' %}
             <div class="flex gap-1 flex-wrap">
@@ -96,10 +97,11 @@
         </a>
         <span class="shrink-0 inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-semibold
           {% if appt.status == 'Scheduled' %}bg-green-100 text-green-700
+          {% elif appt.status == 'Confirmed' %}bg-teal-100 text-teal-700
           {% elif appt.status == 'Completed' %}bg-blue-100 text-blue-700
           {% elif appt.status == 'Cancelled' %}bg-red-100 text-red-600
           {% elif appt.status == 'Pending Reschedule' %}bg-purple-100 text-purple-600
-          {% elif appt.status == 'Pending Time Assignment' %}bg-amber-100 text-amber-700
+          {% elif appt.status == 'Pending Assignment' %}bg-amber-100 text-amber-700
           {% else %}bg-amber-100 text-amber-700{% endif %}">
           {% if appt.status == 'Pending Reschedule' %}
           <span class="relative flex size-1.5">
@@ -137,7 +139,7 @@
         <a hx-get="{% url 'doctor:reschedule_approve' pk=appt.pk %}" hx-target="#modal-root" hx-swap="innerHTML" class="flex-1 text-center px-3 py-2 bg-purple-100 text-purple-600 rounded-xl text-xs font-medium hover:bg-purple-200 cursor-pointer">Approve</a>
         <a hx-get="{% url 'doctor:reschedule_reject' pk=appt.pk %}" hx-target="#modal-root" hx-swap="innerHTML" class="flex-1 text-center px-3 py-2 bg-red-100 text-red-600 rounded-xl text-xs font-medium hover:bg-red-200 cursor-pointer">Reject</a>
       </div>
-      {% elif appt.status == 'Pending Time Assignment' %}
+      {% elif appt.status == 'Pending Assignment' %}
       <div class="mt-3">
         <a hx-get="{% url 'doctor:assign_time' pk=appt.pk %}" hx-target="#modal-root" hx-swap="innerHTML" class="block text-center px-3 py-2 bg-amber-100 text-amber-700 rounded-xl text-xs font-medium hover:bg-amber-200 cursor-pointer">Assign Time</a>
       </div>

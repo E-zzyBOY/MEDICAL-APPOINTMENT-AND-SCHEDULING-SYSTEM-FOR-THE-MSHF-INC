@@ -92,7 +92,7 @@ def _time_aware_greeting():
 def _build_patient_dashboard_data(request):
     upcoming = Appointment.objects.filter(
         patient=request.user,
-        status__in=['Pending Time Assignment', 'Scheduled', 'Rescheduled', 'Pending Reschedule'],
+        status__in=['Pending Assignment', 'Scheduled', 'Confirmed', 'Rescheduled', 'Pending Reschedule'],
         appointment_date__gte=date.today()
     ).select_related('doctor').order_by('appointment_date', 'appointment_time')[:5]
     past = Appointment.objects.filter(
@@ -247,7 +247,7 @@ def patient_dashboard_data(request):
 def appointment_list(request):
     upcoming = Appointment.objects.filter(
         patient=request.user,
-        status__in=['Pending Time Assignment', 'Scheduled', 'Rescheduled', 'Pending Reschedule']
+        status__in=['Pending Assignment', 'Scheduled', 'Confirmed', 'Rescheduled', 'Pending Reschedule']
     ).select_related('doctor', 'patient_details').order_by('appointment_date', 'appointment_time')
     completed = Appointment.objects.filter(
         patient=request.user,
@@ -584,7 +584,7 @@ def book_step3_confirm(request):
                 doctor           = doctor,
                 appointment_date = appointment_date,
                 appointment_time = None,
-                status           = 'Pending Time Assignment',
+                status           = 'Pending Assignment',
                 reason           = details['reason'],
             )
 
@@ -726,7 +726,7 @@ def appointment_detail(request, pk):
 def cancel_appointment(request, pk):
     appointment = get_object_or_404(
         Appointment, pk=pk, patient=request.user,
-        status__in=['Pending Time Assignment', 'Scheduled', 'Rescheduled']
+        status__in=['Pending Assignment', 'Scheduled', 'Rescheduled']
     )
     if request.method == 'POST':
         appointment.status = 'Cancelled'

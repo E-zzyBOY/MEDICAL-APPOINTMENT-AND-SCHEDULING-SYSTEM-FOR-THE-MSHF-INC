@@ -29,10 +29,10 @@ def _build_secretary_dashboard_data(request):
     today_appts = Appointment.objects.filter(
         doctor=doctor,
         appointment_date=date.today(),
-        status__in=['Pending Time Assignment', 'Scheduled', 'Rescheduled', 'Pending Reschedule']
+        status__in=['Pending Assignment', 'Scheduled', 'Confirmed', 'Rescheduled', 'Pending Reschedule']
     ).select_related('patient', 'doctor').order_by('appointment_time') if doctor else Appointment.objects.none()
     total_today = today_appts.count()
-    pending_time_count = today_appts.filter(status='Pending Time Assignment').count() if doctor else 0
+    pending_time_count = today_appts.filter(status='Pending Assignment').count() if doctor else 0
 
     return {
         'userName': request.user.get_full_name() or request.user.username,
@@ -122,7 +122,7 @@ def assign_appointment_time(request, pk):
     this action checks — both staff roles can do this."""
     doctor = _assigned_doctor(request.user)
     appt = get_object_or_404(
-        Appointment, pk=pk, doctor=doctor, status='Pending Time Assignment'
+        Appointment, pk=pk, doctor=doctor, status__in=['Pending Assignment', 'Scheduled', 'Rescheduled']
     )
     blocks = _working_hours_for_date(appt.doctor, appt.appointment_date)
 
@@ -180,25 +180,32 @@ def assign_appointment_time(request, pk):
 
 
 @role_required('secretary')
-def appointment_approve(request, pk):
+def appointment_confirm(request, pk):
+    """Secretary confirms the patient has arrived at the hospital.
+    This action is only available for 'Scheduled' appointments and moves
+    the status to 'Confirmed', signalling that the patient is present,
+    vital signs assessment can begin, and the doctor consultation can proceed."""
     doctor = _assigned_doctor(request.user)
     appt = get_object_or_404(Appointment, pk=pk, status='Scheduled', doctor=doctor)
     if request.method == 'POST':
+        appt.status = 'Confirmed'
         appt.secretary = request.user
         appt.save()
         _notify(appt.patient,
-                f"Your appointment with Dr. {appt.doctor.get_full_name()} on "
-                f"{appt.appointment_date.strftime('%B %d, %Y')} has been confirmed by the secretary.")
-        messages.success(request, 'Appointment approved.')
+                f"You have been checked in for your appointment with Dr. {appt.doctor.get_full_name()} on "
+                f"{appt.appointment_date.strftime('%B %d, %Y')} at "
+                f"{appt.appointment_time.strftime('%I:%M %p') if appt.appointment_time else 'the scheduled time'}. "
+                f"Please proceed for vital signs assessment.")
+        messages.success(request, 'Patient confirmed as arrived. Vital signs assessment can now begin.')
         if request.htmx:
-            response = render(request, 'secretary/_appointment_action_modal.html', {'appointment': appt, 'action': 'approve'})
+            response = render(request, 'secretary/_appointment_confirm_modal.html', {'appt': appt, 'action': 'confirm'})
             response['HX-Redirect'] = '/secretary/appointments/'
             return response
         return redirect('secretary:appointment_list')
     if request.htmx:
-        return render(request, 'secretary/_appointment_action_modal.html', {'appointment': appt, 'action': 'approve'})
+        return render(request, 'secretary/_appointment_confirm_modal.html', {'appt': appt, 'action': 'confirm'})
     return render(request, 'secretary/appointment_confirm_action.html', {
-        'appointment': appt, 'action': 'approve'
+        'appointment': appt, 'action': 'confirm'
     })
 
 
@@ -206,7 +213,7 @@ def appointment_approve(request, pk):
 def appointment_cancel(request, pk):
     doctor = _assigned_doctor(request.user)
     appt = get_object_or_404(
-        Appointment, pk=pk, status__in=['Pending Time Assignment', 'Scheduled', 'Rescheduled'], doctor=doctor
+        Appointment, pk=pk, status__in=['Pending Assignment', 'Scheduled'], doctor=doctor
     )
     if request.method == 'POST':
         reason = request.POST.get('reason', '')
@@ -234,11 +241,39 @@ def appointment_cancel(request, pk):
 
 
 @role_required('secretary')
+def appointment_complete(request, pk):
+    """Secretary marks a Confirmed appointment as Completed after the
+    consultation has finished. Only valid from 'Confirmed' status."""
+    doctor = _assigned_doctor(request.user)
+    appt = get_object_or_404(Appointment, pk=pk, status='Confirmed', doctor=doctor)
+    if request.method == 'POST':
+        appt.status = 'Completed'
+        appt.secretary = request.user
+        appt.save()
+        _notify(appt.patient,
+                f"Your appointment with Dr. {appt.doctor.get_full_name()} on "
+                f"{appt.appointment_date.strftime('%B %d, %Y')} has been completed. "
+                f"Thank you for visiting MSHFI Medical Clinic.")
+        messages.success(request, 'Appointment marked as completed.')
+        if request.htmx:
+            response = render(request, 'secretary/_appointment_complete_modal.html', {'appt': appt})
+            response['HX-Redirect'] = '/secretary/appointments/'
+            return response
+        return redirect('secretary:appointment_list')
+    if request.htmx:
+        return render(request, 'secretary/_appointment_complete_modal.html', {'appt': appt})
+    return render(request, 'secretary/appointment_confirm_action.html', {
+        'appointment': appt, 'action': 'complete'
+    })
+
+
+@role_required('secretary')
 def appointment_reschedule_approve(request, pk):
     """Secretary approves a patient's pending reschedule request, scoped to
     their assigned doctor. Mirrors doctor_views' version: the new date
     becomes the appointment's date and status moves to
-    'Pending Time Assignment' for someone to assign a time next."""
+    'Pending Assignment' for someone to assign a time next."""
+
     doctor = _assigned_doctor(request.user)
     appt = get_object_or_404(Appointment, pk=pk, status='Pending Reschedule', doctor=doctor)
     if request.method == 'POST':
@@ -249,7 +284,7 @@ def appointment_reschedule_approve(request, pk):
         appt.requested_date   = None
         appt.requested_time   = None
         appt.requested_reason = ''
-        appt.status           = 'Pending Time Assignment'
+        appt.status           = 'Pending Assignment'
         appt.secretary         = request.user
         appt.save()
 
@@ -336,7 +371,7 @@ def walkin_register(request):
                     secretary=request.user,
                     appointment_date=now.date(),
                     appointment_time=None if conflict else now.time().replace(second=0, microsecond=0),
-                    status='Pending Time Assignment' if conflict else 'Scheduled',
+                    status='Pending Assignment' if conflict else 'Scheduled',
                     reason=form.cleaned_data['reason'],
                 )
             if conflict:
@@ -439,7 +474,7 @@ def get_occupied_times(request, pk):
     Returns JSON with: {'occupied_times': [{'time': 'HH:MM', 'patient': 'Name', 'status': 'Scheduled'}], ...}"""
     doctor = _assigned_doctor(request.user)
     appt = get_object_or_404(
-        Appointment, pk=pk, doctor=doctor, status='Pending Time Assignment'
+        Appointment, pk=pk, doctor=doctor, status__in=['Pending Assignment', 'Scheduled', 'Rescheduled']
     )
 
     occupied = Appointment.objects.filter(

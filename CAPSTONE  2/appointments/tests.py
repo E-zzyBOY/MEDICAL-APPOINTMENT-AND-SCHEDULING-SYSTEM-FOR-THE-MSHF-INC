@@ -43,13 +43,13 @@ class AppointmentDuplicateBookingTestCase(TestCase):
         """Test that a patient with no appointments doesn't have an active appointment."""
         self.assertFalse(Appointment.has_active_appointment(self.patient))
 
-    def test_has_active_appointment_with_pending_time_assignment(self):
-        """Test that a patient with 'Pending Time Assignment' status has an active appointment."""
+    def test_has_active_appointment_with_pending_assignment(self):
+        """Test that a patient with 'Pending Assignment' status has an active appointment."""
         Appointment.objects.create(
             patient=self.patient,
             doctor=self.doctor,
             appointment_date=date.today() + timedelta(days=1),
-            status='Pending Time Assignment',
+            status='Pending Assignment',
             reason='Test appointment'
         )
         self.assertTrue(Appointment.has_active_appointment(self.patient))
@@ -129,7 +129,7 @@ class AppointmentDuplicateBookingTestCase(TestCase):
             patient=self.patient,
             doctor=self.doctor,
             appointment_date=date.today() + timedelta(days=1),
-            status='Pending Time Assignment',
+            status='Pending Assignment',
             reason='Active appointment'
         )
         # Should have active appointment because one is still pending
@@ -142,7 +142,7 @@ class AppointmentDuplicateBookingTestCase(TestCase):
             patient=self.patient,
             doctor=self.doctor,
             appointment_date=date.today() + timedelta(days=5),
-            status='Pending Time Assignment',
+            status='Pending Assignment',
             reason='Existing active appointment'
         )
 
@@ -161,7 +161,7 @@ class AppointmentDuplicateBookingTestCase(TestCase):
                 patient=self.patient,
                 doctor=self.doctor,
                 appointment_date=date.today() + timedelta(days=3),
-                status='Pending Time Assignment',
+                status='Pending Assignment',
                 reason='Second appointment'
             )
 

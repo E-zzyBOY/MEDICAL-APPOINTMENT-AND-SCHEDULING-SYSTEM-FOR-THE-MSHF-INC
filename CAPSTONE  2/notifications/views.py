@@ -1,8 +1,6 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse
-from django.utils import timezone
-from datetime import timedelta
 from .models import Notification
 
 
@@ -14,47 +12,18 @@ ROLE_TEMPLATES = {
 }
 
 
-def _group_notifications(notifications):
-    """Group notifications into today, yesterday, and older buckets."""
-    today = timezone.localdate()
-    yesterday = today - timedelta(days=1)
-    groups = []
-    today_list, yesterday_list, older_list = [], [], []
-    for notif in notifications:
-        notif_date = timezone.localtime(notif.created_at).date()
-        if notif_date == today:
-            today_list.append(notif)
-        elif notif_date == yesterday:
-            yesterday_list.append(notif)
-        else:
-            older_list.append(notif)
-    if today_list:
-        groups.append({'label': 'Today', 'items': today_list})
-    if yesterday_list:
-        groups.append({'label': 'Yesterday', 'items': yesterday_list})
-    if older_list:
-        groups.append({'label': 'Earlier', 'items': older_list})
-    return groups
-
-
 @login_required(login_url='/accounts/login/')
 def notification_list(request):
     notifications = Notification.objects.filter(user=request.user)
+    # Bell icon opens this as a modal (htmx request); the sidebar/menu link
+    # is a normal navigation and still gets the full page below.
+    if getattr(request, 'htmx', False):
+        return render(request, 'notifications/_notification_list_modal.html', {
+            'notifications': notifications, 'title': 'Notifications',
+        })
     template = ROLE_TEMPLATES.get(request.user.role, 'notifications/notification_list_patient.html')
     return render(request, template, {
-        'notifications': notifications,
-        'notification_groups': _group_notifications(notifications),
-    })
-
-
-@login_required(login_url='/accounts/login/')
-def notification_panel(request):
-    """HTMX endpoint — returns the notification slide-in panel fragment."""
-    notifications = Notification.objects.filter(user=request.user)
-    return render(request, 'notifications/_notification_panel_modal.html', {
-        'notifications': notifications,
-        'notification_groups': _group_notifications(notifications),
-        'title': 'Notifications',
+        'notifications': notifications
     })
 
 
@@ -62,7 +31,7 @@ def notification_panel(request):
 def notification_detail(request, pk):
     notif = get_object_or_404(Notification, pk=pk, user=request.user)
     return render(request, 'notifications/_notification_detail_modal.html', {
-        'notification': notif, 'title': 'Notification Detail',
+        'notification': notif, 'title': 'Notification',
     })
 
 
@@ -93,11 +62,11 @@ def notification_dismiss(request, pk):
 def mark_all_read(request):
     if request.method == 'POST':
         Notification.objects.filter(user=request.user, is_read=False).update(is_read=True)
-    if request.htmx:
-        notifications = Notification.objects.filter(user=request.user)
-        return render(request, 'notifications/_notification_panel_modal.html', {
-            'notifications': notifications,
-            'notification_groups': _group_notifications(notifications),
+    # When triggered from inside the notifications modal, stay in the modal
+    # with the refreshed (all-read) list instead of navigating away.
+    if getattr(request, 'htmx', False):
+        return render(request, 'notifications/_notification_list_modal.html', {
+            'notifications': Notification.objects.filter(user=request.user),
             'title': 'Notifications',
         })
     return redirect('notifications:list')

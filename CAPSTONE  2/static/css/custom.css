@@ -142,21 +142,3 @@ button:focus-visible,
     transition-duration: 0.01ms !important;
   }
 }
-
-/* Modal height cap (desktop) — every modal in the app follows the same
-   markup: .modal-panel > [bg-white flex flex-col box] > [header, content].
-   On desktop the panel is only as tall as its content with no ceiling, and
-   the wrapper around it centers the panel vertically. If the content is
-   tall (e.g. a long notification list), the panel grows past the viewport
-   and — because it's centered rather than top-aligned — its top half
-   (title + close button) ends up scrolled above the visible screen.
-   Capping the box's height and letting just the content area scroll keeps
-   the header/close button always visible and in view. */
-@media (min-width: 768px) {
-  .modal-panel > div {
-    max-height: 85vh;
-  }
-  .modal-panel > div > div:last-child {
-    min-height: 0;
-  }
-}

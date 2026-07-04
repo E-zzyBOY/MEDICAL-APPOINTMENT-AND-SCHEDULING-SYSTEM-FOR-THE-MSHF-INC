@@ -209,16 +209,13 @@
       }
     });
 
-    // Close modal on backdrop click. We can't just check `event.target === modal`
-    // here: the overlay always contains an inner full-size wrapper (for centering
-    // the panel), so a click anywhere in the dimmed area actually lands on that
-    // wrapper, never on #modal-overlay itself. Instead we check that the click
-    // happened inside the overlay but outside the visible white panel.
+    // Close modal when clicking anywhere outside the panel (backdrop or
+    // the layout wrapper between it and the panel — not just the overlay
+    // element itself).
     document.addEventListener('click', function(event) {
       const modal = document.getElementById('modal-overlay');
       if (!modal || !modal.classList.contains('open')) return;
-      const panel = modal.querySelector('.modal-panel');
-      if (modal.contains(event.target) && (!panel || !panel.contains(event.target))) {
+      if (modal.contains(event.target) && !event.target.closest('.modal-panel')) {
         closeModal();
       }
     });

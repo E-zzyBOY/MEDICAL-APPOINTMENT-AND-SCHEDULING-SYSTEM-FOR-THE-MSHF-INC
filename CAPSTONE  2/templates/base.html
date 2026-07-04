@@ -56,7 +56,7 @@
               700: '#1F7A93',
             },
             surface: '#FEFEFE',   // Light background
-            softgray: '#F5F7FA',  // Soft gray surfaces / app background
+            softgray: '#E3F6F9',  // Sky-blue tinted app background (brand #2AAFC4 @ ~15% over white)
             line: '#E5E7EB',      // Border gray
             ink: {
               DEFAULT: '#1F2937', // Text primary
@@ -70,10 +70,10 @@
             pending: { DEFAULT: '#FBBF24', 50: '#FFFBEB', 100: '#FEF3C7', 700: '#B45309' },
           },
           boxShadow: {
-            // Subtle elevation only — the system prefers elevation over borders.
-            'soft-sm': '0 1px 3px rgba(15, 23, 42, 0.08), 0 3px 14px rgba(15, 23, 42, 0.08)',
-            'soft':    '0 1px 3px rgba(15, 23, 42, 0.07), 0 8px 30px rgba(0, 0, 0, 0.12)',
-            'soft-lg': '0 2px 6px rgba(15, 23, 42, 0.07), 0 18px 50px rgba(15, 23, 42, 0.16)',
+            // Enhanced elevation — stronger shadows so cards clearly pop against the sky-blue background.
+            'soft-sm': '0 2px 6px rgba(42, 175, 196, 0.18), 0 6px 20px rgba(15, 23, 42, 0.12)',
+            'soft':    '0 4px 12px rgba(42, 175, 196, 0.20), 0 12px 36px rgba(15, 23, 42, 0.16)',
+            'soft-lg': '0 6px 18px rgba(42, 175, 196, 0.22), 0 24px 60px rgba(15, 23, 42, 0.22)',
           },
           keyframes: {
             'fade-up': {

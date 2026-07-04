@@ -1,7 +1,51 @@
 /* ==========================================================================
    MSHFI Healthcare design system — global styles
-   Primary #2AAFC4 · Secondary #8DD2EF · Soft gray #F5F7FA · Border #E5E7EB
+   Primary #2AAFC4 · Secondary #8DD2EF · Sky-blue bg · Border #E5E7EB
    ========================================================================== */
+
+/* ── Sky-blue themed app background ─────────────────────────────────────────
+   Uses the brand teal (#2AAFC4) at 50% transparency blended over a white
+   base to create a distinctive, calming sky-blue atmosphere while keeping
+   white cards clearly visible against it.                                     */
+body {
+  background-color: #E3F6F9; /* brand #2AAFC4 @ ~15% over white — fallback */
+  background-image:
+    radial-gradient(ellipse 120% 80% at 15% 10%, rgba(42, 175, 196, 0.22) 0%, transparent 55%),
+    radial-gradient(ellipse 80% 60% at 85% 90%, rgba(141, 210, 239, 0.20) 0%, transparent 50%),
+    linear-gradient(160deg, rgba(42, 175, 196, 0.10) 0%, rgba(240, 250, 251, 0.95) 50%, rgba(141, 210, 239, 0.12) 100%);
+}
+
+/* ── Card / box shadow enhancement ──────────────────────────────────────────
+   All white rounded panels now carry a visible teal-glow shadow so they
+   clearly "float" above the sky-blue background.                              */
+.bg-white.rounded-2xl,
+.bg-white.rounded-3xl {
+  box-shadow:
+    0 2px 8px rgba(42, 175, 196, 0.20),
+    0 8px 28px rgba(15, 23, 42, 0.14) !important;
+}
+
+/* Hover lift — interactive cards get a stronger shadow on hover */
+.bg-white.rounded-2xl:hover,
+.bg-white.rounded-3xl:hover {
+  box-shadow:
+    0 4px 16px rgba(42, 175, 196, 0.28),
+    0 16px 40px rgba(15, 23, 42, 0.18) !important;
+  transition: box-shadow 0.25s ease, transform 0.2s ease;
+}
+
+/* Sidebar and top bar stay crisp white, their own shadow is lateral */
+aside.bg-white,
+header.bg-white {
+  box-shadow:
+    4px 0 24px rgba(42, 175, 196, 0.12),
+    0 2px 16px rgba(15, 23, 42, 0.08) !important;
+}
+header.bg-white {
+  box-shadow:
+    0 2px 16px rgba(42, 175, 196, 0.14),
+    0 4px 24px rgba(15, 23, 42, 0.08) !important;
+}
 
 /* Global form field styling — applies the design system to Django form widgets.
    Inputs: 12px radius, soft border, calm primary focus ring. */

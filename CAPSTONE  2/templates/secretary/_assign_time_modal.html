@@ -164,15 +164,25 @@ function renderSchedules() {
 
   // Render occupied times with patient names
   if (occupiedList.length > 0) {
-    let html = '';
+    const container = document.getElementById('occupiedTimesList');
+    container.innerHTML = '';
     for (const time of occupiedList) {
       const data = occupiedTimesMap[time];
-      html += `<div class="flex items-center justify-between text-sm mb-2 p-2 bg-red-100 rounded">
-                 <span class="font-medium">❌ ${data.time_display}</span>
-                 <span class="text-gray-600 text-xs">${data.patient}</span>
-               </div>`;
+      const div = document.createElement('div');
+      div.className = 'flex items-center justify-between text-sm mb-2 p-2 bg-red-100 rounded';
+
+      const timeSpan = document.createElement('span');
+      timeSpan.className = 'font-medium';
+      timeSpan.textContent = `❌ ${data.time_display}`;
+
+      const patientSpan = document.createElement('span');
+      patientSpan.className = 'text-gray-600 text-xs';
+      patientSpan.textContent = data.patient;
+
+      div.appendChild(timeSpan);
+      div.appendChild(patientSpan);
+      container.appendChild(div);
     }
-    document.getElementById('occupiedTimesList').innerHTML = html;
     document.getElementById('occupiedSection').style.display = 'block';
   } else {
     document.getElementById('occupiedSection').style.display = 'none';
@@ -180,12 +190,16 @@ function renderSchedules() {
 
   // Render available times as clickable slots
   if (availableList.length > 0) {
-    let html = '';
+    const container = document.getElementById('availableTimesList');
+    container.innerHTML = '';
     for (const time of availableList) {
       const [h, m] = time.split(':');
-      html += `<span class="time-slot available cursor-pointer hover:opacity-80 transition" onclick="selectTime('${time}')">${h}:${m}</span>`;
+      const span = document.createElement('span');
+      span.className = 'time-slot available cursor-pointer hover:opacity-80 transition';
+      span.textContent = `${h}:${m}`;
+      span.onclick = () => selectTime(time);
+      container.appendChild(span);
     }
-    document.getElementById('availableTimesList').innerHTML = html;
     document.getElementById('availableSection').style.display = 'block';
   } else {
     document.getElementById('availableSection').style.display = 'none';

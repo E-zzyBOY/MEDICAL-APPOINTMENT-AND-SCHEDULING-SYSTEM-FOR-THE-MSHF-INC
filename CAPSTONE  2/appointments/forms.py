@@ -8,10 +8,15 @@ from accounts.validators import validate_ph_mobile_number, normalize_ph_mobile_n
 class PatientDetailsForm(forms.Form):
     """Step 4 of booking: 'Patient Details'. Pre-filled from the logged-in
     patient's profile where available; the patient can edit anything before
-    confirming. Fields here double as the source of truth for two writes —
-    AppointmentPatientDetails (a permanent snapshot tied to the appointment)
-    and the live CustomUser / PatientProfile (so profile edits made here
-    stick around for next time), per the spec's data-handling requirements.
+    confirming.
+
+    IMPORTANT — Data Isolation:
+    Fields here are the source of truth for ONE write only:
+    AppointmentPatientDetails (a permanent snapshot tied to the appointment).
+    They must NEVER be written back to CustomUser or PatientProfile, because
+    this form may be filled out for a family member or dependent rather than
+    the account owner. The logged-in user's account information must always
+    remain completely unchanged by the booking flow.
     """
     first_name    = forms.CharField(max_length=150, required=True, label='First Name')
     middle_name   = forms.CharField(max_length=150, required=False, label='Middle Name')

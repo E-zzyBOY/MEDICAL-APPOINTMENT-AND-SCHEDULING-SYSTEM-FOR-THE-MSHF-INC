@@ -473,25 +473,14 @@ def _patient_details_initial(user):
     return initial
 
 
-def _apply_patient_details_to_profile(user, cleaned_data):
-    """Writes the editable identity/contact fields back onto the live
-    CustomUser / PatientProfile, per the spec's requirement that the
-    patient's profile stays in sync with anything changed during booking.
-    Does not touch chief_complaint or terms_accepted — those are
-    per-appointment, not part of the profile."""
-    user.first_name = cleaned_data['first_name']
-    user.last_name  = cleaned_data['last_name']
-    if cleaned_data.get('email'):
-        user.email = cleaned_data['email']
-    user.save(update_fields=['first_name', 'last_name', 'email'])
-
-    profile, _created = PatientProfile.objects.get_or_create(user=user)
-    profile.middle_name    = cleaned_data.get('middle_name', '')
-    profile.date_of_birth  = cleaned_data['date_of_birth']
-    profile.gender         = cleaned_data['gender']
-    profile.address        = cleaned_data['address']
-    profile.contact_number = cleaned_data['mobile_number']
-    profile.save()
+# NOTE: _apply_patient_details_to_profile was intentionally removed.
+# Appointment booking must NEVER overwrite the logged-in user's account
+# data (first_name, last_name, email, PatientProfile fields), because a
+# patient can book on behalf of a family member or dependent whose details
+# are different from their own account. The appointment form data is
+# captured exclusively in AppointmentPatientDetails (a durable per-
+# appointment snapshot) and must not bleed back into CustomUser or
+# PatientProfile. The logged-in account always remains unchanged.
 
 
 def _patient_already_consented(user):
@@ -652,9 +641,14 @@ def book_step3_confirm(request):
                 terms_accepted_at = terms_timestamp,
             )
 
-            _apply_patient_details_to_profile(request.user, details)
+            # IMPORTANT: Do NOT update CustomUser or PatientProfile here.
+            # The details entered on the booking form belong to the *patient
+            # being booked for* (which may be a family member, not the
+            # account owner). Only the per-appointment snapshot above
+            # (AppointmentPatientDetails) should receive that data.
+            # The logged-in user's account information must remain unchanged.
             if not already_consented:
-                profile = request.user.patient_profile
+                profile, _created = PatientProfile.objects.get_or_create(user=request.user)
                 profile.terms_accepted_at      = terms_timestamp
                 profile.terms_accepted_version = TERMS_VERSION
                 profile.save(update_fields=['terms_accepted_at', 'terms_accepted_version'])

@@ -20,19 +20,22 @@ class Schedule(models.Model):
 
 
 class AppointmentPatientDetails(models.Model):
-    """Snapshot of the patient-details form filled out during booking,
-    captured at the moment the appointment is confirmed (Patient Details
-    step). Kept separate from the live PatientProfile so a later profile
-    edit never silently rewrites what a doctor already reviewed for a past
-    or upcoming visit — same spirit as how a reschedule request leaves the
-    original appointment untouched until approved.
+    """Snapshot of the patient details entered on the booking form at the
+    moment the appointment is confirmed (Patient Details step).
 
-    Editable profile fields (name, DOB, sex, address, mobile, email) are
-    also pushed back onto CustomUser / PatientProfile at booking time per
-    the spec ("patient profile should be updated if editable profile
-    information is changed"), so this table and the live profile normally
-    agree — this row exists to guarantee the appointment keeps its own
-    durable copy regardless of what happens to the profile afterward.
+    DATA ISOLATION — This is the ONLY destination for appointment form data:
+    These fields are intentionally kept completely separate from the live
+    CustomUser / PatientProfile, because a patient may book an appointment
+    on behalf of a family member or dependent (e.g. a sibling, parent, or
+    child). The person being booked is not necessarily the account owner.
+
+    The booking flow must NEVER write these fields back to CustomUser or
+    PatientProfile. The logged-in user's account information (name, email,
+    profile) must remain completely unchanged by the booking process.
+
+    This row provides a durable, immutable per-appointment record of who
+    the appointment was booked for, independent of any future changes to
+    either the account owner's profile or a separate patient profile.
     """
     GENDER_CHOICES = [('M', 'Male'), ('F', 'Female'), ('O', 'Other')]
 

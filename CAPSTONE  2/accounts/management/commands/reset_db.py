@@ -13,7 +13,21 @@ CustomUser = get_user_model()
 class Command(BaseCommand):
     help = 'Clear all records and keep only admin account'
 
+    def add_arguments(self, parser):
+        parser.add_argument(
+            '--confirm',
+            action='store_true',
+            help='Confirm database reset (required)',
+        )
+
     def handle(self, *args, **options):
+        if not options['confirm']:
+            self.stdout.write(self.style.ERROR(
+                '[!] WARNING: This will DELETE ALL RECORDS and USERS (except admin)!\n'
+                '    To proceed, run: python manage.py reset_db --confirm'
+            ))
+            return
+
         self.stdout.write(self.style.WARNING('Starting database reset...'))
 
         # Delete all records from all models

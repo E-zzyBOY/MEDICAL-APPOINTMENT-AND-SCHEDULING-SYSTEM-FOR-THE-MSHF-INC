@@ -25,7 +25,9 @@
   <!-- ══════════ HERO (single pre-tinted photo — gradient already baked into the image) ══════════ -->
   <section class="relative text-white overflow-hidden bg-ind">
     <!-- Background photo (already has the azure tint/gradient baked in — no CSS overlay needed) -->
-    <div class="absolute inset-0" style="background-image:url('{% static 'img/mindalano-hospital-tinted.jpg' %}'); background-size:cover; background-position:center;"></div>
+    <div class="md:hidden absolute inset-0" style="background-image:url('{% static 'img/mindalano-hospital-tinted.jpg' %}?v=2'); background-size:cover; background-position:78% center;"></div>
+    <!-- Desktop: normally fills the section (cover); on very wide/stretched windows it switches to "contain" so the whole photo stays visible, with the solid azure section background showing as letterbox bars on the sides -->
+    <div class="hidden md:block absolute inset-0 bg-cover min-[1800px]:bg-contain bg-no-repeat [background-position:78%_8%]" style="background-image:url('{% static 'img/mindalano-hospital-tinted.jpg' %}?v=2');"></div>
 
     <div class="relative max-w-7xl mx-auto px-6">
 
@@ -183,8 +185,12 @@
   <section id="about" class="pb-20 px-6">
     <div class="max-w-5xl mx-auto grid md:grid-cols-2 gap-12 items-center">
       <div class="relative">
-        <div class="photo-slot rounded-3xl w-4/5 h-64"></div>
-        <div class="photo-slot rounded-2xl w-2/5 h-40 absolute -bottom-8 right-6 ring-8 ring-[#EFF9FB]"></div>
+        <img src="{% static 'img/about-big.jpg' %}"
+             alt="MSHFI operating room staff"
+             class="rounded-3xl w-4/5 h-64 object-cover">
+        <img src="{% static 'img/about-small.jpg' %}"
+             alt="MSHFI staff at work"
+             class="rounded-2xl w-2/5 h-40 absolute -bottom-8 right-6 ring-8 ring-[#EFF9FB] object-cover">
         <div class="absolute left-1/3 bottom-0 flex flex-col items-center justify-center size-24 rounded-full bg-ind text-white shadow-soft-lg">
           <span class="lp-heading font-semibold text-xl leading-none">30+</span>
           <span class="text-[10px] text-white/70 mt-0.5">Experiences</span>
@@ -216,7 +222,7 @@
       </div>
       <div class="grid sm:grid-cols-3 gap-5">
         <div class="bg-white rounded-2xl p-3 shadow-soft-sm hover:shadow-soft transition-shadow">
-          <div class="photo-slot rounded-xl h-36 mb-4"></div>
+          <img src="{% static 'img/service-consulting.jpg' %}" alt="Personal consulting" class="rounded-xl h-36 w-full object-cover mb-4">
           <div class="px-2 pb-3">
             <p class="text-[11px] text-ink-soft mb-1">Personal Consulting</p>
             <div class="flex items-center justify-between gap-2">
@@ -227,7 +233,7 @@
           </div>
         </div>
         <div class="bg-white rounded-2xl p-3 shadow-soft-sm hover:shadow-soft transition-shadow">
-          <div class="photo-slot rounded-xl h-36 mb-4"></div>
+          <img src="{% static 'img/service-cesarean.jpg' %}" alt="Gynecology operation" class="rounded-xl h-36 w-full object-cover mb-4">
           <div class="px-2 pb-3">
             <p class="text-[11px] text-ink-soft mb-1">Gynecology Operation</p>
             <div class="flex items-center justify-between gap-2">
@@ -238,7 +244,7 @@
           </div>
         </div>
         <div class="bg-white rounded-2xl p-3 shadow-soft-sm hover:shadow-soft transition-shadow">
-          <div class="photo-slot rounded-xl h-36 mb-4"></div>
+          <img src="{% static 'img/service-heart.jpg' %}" alt="Heart department" class="rounded-xl h-36 w-full object-cover mb-4">
           <div class="px-2 pb-3">
             <p class="text-[11px] text-ink-soft mb-1">Heart Department</p>
             <div class="flex items-center justify-between gap-2">
@@ -308,7 +314,7 @@
             </div>
           </div>
         </div>
-        <div class="photo-slot rounded-3xl h-80 md:h-[520px] self-end"></div>
+        <img src="{% static 'img/expertise-hologram.jpg' %}" alt="Doctors reviewing patient diagnostics" class="rounded-3xl h-80 md:h-[520px] w-full object-cover self-end">
       </div>
     </div>
   </section>
@@ -323,11 +329,11 @@
       <div class="grid md:grid-cols-2 gap-10 items-center">
         <div class="relative">
           <div class="absolute inset-0 translate-x-3 translate-y-3 rounded-3xl bg-ind"></div>
-          <div class="photo-slot relative rounded-3xl h-72"></div>
+          <img src="{% static 'img/testimonial-1.jpg' %}" alt="MSHFI patient consultation" class="relative rounded-3xl h-72 w-full object-cover">
         </div>
         <div>
           <svg class="w-8 h-8 text-ind mb-4" fill="currentColor" viewBox="0 0 24 24"><path d="M9.983 3v7.391c0 5.704-3.731 9.57-8.983 10.609l-.995-2.151c2.432-.917 3.995-3.638 3.995-5.849h-4v-10h9.983zm14.017 0v7.391c0 5.704-3.748 9.571-9 10.609l-.996-2.151c2.433-.917 3.996-3.638 3.996-5.849h-3.983v-10h9.983z"/></svg>
-          <p class="text-ink italic text-sm md:text-base leading-relaxed mb-5">"Pain management was effective, and I was comfortable during and after the treatment. The staff provided emotional support and made sure I understood every step of my care." <span class="not-italic text-gray-400">(test quote)</span></p>
+          <p class="text-ink italic text-sm md:text-base leading-relaxed mb-5">"Pain management was effective, and I was comfortable during and after the treatment. The staff provided emotional support and made sure I understood every step of my care."</p>
           <div class="flex items-center gap-1 text-amber-400 mb-3">
             <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.958a1 1 0 00.95.69h4.162c.969 0 1.371 1.24.588 1.81l-3.367 2.446a1 1 0 00-.363 1.118l1.286 3.958c.3.922-.755 1.688-1.539 1.118l-3.367-2.446a1 1 0 00-1.175 0l-3.367 2.446c-.783.57-1.838-.196-1.538-1.118l1.285-3.958a1 1 0 00-.362-1.118L2.063 9.385c-.783-.57-.38-1.81.588-1.81h4.162a1 1 0 00.95-.69l1.286-3.958z"/></svg>
             <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.958a1 1 0 00.95.69h4.162c.969 0 1.371 1.24.588 1.81l-3.367 2.446a1 1 0 00-.363 1.118l1.286 3.958c.3.922-.755 1.688-1.539 1.118l-3.367-2.446a1 1 0 00-1.175 0l-3.367 2.446c-.783.57-1.838-.196-1.538-1.118l1.285-3.958a1 1 0 00-.362-1.118L2.063 9.385c-.783-.57-.38-1.81.588-1.81h4.162a1 1 0 00.95-.69l1.286-3.958z"/></svg>
@@ -335,7 +341,7 @@
             <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.958a1 1 0 00.95.69h4.162c.969 0 1.371 1.24.588 1.81l-3.367 2.446a1 1 0 00-.363 1.118l1.286 3.958c.3.922-.755 1.688-1.539 1.118l-3.367-2.446a1 1 0 00-1.175 0l-3.367 2.446c-.783.57-1.838-.196-1.538-1.118l1.285-3.958a1 1 0 00-.362-1.118L2.063 9.385c-.783-.57-.38-1.81.588-1.81h4.162a1 1 0 00.95-.69l1.286-3.958z"/></svg>
             <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.958a1 1 0 00.95.69h4.162c.969 0 1.371 1.24.588 1.81l-3.367 2.446a1 1 0 00-.363 1.118l1.286 3.958c.3.922-.755 1.688-1.539 1.118l-3.367-2.446a1 1 0 00-1.175 0l-3.367 2.446c-.783.57-1.838-.196-1.538-1.118l1.285-3.958a1 1 0 00-.362-1.118L2.063 9.385c-.783-.57-.38-1.81.588-1.81h4.162a1 1 0 00.95-.69l1.286-3.958z"/></svg>
           </div>
-          <p class="lp-heading font-semibold text-ink text-sm">Alexander Cameron <span class="text-gray-400 font-normal">(test name)</span></p>
+          <p class="lp-heading font-semibold text-ink text-sm">Ainodyen Nasroden</p>
           <p class="text-ink-soft text-xs">Patient</p>
         </div>
       </div>

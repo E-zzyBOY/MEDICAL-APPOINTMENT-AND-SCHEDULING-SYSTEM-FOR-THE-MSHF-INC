@@ -22,15 +22,10 @@
 {% block body %}
 <div class="lp min-h-screen bg-[#EFF9FB] text-ink">
 
-  <!-- ══════════ HERO (solid azure on mobile; photo background + gradient scrim + side borders from md up) ══════════ -->
+  <!-- ══════════ HERO (single pre-tinted photo — gradient already baked into the image) ══════════ -->
   <section class="relative text-white overflow-hidden bg-ind">
-    <!-- Background photo (desktop/tablet only — mobile keeps the plain azure gradient above) -->
-    <div class="hidden md:block absolute inset-0" style="background-image:url('{% static 'img/mindalano-hospital.jpg' %}'); background-size:cover; background-position:center;"></div>
-    <!-- Azure gradient scrim: solid behind the nav/headline, fading out so the photo shows through clearly -->
-    <div class="hidden md:block absolute inset-0" style="background-image:linear-gradient(100deg, #1B86A0 0%, #1B86A0 30%, #2CB4C9 45%, rgba(44,180,201,0.45) 55%, rgba(44,180,201,0.08) 65%, rgba(44,180,201,0) 75%);"></div>
-    <!-- Solid azure border bars, hiding the messy edges of the photo (wires/satellite dish on the left, umbrella/wires/person on the right) -->
-    <div class="hidden md:block absolute inset-y-0 left-0 w-[18%] bg-ind"></div>
-    <div class="hidden md:block absolute inset-y-0 right-0 w-[18%] bg-ind"></div>
+    <!-- Background photo (already has the azure tint/gradient baked in — no CSS overlay needed) -->
+    <div class="absolute inset-0" style="background-image:url('{% static 'img/mindalano-hospital-tinted.jpg' %}'); background-size:cover; background-position:center;"></div>
 
     <div class="relative max-w-7xl mx-auto px-6">
 
@@ -42,22 +37,23 @@
           </span>
           <span class="font-semibold text-lg tracking-tight">MSHFI</span>
         </a>
-        <nav class="hidden md:flex items-center gap-7 text-sm">
+        <nav class="hidden md:flex items-center gap-7 text-sm bg-ind-3 rounded-full px-8 py-3 border-2 border-white">
           <a href="/" class="font-medium">Home</a>
-          <a href="#departments" class="text-white/70 hover:text-white transition-colors">Departments</a>
-          <a href="#about" class="text-white/70 hover:text-white transition-colors">About Us</a>
-          <a href="#services" class="text-white/70 hover:text-white transition-colors">Services</a>
-          <a href="#contact" class="text-white/70 hover:text-white transition-colors">Contact</a>
+          <a href="#departments" class="text-white/80 hover:text-white transition-colors">Departments</a>
+          <a href="#about" class="text-white/80 hover:text-white transition-colors">About Us</a>
+          <a href="#services" class="text-white/80 hover:text-white transition-colors">Services</a>
+          <a href="#contact" class="text-white/80 hover:text-white transition-colors">Contact</a>
         </nav>
         <div class="flex items-center gap-3">
-          <a href="{% url 'accounts:login' %}" class="hidden sm:block text-sm text-white/80 hover:text-white transition-colors font-medium">Log In</a>
-          <a href="{% url 'accounts:register' %}" class="px-5 py-2.5 rounded-full bg-white/15 hover:bg-white/25 border border-white/30 text-sm font-medium transition-colors">Make an Appointment</a>
+          <a href="{% url 'accounts:login' %}" class="hidden sm:block px-5 py-2.5 rounded-full bg-white border-2 border-ind text-ind text-sm font-medium hover:bg-white/90 transition-all">Log In</a>
+          <a href="{% url 'accounts:register' %}" class="px-5 py-2.5 rounded-full bg-ind-3 hover:brightness-110 border-2 border-white text-white text-sm font-medium transition-all">Make an Appointment</a>
         </div>
       </header>
 
       <!-- Hero content -->
-      <div class="grid md:grid-cols-2 gap-10 items-center pt-8 pb-16 md:pt-12 md:pb-24">
-        <div class="pb-12 md:pb-16 animate-fade-up">
+      <div class="grid md:grid-cols-2 gap-10 items-center md:items-stretch pt-8 pb-16 md:pt-12 md:pb-24">
+        <!-- Text box: solid azure, sized to the column itself so it scales correctly on resize (not tied to viewport %) -->
+        <div class="pb-12 md:pb-0 animate-fade-up md:bg-ind md:rounded-3xl md:p-10 md:flex md:flex-col md:justify-center">
           <p class="text-xs font-semibold tracking-widest text-white/70 mb-4">EXPERT MEDICAL TREATMENT</p>
           <h1 class="lp-heading text-4xl md:text-5xl font-semibold leading-tight mb-5">We Follow A Holistic Approach to Health Care.</h1>
           <p class="text-white/75 text-sm md:text-base max-w-md mb-8">Protect your health &amp; keep it strong, with the latest technology available in your neighbourhood. <!-- test copy — replace later --></p>
@@ -69,36 +65,8 @@
           </a>
         </div>
 
-        <!-- Mobile only: bring back the original boxed photo (the full-bleed background photo above is desktop/tablet only) -->
-        <div class="relative md:hidden animate-fade-up" style="animation-delay: 100ms">
-          <img src="{% static 'img/mindalano-hospital.jpg' %}"
-               alt="Mindalano Specialist Hospital Foundation Inc. building"
-               class="rounded-t-3xl w-full h-72 object-cover">
-          <div class="absolute bottom-6 right-4 flex items-center gap-3 rounded-full bg-ind-2/90 backdrop-blur px-5 py-2.5 shadow-soft-lg">
-            <span class="flex -space-x-2">
-              <span class="size-7 rounded-full photo-slot ring-2 ring-white/40"></span>
-              <span class="size-7 rounded-full photo-slot ring-2 ring-white/40"></span>
-              <span class="size-7 rounded-full photo-slot ring-2 ring-white/40"></span>
-            </span>
-            <span class="text-xs leading-tight"><b class="lp-heading text-sm">150k</b><br class="hidden">&nbsp;Certified patients</span>
-          </div>
-        </div>
-
-        <!-- Desktop/tablet only: floating badges over the full-bleed background photo -->
-        <div class="relative h-72 md:h-96 hidden md:block animate-fade-up" style="animation-delay: 100ms">
-          <div class="absolute top-6 left-0 md:left-6 flex flex-col items-center justify-center size-24 rounded-2xl bg-ind-3 border border-white/20 shadow-soft-lg text-center rotate-[-4deg]">
-            <span class="lp-heading font-semibold text-lg leading-none">870+</span>
-            <span class="text-[10px] text-white/70 mt-1">Doctors</span>
-          </div>
-          <div class="absolute bottom-6 right-4 flex items-center gap-3 rounded-full bg-ind-2/90 backdrop-blur px-5 py-2.5 shadow-soft-lg">
-            <span class="flex -space-x-2">
-              <span class="size-7 rounded-full photo-slot ring-2 ring-white/40"></span>
-              <span class="size-7 rounded-full photo-slot ring-2 ring-white/40"></span>
-              <span class="size-7 rounded-full photo-slot ring-2 ring-white/40"></span>
-            </span>
-            <span class="text-xs leading-tight"><b class="lp-heading text-sm">150k</b><br class="hidden">&nbsp;Certified patients</span>
-          </div>
-        </div>
+        <!-- Right column left empty on purpose: keeps the grid at two columns so the text box stays half-width; the photo shows through behind it -->
+        <div aria-hidden="true"></div>
       </div>
     </div>
   </section>

@@ -272,9 +272,9 @@ def appointment_confirm(request, pk):
         messages.success(request, 'Patient confirmed as arrived. Vital signs assessment can now begin.')
         if request.htmx:
             response = render(request, 'secretary/_appointment_confirm_modal.html', {'appt': appt, 'action': 'confirm'})
-            response['HX-Redirect'] = '/secretary/appointments/'
+            response['HX-Redirect'] = reverse('secretary:vitals_add', kwargs={'patient_id': appt.patient.pk})
             return response
-        return redirect('secretary:appointment_list')
+        return redirect('secretary:vitals_add', patient_id=appt.patient.pk)
     if request.htmx:
         return render(request, 'secretary/_appointment_confirm_modal.html', {'appt': appt, 'action': 'confirm'})
     return render(request, 'secretary/appointment_confirm_action.html', {

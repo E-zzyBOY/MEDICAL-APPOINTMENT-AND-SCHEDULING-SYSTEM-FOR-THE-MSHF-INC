@@ -88,13 +88,14 @@
             {% endif %}
           </td>
           <td class="py-3">
-            {# ── ACTION BUTTONS — enforced per workflow step ──
+            {% comment %}
+               ── ACTION BUTTONS — enforced per workflow step ──
                Pending Assignment  →  Assign only
                Scheduled           →  Reschedule | Cancel | Confirm
                Pending Reschedule  →  Approve | Reject
                Confirmed           →  Complete
                Completed/Cancelled →  — (read-only)
-            #}
+            {% endcomment %}
             {% if appt.status == 'Pending Assignment' %}
             <div class="flex gap-1">
               <a hx-get="{% url 'secretary:assign_time' pk=appt.pk %}" hx-target="#modal-root" hx-swap="innerHTML"

@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load static %}
 {% block title %}MINDALANO SPECIALIST HOSPITAL FOUNDATION INC{% endblock %}
 
 {% block extra_head %}
@@ -21,9 +22,17 @@
 {% block body %}
 <div class="lp min-h-screen bg-[#EFF9FB] text-ink">
 
-  <!-- ══════════ HERO (indigo panel: nav + headline + photo) ══════════ -->
-  <section class="bg-ind text-white">
-    <div class="max-w-7xl mx-auto px-6">
+  <!-- ══════════ HERO (solid azure on mobile; photo background + gradient scrim + side borders from md up) ══════════ -->
+  <section class="relative text-white overflow-hidden bg-ind">
+    <!-- Background photo (desktop/tablet only — mobile keeps the plain azure gradient above) -->
+    <div class="hidden md:block absolute inset-0" style="background-image:url('{% static 'img/mindalano-hospital.jpg' %}'); background-size:cover; background-position:center;"></div>
+    <!-- Azure gradient scrim: solid behind the nav/headline, fading out so the photo shows through clearly -->
+    <div class="hidden md:block absolute inset-0" style="background-image:linear-gradient(100deg, #1B86A0 0%, #1B86A0 30%, #2CB4C9 45%, rgba(44,180,201,0.45) 55%, rgba(44,180,201,0.08) 65%, rgba(44,180,201,0) 75%);"></div>
+    <!-- Solid azure border bars, hiding the messy edges of the photo (wires/satellite dish on the left, umbrella/wires/person on the right) -->
+    <div class="hidden md:block absolute inset-y-0 left-0 w-[18%] bg-ind"></div>
+    <div class="hidden md:block absolute inset-y-0 right-0 w-[18%] bg-ind"></div>
+
+    <div class="relative max-w-7xl mx-auto px-6">
 
       <!-- Nav -->
       <header class="flex items-center justify-between gap-6 py-5">
@@ -47,7 +56,7 @@
       </header>
 
       <!-- Hero content -->
-      <div class="grid md:grid-cols-2 gap-10 items-center pt-8 pb-0 md:pt-12">
+      <div class="grid md:grid-cols-2 gap-10 items-center pt-8 pb-16 md:pt-12 md:pb-24">
         <div class="pb-12 md:pb-16 animate-fade-up">
           <p class="text-xs font-semibold tracking-widest text-white/70 mb-4">EXPERT MEDICAL TREATMENT</p>
           <h1 class="lp-heading text-4xl md:text-5xl font-semibold leading-tight mb-5">We Follow A Holistic Approach to Health Care.</h1>
@@ -60,10 +69,24 @@
           </a>
         </div>
 
-        <!-- Hero photo placeholder + floating badges -->
-        <div class="relative self-end animate-fade-up" style="animation-delay: 100ms">
-          <div class="photo-slot rounded-t-3xl w-full h-72 md:h-96"></div>
-          <div class="absolute top-6 left-0 -translate-x-1/3 hidden md:flex flex-col items-center justify-center size-24 rounded-2xl bg-ind-3 border border-white/20 shadow-soft-lg text-center rotate-[-4deg]">
+        <!-- Mobile only: bring back the original boxed photo (the full-bleed background photo above is desktop/tablet only) -->
+        <div class="relative md:hidden animate-fade-up" style="animation-delay: 100ms">
+          <img src="{% static 'img/mindalano-hospital.jpg' %}"
+               alt="Mindalano Specialist Hospital Foundation Inc. building"
+               class="rounded-t-3xl w-full h-72 object-cover">
+          <div class="absolute bottom-6 right-4 flex items-center gap-3 rounded-full bg-ind-2/90 backdrop-blur px-5 py-2.5 shadow-soft-lg">
+            <span class="flex -space-x-2">
+              <span class="size-7 rounded-full photo-slot ring-2 ring-white/40"></span>
+              <span class="size-7 rounded-full photo-slot ring-2 ring-white/40"></span>
+              <span class="size-7 rounded-full photo-slot ring-2 ring-white/40"></span>
+            </span>
+            <span class="text-xs leading-tight"><b class="lp-heading text-sm">150k</b><br class="hidden">&nbsp;Certified patients</span>
+          </div>
+        </div>
+
+        <!-- Desktop/tablet only: floating badges over the full-bleed background photo -->
+        <div class="relative h-72 md:h-96 hidden md:block animate-fade-up" style="animation-delay: 100ms">
+          <div class="absolute top-6 left-0 md:left-6 flex flex-col items-center justify-center size-24 rounded-2xl bg-ind-3 border border-white/20 shadow-soft-lg text-center rotate-[-4deg]">
             <span class="lp-heading font-semibold text-lg leading-none">870+</span>
             <span class="text-[10px] text-white/70 mt-1">Doctors</span>
           </div>

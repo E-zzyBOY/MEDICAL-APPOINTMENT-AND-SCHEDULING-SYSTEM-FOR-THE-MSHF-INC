@@ -180,6 +180,79 @@ def assign_appointment_time(request, pk):
 
 
 @role_required('secretary')
+def appointment_reschedule(request, pk):
+    """Secretary reschedules a Scheduled appointment to a new date.
+    This proactively changes the appointment date/time without requiring
+    patient approval, different from patient-initiated reschedule requests."""
+    doctor = _assigned_doctor(request.user)
+    appt = get_object_or_404(
+        Appointment, pk=pk, status__in=['Scheduled', 'Rescheduled'], doctor=doctor
+    )
+    blocks = _working_hours_for_date(appt.doctor, appt.appointment_date)
+
+    if request.method == 'POST':
+        new_date_str = request.POST.get('new_date')
+        new_time_str = request.POST.get('new_time')
+        if not new_date_str:
+            messages.error(request, 'Please select a new date.')
+        else:
+            from datetime import datetime
+            try:
+                new_date = datetime.strptime(new_date_str, '%Y-%m-%d').date()
+            except (ValueError, TypeError):
+                messages.error(request, 'Invalid date format.')
+                new_date = None
+
+            if new_date:
+                new_blocks = _working_hours_for_date(appt.doctor, new_date)
+                if not new_blocks:
+                    messages.error(request, f"Doctor has no working hours set for {new_date.strftime('%B %d, %Y')}.")
+                elif new_time_str:
+                    new_time = datetime.strptime(new_time_str, '%H:%M').time()
+                    if not _time_within_working_hours(new_time, new_blocks):
+                        hours_display = ', '.join(
+                            f"{s.strftime('%I:%M %p')}–{e.strftime('%I:%M %p')}" for s, e in new_blocks
+                        )
+                        messages.error(request, f"That time is outside working hours ({hours_display}).")
+                    else:
+                        with transaction.atomic():
+                            conflict = Appointment.objects.select_for_update().filter(
+                                doctor=appt.doctor,
+                                appointment_date=new_date,
+                                appointment_time=new_time,
+                                status__in=['Scheduled', 'Rescheduled'],
+                            ).exclude(pk=appt.pk).exists()
+                            if conflict:
+                                messages.error(request, 'Doctor already has an appointment at that time.')
+                            else:
+                                appt.appointment_date = new_date
+                                appt.appointment_time = new_time
+                                appt.status = 'Rescheduled'
+                                appt.secretary = request.user
+                                appt.save()
+                                try:
+                                    send_time_assigned_email(appt)
+                                except Exception:
+                                    pass
+                                _notify(appt.patient,
+                                        f"Your appointment with Dr. {appt.doctor.get_full_name()} has been rescheduled to "
+                                        f"{appt.appointment_date.strftime('%B %d, %Y')} at {appt.appointment_time.strftime('%I:%M %p')}.")
+                                messages.success(request, 'Appointment rescheduled. Patient notified.')
+                                if request.htmx:
+                                    response = render(request, 'secretary/_appointment_action_modal.html', {'appointment': appt, 'action': 'reschedule'})
+                                    response['HX-Redirect'] = '/secretary/appointments/'
+                                    return response
+                                return redirect('secretary:appointment_list')
+                else:
+                    messages.error(request, 'Please select a time.')
+
+    context = {'appt': appt, 'title': 'Reschedule Appointment'}
+    if request.htmx:
+        return render(request, 'secretary/_appointment_reschedule_modal.html', context)
+    return render(request, 'secretary/appointment_reschedule.html', context)
+
+
+@role_required('secretary')
 def appointment_confirm(request, pk):
     """Secretary confirms the patient has arrived at the hospital.
     This action is only available for 'Scheduled' appointments and moves

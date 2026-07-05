@@ -1,0 +1,39 @@
+{% extends "secretary/base_secretary.html" %}
+{% block page_title %}Reschedule Appointment{% endblock %}
+{% block secretary_content %}
+<div class="max-w-md">
+  <div class="bg-white rounded-2xl shadow-soft p-8">
+    <h2 class="text-xl font-semibold text-gray-800 mb-4">Reschedule Appointment</h2>
+    <div class="bg-gray-50 rounded-xl p-4 mb-6 text-sm space-y-2">
+      <div class="flex justify-between"><span class="text-gray-500">Patient</span><span class="font-medium">{{ appt.patient.get_full_name }}</span></div>
+      <div class="flex justify-between"><span class="text-gray-500">Doctor</span><span class="font-medium">Dr. {{ appt.doctor.get_full_name }}</span></div>
+      <div class="flex justify-between"><span class="text-gray-500">Current Date</span><span class="font-medium">{{ appt.appointment_date|date:"F j, Y" }}</span></div>
+      <div class="flex justify-between"><span class="text-gray-500">Current Time</span><span class="font-medium">{% if appt.appointment_time %}{{ appt.appointment_time|time:"g:i A" }}{% else %}—{% endif %}</span></div>
+    </div>
+
+    <form method="post" class="space-y-4">
+      {% csrf_token %}
+      <div>
+        <label class="block text-sm font-semibold text-gray-700 mb-1">New Date</label>
+        <input type="date" name="new_date" required
+               min="{% now 'Y-m-d' %}"
+               class="w-full border border-gray-300 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" />
+      </div>
+      <div>
+        <label class="block text-sm font-semibold text-gray-700 mb-1">New Time</label>
+        <input type="time" name="new_time" required
+               class="w-full border border-gray-300 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" />
+      </div>
+      <div class="flex gap-3">
+        <button type="submit"
+                class="flex-1 bg-indigo-600 text-white font-semibold py-3 rounded-xl hover:bg-indigo-700 transition">
+          Confirm Reschedule
+        </button>
+        <a href="/secretary/appointments/" class="flex-1 text-center border border-gray-300 text-gray-700 font-semibold py-3 rounded-xl hover:bg-gray-50 transition">
+          Back
+        </a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

@@ -14,6 +14,7 @@ urlpatterns = [
     path('appointments/<int:pk>/complete/',          v.appointment_complete,      name='appointment_complete'),
     path('appointments/<int:pk>/reschedule/approve/', v.appointment_reschedule_approve, name='reschedule_approve'),
     path('appointments/<int:pk>/reschedule/reject/',  v.appointment_reschedule_reject,  name='reschedule_reject'),
+    path('appointments/<int:pk>/reschedule/',        v.appointment_reschedule,    name='reschedule'),
     path('appointments/<int:pk>/cancel/',            v.appointment_cancel,        name='appointment_cancel'),
     path('walk-in/register/',                        v.walkin_register,           name='walkin_register'),
     path('walk-in/<int:patient_id>/vitals/add/',     v.vitals_add,                name='vitals_add'),

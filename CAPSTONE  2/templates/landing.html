@@ -5,17 +5,49 @@
 {% block extra_head %}
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
-  .lp { font-family: 'Poppins', 'Inter', sans-serif; }
-  .lp-heading { font-family: 'Poppins', sans-serif; }
+  .lp {
+    font-family: 'Poppins', 'Inter', sans-serif;
+  }
+
+  .lp-heading {
+    font-family: 'Poppins', sans-serif;
+  }
+
   /* Landing-page indigo palette (matches reference design) */
-  .bg-ind    { background-image: linear-gradient(135deg, #2CB4C9 0%, #1B86A0 100%); }
-  .bg-ind-2  { background-color: rgba(255,255,255,0.10); backdrop-filter: blur(2px); }
-  .bg-ind-3  { background-color: #35B4C8; }
-  .text-ind  { color: #1D8FA8; }
-  .border-ind{ border-color: #1D8FA8; }
-  .hover\:bg-ind-2:hover { background-color: #17758B; }
-  .hover\:bg-ind-3:hover { background-color: #35B4C8; }
-  .photo-slot { background:#000; } /* image placeholders — real photos to be added later */
+  .bg-ind {
+    background-image: linear-gradient(135deg, #2CB4C9 0%, #1B86A0 100%);
+  }
+
+  .bg-ind-2 {
+    background-color: rgba(255, 255, 255, 0.10);
+    backdrop-filter: blur(2px);
+  }
+
+  .bg-ind-3 {
+    background-color: #35B4C8;
+  }
+
+  .text-ind {
+    color: #1D8FA8;
+  }
+
+  .border-ind {
+    border-color: #1D8FA8;
+  }
+
+  .hover\:bg-ind-2:hover {
+    background-color: #17758B;
+  }
+
+  .hover\:bg-ind-3:hover {
+    background-color: #35B4C8;
+  }
+
+  .photo-slot {
+    background: #000;
+  }
+
+  /* image placeholders — real photos to be added later */
 </style>
 {% endblock %}
 
@@ -25,9 +57,13 @@
   <!-- ══════════ HERO (single pre-tinted photo — gradient already baked into the image) ══════════ -->
   <section class="relative text-white overflow-hidden bg-ind">
     <!-- Background photo (already has the azure tint/gradient baked in — no CSS overlay needed) -->
-    <div class="md:hidden absolute inset-0" style="background-image:url('{% static 'img/mindalano-hospital-tinted.jpg' %}?v=2'); background-size:cover; background-position:78% center;"></div>
+    <div class="md:hidden absolute inset-0"
+      style="background-image:url('{% static 'img/mindalano-hospital-tinted.jpg' %}?v=2'); background-size:cover; background-position:78% center;">
+    </div>
     <!-- Desktop: normally fills the section (cover); on very wide/stretched windows it switches to "contain" so the whole photo stays visible, with the solid azure section background showing as letterbox bars on the sides -->
-    <div class="hidden md:block absolute inset-0 bg-cover min-[1800px]:bg-contain bg-no-repeat [background-position:78%_8%]" style="background-image:url('{% static 'img/mindalano-hospital-tinted.jpg' %}?v=2');"></div>
+    <div
+      class="hidden md:block absolute inset-0 bg-cover min-[1800px]:bg-contain bg-no-repeat [background-position:78%_8%]"
+      style="background-image:url('{% static 'img/mindalano-hospital-tinted.jpg' %}?v=2');"></div>
 
     <div class="relative max-w-7xl mx-auto px-6">
 
@@ -35,7 +71,10 @@
       <header class="flex items-center justify-between gap-6 py-5">
         <a href="/" class="flex items-center gap-2.5">
           <span class="flex size-9 items-center justify-center rounded-xl bg-white/15">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M11 3a1 1 0 00-1 1v5a1 1 0 01-1 1H4a1 1 0 00-1 1v2a1 1 0 001 1h5a1 1 0 011 1v5a1 1 0 001 1h2a1 1 0 001-1v-5a1 1 0 011-1h5a1 1 0 001-1v-2a1 1 0 00-1-1h-5a1 1 0 01-1-1V4a1 1 0 00-1-1h-2z"/></svg>
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round"
+                d="M11 3a1 1 0 00-1 1v5a1 1 0 01-1 1H4a1 1 0 00-1 1v2a1 1 0 001 1h5a1 1 0 011 1v5a1 1 0 001 1h2a1 1 0 001-1v-5a1 1 0 011-1h5a1 1 0 001-1v-2a1 1 0 00-1-1h-5a1 1 0 01-1-1V4a1 1 0 00-1-1h-2z" />
+            </svg>
           </span>
           <span class="font-semibold text-lg tracking-tight">MSHFI</span>
         </a>
@@ -47,21 +86,31 @@
           <a href="#contact" class="text-white/80 hover:text-white transition-colors">Contact</a>
         </nav>
         <div class="flex items-center gap-3">
-          <a href="{% url 'accounts:login' %}" class="hidden sm:block px-5 py-2.5 rounded-full bg-white border-2 border-ind text-ind text-sm font-medium hover:bg-white/90 transition-all">Log In</a>
-          <a href="{% url 'accounts:register' %}" class="px-5 py-2.5 rounded-full bg-ind-3 hover:brightness-110 border-2 border-white text-white text-sm font-medium transition-all">Make an Appointment</a>
+          <a href="{% url 'accounts:login' %}"
+            class="hidden sm:block px-5 py-2.5 rounded-full bg-white border-2 border-ind text-ind text-sm font-medium hover:bg-white/90 transition-all">Log
+            In</a>
+          <a href="{% url 'accounts:register' %}"
+            class="px-5 py-2.5 rounded-full bg-ind-3 hover:brightness-110 border-2 border-white text-white text-sm font-medium transition-all">Make
+            an Appointment</a>
         </div>
       </header>
 
       <!-- Hero content -->
       <div class="grid md:grid-cols-2 gap-10 items-center md:items-stretch pt-8 pb-16 md:pt-12 md:pb-24">
         <!-- Text box: solid azure, sized to the column itself so it scales correctly on resize (not tied to viewport %) -->
-        <div class="pb-12 md:pb-0 animate-fade-up md:bg-ind md:rounded-3xl md:p-10 md:flex md:flex-col md:justify-center">
+        <div
+          class="pb-12 md:pb-0 animate-fade-up md:bg-ind md:rounded-3xl md:p-10 md:flex md:flex-col md:justify-center">
           <p class="text-xs font-semibold tracking-widest text-white/70 mb-4">EXPERT MEDICAL TREATMENT</p>
-          <h1 class="lp-heading text-4xl md:text-5xl font-semibold leading-tight mb-5">We Follow A Holistic Approach to Health Care.</h1>
-          <p class="text-white/75 text-sm md:text-base max-w-md mb-8">Protect your health &amp; keep it strong, with the latest technology available in your neighbourhood. <!-- test copy — replace later --></p>
+          <h1 class="lp-heading text-4xl md:text-5xl font-semibold leading-tight mb-5">We Follow A Holistic Approach to
+            Health Care.</h1>
+          <p class="text-white/75 text-sm md:text-base max-w-md mb-8">Protect your health &amp; keep it strong, with the
+            latest technology available in your neighbourhood. <!-- test copy — replace later --></p>
           <a href="{% url 'accounts:register' %}" class="inline-flex items-center gap-3 group">
-            <span class="flex size-11 items-center justify-center rounded-full bg-white text-ind group-hover:scale-105 transition-transform">
-              <svg class="w-4 h-4 ml-0.5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+            <span
+              class="flex size-11 items-center justify-center rounded-full bg-white text-ind group-hover:scale-105 transition-transform">
+              <svg class="w-4 h-4 ml-0.5" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M8 5v14l11-7z" />
+              </svg>
             </span>
             <span class="text-sm font-medium">See How We Work</span>
           </a>
@@ -77,101 +126,175 @@
   <section id="departments" class="py-20 px-6">
     <div class="max-w-5xl mx-auto text-center">
       <p class="text-xs font-semibold tracking-widest text-ind mb-3">OUR DEPARTMENT</p>
-      <h2 class="lp-heading text-2xl md:text-3xl font-semibold text-ink mb-12">Experienced In Multiple Medical<br class="hidden md:block"> Practices For Your Health</h2>
+      <h2 class="lp-heading text-2xl md:text-3xl font-semibold text-ink mb-12">Experienced In Multiple Medical<br
+          class="hidden md:block"> Practices For Your Health</h2>
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 text-left">
-        <div class="flex items-center gap-4 bg-white rounded-2xl p-5 shadow-soft-sm hover:shadow-soft hover:-translate-y-0.5 transition-all">
-          <span class="flex size-12 shrink-0 items-center justify-center rounded-full bg-[#E0F6FA] text-ind"><svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="1.7" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v8m4-4H8m13 0a9 9 0 11-18 0 9 9 0 0118 0z"/></svg></span>
+        <div
+          class="flex items-center gap-4 bg-white rounded-2xl p-5 shadow-soft-sm hover:shadow-soft hover:-translate-y-0.5 transition-all">
+          <span class="flex size-12 shrink-0 items-center justify-center rounded-full bg-[#E0F6FA] text-ind"><svg
+              class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="1.7" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v8m4-4H8m13 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg></span>
           <div class="min-w-0">
             <p class="text-[9px] font-semibold tracking-widest text-[#9CA3AF]">DEPARTMENT OF</p>
             <p class="lp-heading font-semibold text-ink leading-snug text-sm">Medicine</p>
           </div>
         </div>
-        <div class="flex items-center gap-4 bg-white rounded-2xl p-5 shadow-soft-sm hover:shadow-soft hover:-translate-y-0.5 transition-all">
-          <span class="flex size-12 shrink-0 items-center justify-center rounded-full bg-[#E0F6FA] text-ind"><svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="1.7" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/></svg></span>
+        <div
+          class="flex items-center gap-4 bg-white rounded-2xl p-5 shadow-soft-sm hover:shadow-soft hover:-translate-y-0.5 transition-all">
+          <span class="flex size-12 shrink-0 items-center justify-center rounded-full bg-[#E0F6FA] text-ind"><svg
+              class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="1.7" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round"
+                d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+            </svg></span>
           <div class="min-w-0">
             <p class="text-[9px] font-semibold tracking-widest text-[#9CA3AF]">DEPARTMENT OF MEDICINE</p>
             <p class="lp-heading font-semibold text-ink leading-snug text-sm">Cardiology</p>
           </div>
         </div>
-        <div class="flex items-center gap-4 bg-white rounded-2xl p-5 shadow-soft-sm hover:shadow-soft hover:-translate-y-0.5 transition-all">
-          <span class="flex size-12 shrink-0 items-center justify-center rounded-full bg-[#E0F6FA] text-ind"><svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="1.7" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9.75 3v6.75L4.5 18.75A2.25 2.25 0 006.53 22h10.94a2.25 2.25 0 002.03-3.25L14.25 9.75V3m-6 0h7.5M8.25 15h7.5"/></svg></span>
+        <div
+          class="flex items-center gap-4 bg-white rounded-2xl p-5 shadow-soft-sm hover:shadow-soft hover:-translate-y-0.5 transition-all">
+          <span class="flex size-12 shrink-0 items-center justify-center rounded-full bg-[#E0F6FA] text-ind"><svg
+              class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="1.7" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round"
+                d="M9.75 3v6.75L4.5 18.75A2.25 2.25 0 006.53 22h10.94a2.25 2.25 0 002.03-3.25L14.25 9.75V3m-6 0h7.5M8.25 15h7.5" />
+            </svg></span>
           <div class="min-w-0">
             <p class="text-[9px] font-semibold tracking-widest text-[#9CA3AF]">DEPARTMENT OF MEDICINE</p>
             <p class="lp-heading font-semibold text-ink leading-snug text-sm">Endocrinology</p>
           </div>
         </div>
-        <div class="flex items-center gap-4 bg-white rounded-2xl p-5 shadow-soft-sm hover:shadow-soft hover:-translate-y-0.5 transition-all">
-          <span class="flex size-12 shrink-0 items-center justify-center rounded-full bg-[#E0F6FA] text-ind"><svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="1.7" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15.182 15.182a4.5 4.5 0 01-6.364 0M21 12a9 9 0 11-18 0 9 9 0 0118 0zM9.75 9.75h.008v.008H9.75V9.75zm4.5 0h.008v.008h-.008V9.75z"/></svg></span>
+        <div
+          class="flex items-center gap-4 bg-white rounded-2xl p-5 shadow-soft-sm hover:shadow-soft hover:-translate-y-0.5 transition-all">
+          <span class="flex size-12 shrink-0 items-center justify-center rounded-full bg-[#E0F6FA] text-ind"><svg
+              class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="1.7" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round"
+                d="M15.182 15.182a4.5 4.5 0 01-6.364 0M21 12a9 9 0 11-18 0 9 9 0 0118 0zM9.75 9.75h.008v.008H9.75V9.75zm4.5 0h.008v.008h-.008V9.75z" />
+            </svg></span>
           <div class="min-w-0">
             <p class="text-[9px] font-semibold tracking-widest text-[#9CA3AF]">DEPARTMENT OF</p>
             <p class="lp-heading font-semibold text-ink leading-snug text-sm">Pediatrics</p>
           </div>
         </div>
-        <div class="flex items-center gap-4 bg-white rounded-2xl p-5 shadow-soft-sm hover:shadow-soft hover:-translate-y-0.5 transition-all">
-          <span class="flex size-12 shrink-0 items-center justify-center rounded-full bg-[#E0F6FA] text-ind"><svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="1.7" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 18.75a6 6 0 006-6v-1.5m-6 7.5a6 6 0 01-6-6v-1.5m6 7.5v3.75m-3.75 0h7.5M12 15.75a3 3 0 01-3-3V4.5a3 3 0 116 0v8.25a3 3 0 01-3 3z"/></svg></span>
+        <div
+          class="flex items-center gap-4 bg-white rounded-2xl p-5 shadow-soft-sm hover:shadow-soft hover:-translate-y-0.5 transition-all">
+          <span class="flex size-12 shrink-0 items-center justify-center rounded-full bg-[#E0F6FA] text-ind"><svg
+              class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="1.7" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round"
+                d="M12 18.75a6 6 0 006-6v-1.5m-6 7.5a6 6 0 01-6-6v-1.5m6 7.5v3.75m-3.75 0h7.5M12 15.75a3 3 0 01-3-3V4.5a3 3 0 116 0v8.25a3 3 0 01-3 3z" />
+            </svg></span>
           <div class="min-w-0">
             <p class="text-[9px] font-semibold tracking-widest text-[#9CA3AF]">DEPARTMENT OF HEENT</p>
             <p class="lp-heading font-semibold text-ink leading-snug text-sm">Head &amp; Neck Surgery</p>
           </div>
         </div>
-        <div class="flex items-center gap-4 bg-white rounded-2xl p-5 shadow-soft-sm hover:shadow-soft hover:-translate-y-0.5 transition-all">
-          <span class="flex size-12 shrink-0 items-center justify-center rounded-full bg-[#E0F6FA] text-ind"><svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="1.7" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6.75 7.5l3 2.25-3 2.25m4.5 0h3m-9 8.25h13.5A2.25 2.25 0 0021 18V6a2.25 2.25 0 00-2.25-2.25H5.25A2.25 2.25 0 003 6v12a2.25 2.25 0 002.25 2.25z"/></svg></span>
+        <div
+          class="flex items-center gap-4 bg-white rounded-2xl p-5 shadow-soft-sm hover:shadow-soft hover:-translate-y-0.5 transition-all">
+          <span class="flex size-12 shrink-0 items-center justify-center rounded-full bg-[#E0F6FA] text-ind"><svg
+              class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="1.7" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round"
+                d="M6.75 7.5l3 2.25-3 2.25m4.5 0h3m-9 8.25h13.5A2.25 2.25 0 0021 18V6a2.25 2.25 0 00-2.25-2.25H5.25A2.25 2.25 0 003 6v12a2.25 2.25 0 002.25 2.25z" />
+            </svg></span>
           <div class="min-w-0">
             <p class="text-[9px] font-semibold tracking-widest text-[#9CA3AF]">DEPARTMENT OF</p>
             <p class="lp-heading font-semibold text-ink leading-snug text-sm">Orthopedic &amp; Trauma</p>
           </div>
         </div>
-        <div class="flex items-center gap-4 bg-white rounded-2xl p-5 shadow-soft-sm hover:shadow-soft hover:-translate-y-0.5 transition-all">
-          <span class="flex size-12 shrink-0 items-center justify-center rounded-full bg-[#E0F6FA] text-ind"><svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="1.7" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M7.848 8.25l1.536.887M7.848 8.25a3 3 0 11-5.196-3 3 3 0 015.196 3zm1.536.887a2.165 2.165 0 011.083 1.839c.005.351.054.695.14 1.024M9.384 9.137l2.077 1.199M7.848 15.75l1.536-.887m-1.536.887a3 3 0 11-5.196 3 3 3 0 015.196-3zm1.536-.887a2.165 2.165 0 001.083-1.838c.005-.352.054-.695.14-1.025m-1.223 2.863l2.077-1.199m0-3.328a4.323 4.323 0 012.068-1.379l5.325-1.628a4.5 4.5 0 012.48-.044l.803.215-7.794 4.5m-2.882-.496a4.33 4.33 0 00-.16 2.31m2.882 1.014a4.323 4.323 0 012.068 1.379l5.325 1.628a4.5 4.5 0 002.48.044l.803-.215-7.794-4.5"/></svg></span>
+        <div
+          class="flex items-center gap-4 bg-white rounded-2xl p-5 shadow-soft-sm hover:shadow-soft hover:-translate-y-0.5 transition-all">
+          <span class="flex size-12 shrink-0 items-center justify-center rounded-full bg-[#E0F6FA] text-ind"><svg
+              class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="1.7" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round"
+                d="M7.848 8.25l1.536.887M7.848 8.25a3 3 0 11-5.196-3 3 3 0 015.196 3zm1.536.887a2.165 2.165 0 011.083 1.839c.005.351.054.695.14 1.024M9.384 9.137l2.077 1.199M7.848 15.75l1.536-.887m-1.536.887a3 3 0 11-5.196 3 3 3 0 015.196-3zm1.536-.887a2.165 2.165 0 001.083-1.838c.005-.352.054-.695.14-1.025m-1.223 2.863l2.077-1.199m0-3.328a4.323 4.323 0 012.068-1.379l5.325-1.628a4.5 4.5 0 012.48-.044l.803.215-7.794 4.5m-2.882-.496a4.33 4.33 0 00-.16 2.31m2.882 1.014a4.323 4.323 0 012.068 1.379l5.325 1.628a4.5 4.5 0 002.48.044l.803-.215-7.794-4.5" />
+            </svg></span>
           <div class="min-w-0">
             <p class="text-[9px] font-semibold tracking-widest text-[#9CA3AF]">DEPARTMENT OF</p>
             <p class="lp-heading font-semibold text-ink leading-snug text-sm">Surgery</p>
           </div>
         </div>
-        <div class="flex items-center gap-4 bg-white rounded-2xl p-5 shadow-soft-sm hover:shadow-soft hover:-translate-y-0.5 transition-all">
-          <span class="flex size-12 shrink-0 items-center justify-center rounded-full bg-[#E0F6FA] text-ind"><svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="1.7" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z"/></svg></span>
+        <div
+          class="flex items-center gap-4 bg-white rounded-2xl p-5 shadow-soft-sm hover:shadow-soft hover:-translate-y-0.5 transition-all">
+          <span class="flex size-12 shrink-0 items-center justify-center rounded-full bg-[#E0F6FA] text-ind"><svg
+              class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="1.7" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round"
+                d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z" />
+            </svg></span>
           <div class="min-w-0">
             <p class="text-[9px] font-semibold tracking-widest text-[#9CA3AF]">DEPARTMENT OF</p>
             <p class="lp-heading font-semibold text-ink leading-snug text-sm">Obstetrics &amp; Gynecology</p>
           </div>
         </div>
-        <div class="flex items-center gap-4 bg-white rounded-2xl p-5 shadow-soft-sm hover:shadow-soft hover:-translate-y-0.5 transition-all">
-          <span class="flex size-12 shrink-0 items-center justify-center rounded-full bg-[#E0F6FA] text-ind"><svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="1.7" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 21a7.5 7.5 0 007.5-7.5c0-3.75-3-7.5-7.5-11.25C7.5 6 4.5 9.75 4.5 13.5A7.5 7.5 0 0012 21z"/></svg></span>
+        <div
+          class="flex items-center gap-4 bg-white rounded-2xl p-5 shadow-soft-sm hover:shadow-soft hover:-translate-y-0.5 transition-all">
+          <span class="flex size-12 shrink-0 items-center justify-center rounded-full bg-[#E0F6FA] text-ind"><svg
+              class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="1.7" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round"
+                d="M12 21a7.5 7.5 0 007.5-7.5c0-3.75-3-7.5-7.5-11.25C7.5 6 4.5 9.75 4.5 13.5A7.5 7.5 0 0012 21z" />
+            </svg></span>
           <div class="min-w-0">
             <p class="text-[9px] font-semibold tracking-widest text-[#9CA3AF]">DEPARTMENT OF</p>
             <p class="lp-heading font-semibold text-ink leading-snug text-sm">Urology</p>
           </div>
         </div>
-        <div class="flex items-center gap-4 bg-white rounded-2xl p-5 shadow-soft-sm hover:shadow-soft hover:-translate-y-0.5 transition-all">
-          <span class="flex size-12 shrink-0 items-center justify-center rounded-full bg-[#E0F6FA] text-ind"><svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="1.7" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg></span>
+        <div
+          class="flex items-center gap-4 bg-white rounded-2xl p-5 shadow-soft-sm hover:shadow-soft hover:-translate-y-0.5 transition-all">
+          <span class="flex size-12 shrink-0 items-center justify-center rounded-full bg-[#E0F6FA] text-ind"><svg
+              class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="1.7" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round"
+                d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
+              <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg></span>
           <div class="min-w-0">
             <p class="text-[9px] font-semibold tracking-widest text-[#9CA3AF]">DEPARTMENT OF</p>
             <p class="lp-heading font-semibold text-ink leading-snug text-sm">Ophthalmology</p>
           </div>
         </div>
-        <div class="flex items-center gap-4 bg-white rounded-2xl p-5 shadow-soft-sm hover:shadow-soft hover:-translate-y-0.5 transition-all">
-          <span class="flex size-12 shrink-0 items-center justify-center rounded-full bg-[#E0F6FA] text-ind"><svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="1.7" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21.752 15.002A9.718 9.718 0 0118 15.75c-5.385 0-9.75-4.365-9.75-9.75 0-1.33.266-2.597.748-3.752A9.753 9.753 0 003 11.25C3 16.635 7.365 21 12.75 21a9.753 9.753 0 009.002-5.998z"/></svg></span>
+        <div
+          class="flex items-center gap-4 bg-white rounded-2xl p-5 shadow-soft-sm hover:shadow-soft hover:-translate-y-0.5 transition-all">
+          <span class="flex size-12 shrink-0 items-center justify-center rounded-full bg-[#E0F6FA] text-ind"><svg
+              class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="1.7" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round"
+                d="M21.752 15.002A9.718 9.718 0 0118 15.75c-5.385 0-9.75-4.365-9.75-9.75 0-1.33.266-2.597.748-3.752A9.753 9.753 0 003 11.25C3 16.635 7.365 21 12.75 21a9.753 9.753 0 009.002-5.998z" />
+            </svg></span>
           <div class="min-w-0">
             <p class="text-[9px] font-semibold tracking-widest text-[#9CA3AF]">DEPARTMENT OF</p>
-            <p class="lp-heading font-semibold text-ink leading-snug text-sm">Anesthesia &amp; Pain Control Management</p>
+            <p class="lp-heading font-semibold text-ink leading-snug text-sm">Anesthesia &amp; Pain Control Management
+            </p>
           </div>
         </div>
-        <div class="flex items-center gap-4 bg-white rounded-2xl p-5 shadow-soft-sm hover:shadow-soft hover:-translate-y-0.5 transition-all">
-          <span class="flex size-12 shrink-0 items-center justify-center rounded-full bg-[#E0F6FA] text-ind"><svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="1.7" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9.75 3.104v5.714a2.25 2.25 0 01-.659 1.591L5 14.5M9.75 3.104c-.251.023-.501.05-.75.082m.75-.082a24.301 24.301 0 014.5 0m0 0v5.714c0 .597.237 1.17.659 1.591L19.8 15.3M14.25 3.104c.251.023.501.05.75.082M19.8 15.3l-1.57.393A9.065 9.065 0 0112 15a9.065 9.065 0 00-6.23.693L5 14.5m14.8.8l1.402 1.402c1.232 1.232.65 3.318-1.067 3.611A48.309 48.309 0 0112 21c-2.773 0-5.491-.235-8.135-.687-1.718-.293-2.3-2.379-1.067-3.61L5 14.5"/></svg></span>
+        <div
+          class="flex items-center gap-4 bg-white rounded-2xl p-5 shadow-soft-sm hover:shadow-soft hover:-translate-y-0.5 transition-all">
+          <span class="flex size-12 shrink-0 items-center justify-center rounded-full bg-[#E0F6FA] text-ind"><svg
+              class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="1.7" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round"
+                d="M9.75 3.104v5.714a2.25 2.25 0 01-.659 1.591L5 14.5M9.75 3.104c-.251.023-.501.05-.75.082m.75-.082a24.301 24.301 0 014.5 0m0 0v5.714c0 .597.237 1.17.659 1.591L19.8 15.3M14.25 3.104c.251.023.501.05.75.082M19.8 15.3l-1.57.393A9.065 9.065 0 0112 15a9.065 9.065 0 00-6.23.693L5 14.5m14.8.8l1.402 1.402c1.232 1.232.65 3.318-1.067 3.611A48.309 48.309 0 0112 21c-2.773 0-5.491-.235-8.135-.687-1.718-.293-2.3-2.379-1.067-3.61L5 14.5" />
+            </svg></span>
           <div class="min-w-0">
             <p class="text-[9px] font-semibold tracking-widest text-[#9CA3AF]">DEPARTMENT OF</p>
             <p class="lp-heading font-semibold text-ink leading-snug text-sm">Pathology</p>
           </div>
         </div>
-        <div class="flex items-center gap-4 bg-white rounded-2xl p-5 shadow-soft-sm hover:shadow-soft hover:-translate-y-0.5 transition-all">
-          <span class="flex size-12 shrink-0 items-center justify-center rounded-full bg-[#E0F6FA] text-ind"><svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="1.7" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 013.75 9.375v-4.5zM3.75 14.625c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5a1.125 1.125 0 01-1.125-1.125v-4.5zM13.5 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 0113.5 9.375v-4.5z"/><path stroke-linecap="round" stroke-linejoin="round" d="M6.75 6.75h.75v.75h-.75v-.75zM6.75 16.5h.75v.75h-.75v-.75zM16.5 6.75h.75v.75h-.75v-.75zM13.5 13.5h.75v.75h-.75v-.75zM13.5 19.5h.75v.75h-.75v-.75zM19.5 13.5h.75v.75h-.75v-.75zM19.5 19.5h.75v.75h-.75v-.75zM16.5 16.5h.75v.75h-.75v-.75z"/></svg></span>
+        <div
+          class="flex items-center gap-4 bg-white rounded-2xl p-5 shadow-soft-sm hover:shadow-soft hover:-translate-y-0.5 transition-all">
+          <span class="flex size-12 shrink-0 items-center justify-center rounded-full bg-[#E0F6FA] text-ind"><svg
+              class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="1.7" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round"
+                d="M3.75 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 013.75 9.375v-4.5zM3.75 14.625c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5a1.125 1.125 0 01-1.125-1.125v-4.5zM13.5 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 0113.5 9.375v-4.5z" />
+              <path stroke-linecap="round" stroke-linejoin="round"
+                d="M6.75 6.75h.75v.75h-.75v-.75zM6.75 16.5h.75v.75h-.75v-.75zM16.5 6.75h.75v.75h-.75v-.75zM13.5 13.5h.75v.75h-.75v-.75zM13.5 19.5h.75v.75h-.75v-.75zM19.5 13.5h.75v.75h-.75v-.75zM19.5 19.5h.75v.75h-.75v-.75zM16.5 16.5h.75v.75h-.75v-.75z" />
+            </svg></span>
           <div class="min-w-0">
             <p class="text-[9px] font-semibold tracking-widest text-[#9CA3AF]">DEPARTMENT OF</p>
             <p class="lp-heading font-semibold text-ink leading-snug text-sm">Radiology &amp; Sonology</p>
           </div>
         </div>
-        <div class="flex items-center gap-4 bg-white rounded-2xl p-5 shadow-soft-sm hover:shadow-soft hover:-translate-y-0.5 transition-all">
-          <span class="flex size-12 shrink-0 items-center justify-center rounded-full bg-[#E0F6FA] text-ind"><svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="1.7" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15.182 15.182a4.5 4.5 0 01-6.364 0M21 12a9 9 0 11-18 0 9 9 0 0118 0zM9.75 9.75h.008v.008H9.75V9.75zm4.5 0h.008v.008h-.008V9.75zM12 6.75v.008"/></svg></span>
+        <div
+          class="flex items-center gap-4 bg-white rounded-2xl p-5 shadow-soft-sm hover:shadow-soft hover:-translate-y-0.5 transition-all">
+          <span class="flex size-12 shrink-0 items-center justify-center rounded-full bg-[#E0F6FA] text-ind"><svg
+              class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="1.7" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round"
+                d="M15.182 15.182a4.5 4.5 0 01-6.364 0M21 12a9 9 0 11-18 0 9 9 0 0118 0zM9.75 9.75h.008v.008H9.75V9.75zm4.5 0h.008v.008h-.008V9.75zM12 6.75v.008" />
+            </svg></span>
           <div class="min-w-0">
             <p class="text-[9px] font-semibold tracking-widest text-[#9CA3AF]">DEPARTMENT OF</p>
             <p class="lp-heading font-semibold text-ink leading-snug text-sm">Dental Services</p>
@@ -185,27 +308,40 @@
   <section id="about" class="pb-20 px-6">
     <div class="max-w-5xl mx-auto grid md:grid-cols-2 gap-12 items-center">
       <div class="relative">
-        <img src="{% static 'img/about-big.jpg' %}"
-             alt="MSHFI operating room staff"
-             class="rounded-3xl w-4/5 h-64 object-cover">
-        <img src="{% static 'img/about-small.jpg' %}"
-             alt="MSHFI staff at work"
-             class="rounded-2xl w-2/5 h-40 absolute -bottom-8 right-6 ring-8 ring-[#EFF9FB] object-cover">
-        <div class="absolute left-1/3 bottom-0 flex flex-col items-center justify-center size-24 rounded-full bg-ind text-white shadow-soft-lg">
+        <img src="{% static 'img/about-big.jpg' %}" alt="MSHFI operating room staff"
+          class="rounded-3xl w-4/5 h-64 object-cover">
+        <img src="{% static 'img/about-small.jpg' %}" alt="MSHFI staff at work"
+          class="rounded-2xl w-2/5 h-40 absolute -bottom-8 right-6 ring-8 ring-[#EFF9FB] object-cover">
+        <div
+          class="absolute left-1/3 bottom-0 flex flex-col items-center justify-center size-24 rounded-full bg-ind text-white shadow-soft-lg">
           <span class="lp-heading font-semibold text-xl leading-none">30+</span>
           <span class="text-[10px] text-white/70 mt-0.5">Experiences</span>
         </div>
       </div>
       <div class="pt-8 md:pt-0">
         <p class="text-xs font-semibold tracking-widest text-ind mb-3">ABOUT US</p>
-        <h2 class="lp-heading text-2xl md:text-3xl font-semibold text-ink mb-4">Advanced Technology and Specialist Doctors</h2>
-        <p class="text-ink-soft text-sm leading-relaxed mb-6">Mindalano Specialist Hospital Foundation Inc. provides quality outpatient care to the people of Marawi City and Lanao del Sur. <span class="text-gray-400">(test copy — replace later)</span></p>
+        <h2 class="lp-heading text-2xl md:text-3xl font-semibold text-ink mb-4">Advanced Technology and Specialist
+          Doctors</h2>
+        <p class="text-ink-soft text-sm leading-relaxed mb-6">Mindalano Specialist Hospital Foundation Inc. provides
+          quality outpatient care to the people of Marawi City and Lanao del Sur. <span class="text-gray-400">(test copy
+            — replace later)</span></p>
         <ul class="space-y-3 text-sm mb-8">
-          <li class="flex items-center gap-2.5"><svg class="w-5 h-5 text-ind shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg> Top Quality Technical Team</li>
-          <li class="flex items-center gap-2.5"><svg class="w-5 h-5 text-ind shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg> World Class Reputed Hospital</li>
-          <li class="flex items-center gap-2.5"><svg class="w-5 h-5 text-ind shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg> Discount on all Pathology &amp; Radiology Treatment</li>
+          <li class="flex items-center gap-2.5"><svg class="w-5 h-5 text-ind shrink-0" fill="none" stroke="currentColor"
+              stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg> Top Quality Technical Team</li>
+          <li class="flex items-center gap-2.5"><svg class="w-5 h-5 text-ind shrink-0" fill="none" stroke="currentColor"
+              stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg> World Class Reputed Hospital</li>
+          <li class="flex items-center gap-2.5"><svg class="w-5 h-5 text-ind shrink-0" fill="none" stroke="currentColor"
+              stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg> Discount on all Pathology &amp; Radiology Treatment</li>
         </ul>
-        <a href="{% url 'accounts:register' %}" class="inline-block px-6 py-3 rounded-xl bg-gradient-to-r from-[#3FC0D2] to-[#1D8FA8] hover:brightness-105 text-white text-sm font-medium transition-colors">More Info</a>
+        <a href="{% url 'accounts:register' %}"
+          class="inline-block px-6 py-3 rounded-xl bg-gradient-to-r from-[#3FC0D2] to-[#1D8FA8] hover:brightness-105 text-white text-sm font-medium transition-colors">More
+          Info</a>
       </div>
     </div>
   </section>
@@ -216,40 +352,54 @@
       <div class="grid md:grid-cols-2 gap-6 items-end mb-10">
         <div>
           <p class="text-xs font-semibold tracking-widest text-ind mb-3">COMPLETED CASE STUDIES</p>
-          <h2 class="lp-heading text-2xl md:text-3xl font-semibold text-ink">Transform Our Latest Success Case Studies</h2>
+          <h2 class="lp-heading text-2xl md:text-3xl font-semibold text-ink">Transform Our Latest Success Case Studies
+          </h2>
         </div>
-        <p class="text-ink-soft text-sm leading-relaxed">Test description text for the case studies section — a short paragraph about patient outcomes and hospital services goes here. (replace later)</p>
+        <p class="text-ink-soft text-sm leading-relaxed">Test description text for the case studies section — a short
+          paragraph about patient outcomes and hospital services goes here. (replace later)</p>
       </div>
       <div class="grid sm:grid-cols-3 gap-5">
         <div class="bg-white rounded-2xl p-3 shadow-soft-sm hover:shadow-soft transition-shadow">
-          <img src="{% static 'img/service-consulting.jpg' %}" alt="Personal consulting" class="rounded-xl h-36 w-full object-cover mb-4">
+          <img src="{% static 'img/service-consulting.jpg' %}" alt="Personal consulting"
+            class="rounded-xl h-36 w-full object-cover mb-4">
           <div class="px-2 pb-3">
             <p class="text-[11px] text-ink-soft mb-1">Personal Consulting</p>
             <div class="flex items-center justify-between gap-2">
               <p class="lp-heading font-semibold text-ink text-sm">Supports Patients</p>
-              <svg class="w-4 h-4 text-ind shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M7 17L17 7M7 7h10v10"/></svg>
+              <svg class="w-4 h-4 text-ind shrink-0" fill="none" stroke="currentColor" stroke-width="2"
+                viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M7 17L17 7M7 7h10v10" />
+              </svg>
             </div>
             <p class="text-[11px] text-gray-400 mt-1">Learn More</p>
           </div>
         </div>
         <div class="bg-white rounded-2xl p-3 shadow-soft-sm hover:shadow-soft transition-shadow">
-          <img src="{% static 'img/service-cesarean.jpg' %}" alt="Gynecology operation" class="rounded-xl h-36 w-full object-cover mb-4">
+          <img src="{% static 'img/service-cesarean.jpg' %}" alt="Gynecology operation"
+            class="rounded-xl h-36 w-full object-cover mb-4">
           <div class="px-2 pb-3">
             <p class="text-[11px] text-ink-soft mb-1">Gynecology Operation</p>
             <div class="flex items-center justify-between gap-2">
               <p class="lp-heading font-semibold text-ink text-sm">Two Baby Cesar Opr.</p>
-              <svg class="w-4 h-4 text-ind shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M7 17L17 7M7 7h10v10"/></svg>
+              <svg class="w-4 h-4 text-ind shrink-0" fill="none" stroke="currentColor" stroke-width="2"
+                viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M7 17L17 7M7 7h10v10" />
+              </svg>
             </div>
             <p class="text-[11px] text-gray-400 mt-1">Learn More</p>
           </div>
         </div>
         <div class="bg-white rounded-2xl p-3 shadow-soft-sm hover:shadow-soft transition-shadow">
-          <img src="{% static 'img/service-heart.jpg' %}" alt="Heart department" class="rounded-xl h-36 w-full object-cover mb-4">
+          <img src="{% static 'img/service-heart.jpg' %}" alt="Heart department"
+            class="rounded-xl h-36 w-full object-cover mb-4">
           <div class="px-2 pb-3">
             <p class="text-[11px] text-ink-soft mb-1">Heart Department</p>
             <div class="flex items-center justify-between gap-2">
               <p class="lp-heading font-semibold text-ink text-sm">Heart Surgery</p>
-              <svg class="w-4 h-4 text-ind shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M7 17L17 7M7 7h10v10"/></svg>
+              <svg class="w-4 h-4 text-ind shrink-0" fill="none" stroke="currentColor" stroke-width="2"
+                viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M7 17L17 7M7 7h10v10" />
+              </svg>
             </div>
             <p class="text-[11px] text-gray-400 mt-1">Learn More</p>
           </div>
@@ -269,13 +419,21 @@
     <div class="max-w-2xl mx-auto relative z-10 translate-y-24 -mt-16">
       <div class="bg-white rounded-3xl shadow-soft-lg text-center px-8 py-10">
         <span class="inline-flex size-11 items-center justify-center rounded-full bg-ind text-white mb-4">
-          <svg class="w-4 h-4 ml-0.5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+          <svg class="w-4 h-4 ml-0.5" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M8 5v14l11-7z" />
+          </svg>
         </span>
-        <h2 class="lp-heading text-xl md:text-2xl font-semibold text-ink mb-3">We Provide All Medical Services<br>For Your <span class="text-ind">Health</span> Needs</h2>
-        <p class="text-ink-soft text-sm max-w-md mx-auto mb-6">Test supporting text for the call-to-action card. Replace with a short paragraph about MSHFI's services. (test)</p>
+        <h2 class="lp-heading text-xl md:text-2xl font-semibold text-ink mb-3">We Provide All Medical Services<br>For
+          Your <span class="text-ind">Health</span> Needs</h2>
+        <p class="text-ink-soft text-sm max-w-md mx-auto mb-6">Test supporting text for the call-to-action card. Replace
+          with a short paragraph about MSHFI's services. (test)</p>
         <div class="flex items-center justify-center gap-3">
-          <a href="#contact" class="px-6 py-2.5 rounded-full border border-gray-200 text-ink-soft hover:border-ind hover:text-ind text-sm font-medium transition-colors">Contact Now</a>
-          <a href="{% url 'accounts:register' %}" class="px-6 py-2.5 rounded-full bg-gradient-to-r from-[#3FC0D2] to-[#1D8FA8] hover:brightness-105 text-white text-sm font-medium transition-colors">Learn More</a>
+          <a href="#contact"
+            class="px-6 py-2.5 rounded-full border border-gray-200 text-ink-soft hover:border-ind hover:text-ind text-sm font-medium transition-colors">Contact
+            Now</a>
+          <a href="{% url 'accounts:register' %}"
+            class="px-6 py-2.5 rounded-full bg-gradient-to-r from-[#3FC0D2] to-[#1D8FA8] hover:brightness-105 text-white text-sm font-medium transition-colors">Learn
+            More</a>
         </div>
       </div>
     </div>
@@ -284,37 +442,64 @@
     <div class="bg-ind text-white rounded-t-[2.5rem] max-w-7xl mx-auto pt-36 pb-20 px-6 md:px-14">
       <div class="grid md:grid-cols-2 gap-12 items-center">
         <div>
-          <p class="text-white/70 text-sm leading-relaxed mb-8">Test intro paragraph for the expertise section — a few sentences about the range of medical solutions offered. (replace later)</p>
+          <p class="text-white/70 text-sm leading-relaxed mb-8">Test intro paragraph for the expertise section — a few
+            sentences about the range of medical solutions offered. (replace later)</p>
           <p class="text-xs font-semibold tracking-widest text-white/70 mb-2">EXPERTISE</p>
-          <h2 class="lp-heading text-2xl md:text-3xl font-semibold mb-8">We Offer More Than Services &amp; All Solutions Medical</h2>
+          <h2 class="lp-heading text-2xl md:text-3xl font-semibold mb-8">We Offer More Than Services &amp; All Solutions
+            Medical</h2>
           <div class="space-y-4">
             <div class="bg-ind-2 rounded-2xl p-5 flex gap-4 items-start">
-              <span class="flex size-11 shrink-0 items-center justify-center rounded-full bg-white text-ind"><svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v8m4-4H8m13 0a9 9 0 11-18 0 9 9 0 0118 0z"/></svg></span>
+              <span class="flex size-11 shrink-0 items-center justify-center rounded-full bg-white text-ind"><svg
+                  class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round"
+                    d="M12 8v8m4-4H8m13 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg></span>
               <div>
                 <p class="lp-heading font-semibold mb-1">Medical Services</p>
-                <p class="text-white/60 text-xs leading-relaxed mb-2">Short test description of general medical services. (test)</p>
-                <span class="inline-flex items-center gap-1.5 text-xs font-medium">Learn More <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3"/></svg></span>
+                <p class="text-white/60 text-xs leading-relaxed mb-2">Short test description of general medical
+                  services. (test)</p>
+                <span class="inline-flex items-center gap-1.5 text-xs font-medium">Learn More <svg class="w-3.5 h-3.5"
+                    fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                  </svg></span>
               </div>
             </div>
             <div class="bg-ind-2 rounded-2xl p-5 flex gap-4 items-start">
-              <span class="flex size-11 shrink-0 items-center justify-center rounded-full bg-white text-ind"><svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 3v2m6-2v2M9 19v2m6-2v2M3 9h2m-2 6h2m14-6h2m-2 6h2M7 7h10v10H7z"/></svg></span>
+              <span class="flex size-11 shrink-0 items-center justify-center rounded-full bg-white text-ind"><svg
+                  class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round"
+                    d="M9 3v2m6-2v2M9 19v2m6-2v2M3 9h2m-2 6h2m14-6h2m-2 6h2M7 7h10v10H7z" />
+                </svg></span>
               <div>
                 <p class="lp-heading font-semibold mb-1">Radiology &amp; Pathology Test</p>
-                <p class="text-white/60 text-xs leading-relaxed mb-2">Short test description of laboratory and imaging services. (test)</p>
-                <span class="inline-flex items-center gap-1.5 text-xs font-medium">Learn More <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3"/></svg></span>
+                <p class="text-white/60 text-xs leading-relaxed mb-2">Short test description of laboratory and imaging
+                  services. (test)</p>
+                <span class="inline-flex items-center gap-1.5 text-xs font-medium">Learn More <svg class="w-3.5 h-3.5"
+                    fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                  </svg></span>
               </div>
             </div>
             <div class="bg-ind-2 rounded-2xl p-5 flex gap-4 items-start">
-              <span class="flex size-11 shrink-0 items-center justify-center rounded-full bg-white text-ind"><svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/></svg></span>
+              <span class="flex size-11 shrink-0 items-center justify-center rounded-full bg-white text-ind"><svg
+                  class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round"
+                    d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                </svg></span>
               <div>
                 <p class="lp-heading font-semibold mb-1">Heart Beat Checkup</p>
-                <p class="text-white/60 text-xs leading-relaxed mb-2">Short test description of cardiac checkup services. (test)</p>
-                <span class="inline-flex items-center gap-1.5 text-xs font-medium">Learn More <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3"/></svg></span>
+                <p class="text-white/60 text-xs leading-relaxed mb-2">Short test description of cardiac checkup
+                  services. (test)</p>
+                <span class="inline-flex items-center gap-1.5 text-xs font-medium">Learn More <svg class="w-3.5 h-3.5"
+                    fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                  </svg></span>
               </div>
             </div>
           </div>
         </div>
-        <img src="{% static 'img/expertise-hologram.jpg' %}" alt="Doctors reviewing patient diagnostics" class="rounded-3xl h-80 md:h-[520px] w-full object-cover self-end">
+        <img src="{% static 'img/expertise-hologram.jpg' %}" alt="Doctors reviewing patient diagnostics"
+          class="rounded-3xl h-80 md:h-[520px] w-full object-cover self-end">
       </div>
     </div>
   </section>
@@ -324,24 +509,46 @@
     <div class="max-w-4xl mx-auto">
       <div class="text-center mb-12">
         <p class="text-xs font-semibold tracking-widest text-ind mb-3">TESTIMONIAL</p>
-        <h2 class="lp-heading text-2xl md:text-3xl font-semibold text-ink">What Our Regular Patients Say<br class="hidden md:block"> About MSHFI</h2>
+        <h2 class="lp-heading text-2xl md:text-3xl font-semibold text-ink">What Our Regular Patients Say<br
+            class="hidden md:block"> About MSHFI</h2>
       </div>
       <div class="grid md:grid-cols-2 gap-10 items-center">
         <div class="relative">
           <div class="absolute inset-0 translate-x-3 translate-y-3 rounded-3xl bg-ind"></div>
-          <img src="{% static 'img/testimonial-1.jpg' %}" alt="MSHFI patient consultation" class="relative rounded-3xl h-72 w-full object-cover">
+          <img src="{% static 'img/testimonial-1.jpg' %}" alt="MSHFI patient consultation"
+            class="relative rounded-3xl h-72 w-full object-cover">
         </div>
         <div>
-          <svg class="w-8 h-8 text-ind mb-4" fill="currentColor" viewBox="0 0 24 24"><path d="M9.983 3v7.391c0 5.704-3.731 9.57-8.983 10.609l-.995-2.151c2.432-.917 3.995-3.638 3.995-5.849h-4v-10h9.983zm14.017 0v7.391c0 5.704-3.748 9.571-9 10.609l-.996-2.151c2.433-.917 3.996-3.638 3.996-5.849h-3.983v-10h9.983z"/></svg>
-          <p class="text-ink italic text-sm md:text-base leading-relaxed mb-5">"Pain management was effective, and I was comfortable during and after the treatment. The staff provided emotional support and made sure I understood every step of my care."</p>
+          <svg class="w-8 h-8 text-ind mb-4" fill="currentColor" viewBox="0 0 24 24">
+            <path
+              d="M9.983 3v7.391c0 5.704-3.731 9.57-8.983 10.609l-.995-2.151c2.432-.917 3.995-3.638 3.995-5.849h-4v-10h9.983zm14.017 0v7.391c0 5.704-3.748 9.571-9 10.609l-.996-2.151c2.433-.917 3.996-3.638 3.996-5.849h-3.983v-10h9.983z" />
+          </svg>
+          <p class="text-ink italic text-sm md:text-base leading-relaxed mb-5">"Pain management was effective, and I was
+            comfortable during and after the treatment. The staff provided emotional support and made sure I understood
+            every step of my care."</p>
           <div class="flex items-center gap-1 text-amber-400 mb-3">
-            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.958a1 1 0 00.95.69h4.162c.969 0 1.371 1.24.588 1.81l-3.367 2.446a1 1 0 00-.363 1.118l1.286 3.958c.3.922-.755 1.688-1.539 1.118l-3.367-2.446a1 1 0 00-1.175 0l-3.367 2.446c-.783.57-1.838-.196-1.538-1.118l1.285-3.958a1 1 0 00-.362-1.118L2.063 9.385c-.783-.57-.38-1.81.588-1.81h4.162a1 1 0 00.95-.69l1.286-3.958z"/></svg>
-            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.958a1 1 0 00.95.69h4.162c.969 0 1.371 1.24.588 1.81l-3.367 2.446a1 1 0 00-.363 1.118l1.286 3.958c.3.922-.755 1.688-1.539 1.118l-3.367-2.446a1 1 0 00-1.175 0l-3.367 2.446c-.783.57-1.838-.196-1.538-1.118l1.285-3.958a1 1 0 00-.362-1.118L2.063 9.385c-.783-.57-.38-1.81.588-1.81h4.162a1 1 0 00.95-.69l1.286-3.958z"/></svg>
-            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.958a1 1 0 00.95.69h4.162c.969 0 1.371 1.24.588 1.81l-3.367 2.446a1 1 0 00-.363 1.118l1.286 3.958c.3.922-.755 1.688-1.539 1.118l-3.367-2.446a1 1 0 00-1.175 0l-3.367 2.446c-.783.57-1.838-.196-1.538-1.118l1.285-3.958a1 1 0 00-.362-1.118L2.063 9.385c-.783-.57-.38-1.81.588-1.81h4.162a1 1 0 00.95-.69l1.286-3.958z"/></svg>
-            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.958a1 1 0 00.95.69h4.162c.969 0 1.371 1.24.588 1.81l-3.367 2.446a1 1 0 00-.363 1.118l1.286 3.958c.3.922-.755 1.688-1.539 1.118l-3.367-2.446a1 1 0 00-1.175 0l-3.367 2.446c-.783.57-1.838-.196-1.538-1.118l1.285-3.958a1 1 0 00-.362-1.118L2.063 9.385c-.783-.57-.38-1.81.588-1.81h4.162a1 1 0 00.95-.69l1.286-3.958z"/></svg>
-            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.958a1 1 0 00.95.69h4.162c.969 0 1.371 1.24.588 1.81l-3.367 2.446a1 1 0 00-.363 1.118l1.286 3.958c.3.922-.755 1.688-1.539 1.118l-3.367-2.446a1 1 0 00-1.175 0l-3.367 2.446c-.783.57-1.838-.196-1.538-1.118l1.285-3.958a1 1 0 00-.362-1.118L2.063 9.385c-.783-.57-.38-1.81.588-1.81h4.162a1 1 0 00.95-.69l1.286-3.958z"/></svg>
+            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+              <path
+                d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.958a1 1 0 00.95.69h4.162c.969 0 1.371 1.24.588 1.81l-3.367 2.446a1 1 0 00-.363 1.118l1.286 3.958c.3.922-.755 1.688-1.539 1.118l-3.367-2.446a1 1 0 00-1.175 0l-3.367 2.446c-.783.57-1.838-.196-1.538-1.118l1.285-3.958a1 1 0 00-.362-1.118L2.063 9.385c-.783-.57-.38-1.81.588-1.81h4.162a1 1 0 00.95-.69l1.286-3.958z" />
+            </svg>
+            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+              <path
+                d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.958a1 1 0 00.95.69h4.162c.969 0 1.371 1.24.588 1.81l-3.367 2.446a1 1 0 00-.363 1.118l1.286 3.958c.3.922-.755 1.688-1.539 1.118l-3.367-2.446a1 1 0 00-1.175 0l-3.367 2.446c-.783.57-1.838-.196-1.538-1.118l1.285-3.958a1 1 0 00-.362-1.118L2.063 9.385c-.783-.57-.38-1.81.588-1.81h4.162a1 1 0 00.95-.69l1.286-3.958z" />
+            </svg>
+            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+              <path
+                d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.958a1 1 0 00.95.69h4.162c.969 0 1.371 1.24.588 1.81l-3.367 2.446a1 1 0 00-.363 1.118l1.286 3.958c.3.922-.755 1.688-1.539 1.118l-3.367-2.446a1 1 0 00-1.175 0l-3.367 2.446c-.783.57-1.838-.196-1.538-1.118l1.285-3.958a1 1 0 00-.362-1.118L2.063 9.385c-.783-.57-.38-1.81.588-1.81h4.162a1 1 0 00.95-.69l1.286-3.958z" />
+            </svg>
+            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+              <path
+                d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.958a1 1 0 00.95.69h4.162c.969 0 1.371 1.24.588 1.81l-3.367 2.446a1 1 0 00-.363 1.118l1.286 3.958c.3.922-.755 1.688-1.539 1.118l-3.367-2.446a1 1 0 00-1.175 0l-3.367 2.446c-.783.57-1.838-.196-1.538-1.118l1.285-3.958a1 1 0 00-.362-1.118L2.063 9.385c-.783-.57-.38-1.81.588-1.81h4.162a1 1 0 00.95-.69l1.286-3.958z" />
+            </svg>
+            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+              <path
+                d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.958a1 1 0 00.95.69h4.162c.969 0 1.371 1.24.588 1.81l-3.367 2.446a1 1 0 00-.363 1.118l1.286 3.958c.3.922-.755 1.688-1.539 1.118l-3.367-2.446a1 1 0 00-1.175 0l-3.367 2.446c-.783.57-1.838-.196-1.538-1.118l1.285-3.958a1 1 0 00-.362-1.118L2.063 9.385c-.783-.57-.38-1.81.588-1.81h4.162a1 1 0 00.95-.69l1.286-3.958z" />
+            </svg>
           </div>
-          <p class="lp-heading font-semibold text-ink text-sm">Ainodyen Nasroden</p>
+          <p class="lp-heading font-semibold text-ink text-sm">Aynoden A. Nasroden</p>
           <p class="text-ink-soft text-xs">Patient</p>
         </div>
       </div>
@@ -355,15 +562,29 @@
         <div>
           <div class="flex items-center gap-2.5 mb-4">
             <span class="flex size-9 items-center justify-center rounded-xl bg-white/15">
-              <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M11 3a1 1 0 00-1 1v5a1 1 0 01-1 1H4a1 1 0 00-1 1v2a1 1 0 001 1h5a1 1 0 011 1v5a1 1 0 001 1h2a1 1 0 001-1v-5a1 1 0 011-1h5a1 1 0 001-1v-2a1 1 0 00-1-1h-5a1 1 0 01-1-1V4a1 1 0 00-1-1h-2z"/></svg>
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round"
+                  d="M11 3a1 1 0 00-1 1v5a1 1 0 01-1 1H4a1 1 0 00-1 1v2a1 1 0 001 1h5a1 1 0 011 1v5a1 1 0 001 1h2a1 1 0 001-1v-5a1 1 0 011-1h5a1 1 0 001-1v-2a1 1 0 00-1-1h-5a1 1 0 01-1-1V4a1 1 0 00-1-1h-2z" />
+              </svg>
             </span>
             <span class="font-semibold">MSHFI</span>
           </div>
-          <p class="text-white/60 text-xs leading-relaxed mb-5">MINDALANO SPECIALIST HOSPITAL FOUNDATION INC — providing quality healthcare to Marawi City and Lanao del Sur.</p>
+          <p class="text-white/60 text-xs leading-relaxed mb-5">MINDALANO SPECIALIST HOSPITAL FOUNDATION INC — providing
+            quality healthcare to Marawi City and Lanao del Sur.</p>
           <div class="flex items-center gap-3">
             {% comment %} test social links — replace with real pages later {% endcomment %}
-            <a href="#" aria-label="Facebook" class="flex size-8 items-center justify-center rounded-full bg-white/10 hover:bg-white/25 transition-colors"><svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M22 12c0-5.52-4.48-10-10-10S2 6.48 2 12c0 4.84 3.44 8.87 8 9.8V15H8v-3h2V9.5C10 7.57 11.57 6 13.5 6H16v3h-2c-.55 0-1 .45-1 1v2h3v3h-3v6.95c5.05-.5 9-4.76 9-9.95z"/></svg></a>
-            <a href="#" aria-label="Instagram" class="flex size-8 items-center justify-center rounded-full bg-white/10 hover:bg-white/25 transition-colors"><svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/></svg></a>
+            <a href="#" aria-label="Facebook"
+              class="flex size-8 items-center justify-center rounded-full bg-white/10 hover:bg-white/25 transition-colors"><svg
+                class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                <path
+                  d="M22 12c0-5.52-4.48-10-10-10S2 6.48 2 12c0 4.84 3.44 8.87 8 9.8V15H8v-3h2V9.5C10 7.57 11.57 6 13.5 6H16v3h-2c-.55 0-1 .45-1 1v2h3v3h-3v6.95c5.05-.5 9-4.76 9-9.95z" />
+              </svg></a>
+            <a href="#" aria-label="Instagram"
+              class="flex size-8 items-center justify-center rounded-full bg-white/10 hover:bg-white/25 transition-colors"><svg
+                class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                <path
+                  d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z" />
+              </svg></a>
           </div>
         </div>
         <div>
@@ -388,14 +609,18 @@
         </div>
         <div>
           <p class="lp-heading font-semibold text-sm mb-4">Office</p>
-          <p class="text-white/60 text-xs leading-relaxed mb-4">Panggao Saduc, Marawi City,<br>Lanao del Sur, Philippines</p>
+          <p class="text-white/60 text-xs leading-relaxed mb-4">Panggao Saduc, Marawi City,<br>Lanao del Sur,
+            Philippines</p>
           <p class="lp-heading font-semibold text-sm mb-1">0912-345-6789</p>
-          <a href="mailto:mindalanoshfi@gmail.com" class="text-white/60 text-xs hover:text-white transition-colors">mindalanoshfi@gmail.com</a>
+          <a href="mailto:mindalanoshfi@gmail.com"
+            class="text-white/60 text-xs hover:text-white transition-colors">mindalanoshfi@gmail.com</a>
         </div>
       </div>
-      <div class="border-t border-white/10 pt-5 flex flex-col sm:flex-row items-center justify-between gap-2 text-[11px] text-white/50">
+      <div
+        class="border-t border-white/10 pt-5 flex flex-col sm:flex-row items-center justify-between gap-2 text-[11px] text-white/50">
         <p>MSHFI 2026. All Rights Reserved.</p>
-        <p><a href="/terms/" class="hover:text-white transition-colors">Terms &amp; Conditions</a> &middot; <a href="/privacy/" class="hover:text-white transition-colors">Privacy Policy</a></p>
+        <p><a href="/terms/" class="hover:text-white transition-colors">Terms &amp; Conditions</a> &middot; <a
+            href="/privacy/" class="hover:text-white transition-colors">Privacy Policy</a></p>
       </div>
     </div>
   </footer>

@@ -5,7 +5,7 @@
 <div id="notif-panel-body">
 
   {# ── Header actions ── #}
-  <div class="flex items-center justify-between mb-1 -mt-2">
+  <div class="flex items-center justify-between mb-1">
     <div class="flex items-center gap-2">
       {% if unread_notification_count > 0 %}
       <span class="inline-flex items-center justify-center rounded-full bg-brand-500 text-white text-xs font-bold px-2 py-0.5 leading-none">
@@ -146,4 +146,17 @@
   {% endif %}
 
 </div>
+
+<style>
+  #modal-overlay:has(#notif-panel-body) button[aria-label="Close"] {
+    background: #2AAFC4;
+    color: white;
+  }
+  #modal-overlay:has(#notif-panel-body) button[aria-label="Close"]:hover {
+    background: #1D8FA8;
+  }
+  #modal-overlay:has(#notif-panel-body) .modal-panel > div:first-child {
+    max-height: calc(100vh - 4rem) !important;
+  }
+</style>
 {% endblock %}

@@ -85,7 +85,7 @@
       Cancel
     </a>
     <a hx-get="{% url 'secretary:appointment_confirm' pk=appt.pk %}" hx-target="#modal-root" hx-swap="innerHTML"
-       class="w-full text-center bg-teal-600 text-white font-semibold py-3 rounded-xl hover:bg-teal-700 transition cursor-pointer">
+       class="w-full text-center bg-brand-500 text-white font-semibold py-3 rounded-xl hover:bg-brand-600 transition cursor-pointer">
       Confirm Arrival
     </a>
     {% elif appt.status == 'Confirmed' %}

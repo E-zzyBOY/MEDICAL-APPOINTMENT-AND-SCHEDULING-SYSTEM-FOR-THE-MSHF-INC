@@ -41,7 +41,7 @@
           <td class="py-3">
             <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-semibold
               {% if appt.status == 'Scheduled' %}bg-green-100 text-green-700
-              {% elif appt.status == 'Confirmed' %}bg-teal-100 text-teal-700
+              {% elif appt.status == 'Confirmed' %}bg-brand-100 text-brand-700
               {% elif appt.status == 'Completed' %}bg-blue-100 text-blue-700
               {% elif appt.status == 'Cancelled' %}bg-red-100 text-red-600
               {% elif appt.status == 'Pending Reschedule' %}bg-purple-100 text-purple-600
@@ -98,7 +98,7 @@
         </a>
         <span class="shrink-0 inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-semibold
           {% if appt.status == 'Scheduled' %}bg-green-100 text-green-700
-          {% elif appt.status == 'Confirmed' %}bg-teal-100 text-teal-700
+          {% elif appt.status == 'Confirmed' %}bg-brand-100 text-brand-700
           {% elif appt.status == 'Completed' %}bg-blue-100 text-blue-700
           {% elif appt.status == 'Cancelled' %}bg-red-100 text-red-600
           {% elif appt.status == 'Pending Reschedule' %}bg-purple-100 text-purple-600

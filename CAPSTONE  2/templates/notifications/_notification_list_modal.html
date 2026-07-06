@@ -6,16 +6,16 @@
   <form method="post" action="/notifications/mark-all-read/"
         hx-post="/notifications/mark-all-read/" hx-target="#modal-root" hx-swap="innerHTML">
     {% csrf_token %}
-    <button type="submit" class="text-xs font-medium text-[#1D8FA8] hover:underline">Mark all as read</button>
+    <button type="submit" class="text-xs font-medium text-[#183E0C] hover:underline">Mark all as read</button>
   </form>
 </div>
 
 {% if notifications %}
 <div class="space-y-2 max-h-[55vh] overflow-y-auto -mx-1 px-1">
   {% for notif in notifications %}
-  <div class="flex items-start gap-3 rounded-2xl p-3.5 cursor-pointer transition-colors {% if not notif.is_read %}bg-[#F0FAFB] hover:bg-[#DCF4F8]{% else %}hover:bg-softgray{% endif %}"
+  <div class="flex items-start gap-3 rounded-2xl p-3.5 cursor-pointer transition-colors {% if not notif.is_read %}bg-[#F1F7EC] hover:bg-[#E0EED5]{% else %}hover:bg-softgray{% endif %}"
        hx-get="{% url 'notifications:detail' pk=notif.pk %}" hx-target="#modal-root" hx-swap="innerHTML">
-    <div class="size-9 rounded-full {% if not notif.is_read %}bg-gradient-to-br from-[#3FC0D2] to-[#1D8FA8] text-white{% else %}bg-gray-100 text-gray-400{% endif %} flex items-center justify-center flex-shrink-0">
+    <div class="size-9 rounded-full {% if not notif.is_read %}bg-gradient-to-br from-[#3FC0D2] to-[#183E0C] text-white{% else %}bg-gray-100 text-gray-400{% endif %} flex items-center justify-center flex-shrink-0">
       <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
       </svg>
@@ -24,7 +24,7 @@
       <p class="text-[#1F2937] text-sm {% if not notif.is_read %}font-medium{% endif %} leading-snug">{{ notif.message }}</p>
       <p class="text-[#9CA3AF] text-xs mt-1">{{ notif.created_at|timesince }} ago</p>
     </div>
-    {% if not notif.is_read %}<span class="size-2 rounded-full bg-[#2AAFC4] shrink-0 mt-1.5"></span>{% endif %}
+    {% if not notif.is_read %}<span class="size-2 rounded-full bg-[#1F4D11] shrink-0 mt-1.5"></span>{% endif %}
   </div>
   {% endfor %}
 </div>

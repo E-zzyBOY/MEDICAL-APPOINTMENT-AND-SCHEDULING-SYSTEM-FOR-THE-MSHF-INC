@@ -64,7 +64,7 @@
           <td class="py-3">
             <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-semibold
               {% if appt.status == 'Scheduled' %}bg-green-100 text-green-700
-              {% elif appt.status == 'Confirmed' %}bg-teal-100 text-teal-700
+              {% elif appt.status == 'Confirmed' %}bg-brand-100 text-brand-700
               {% elif appt.status == 'Completed' %}bg-blue-100 text-blue-700
               {% elif appt.status == 'Cancelled' %}bg-red-100 text-red-600
               {% elif appt.status == 'Pending Reschedule' %}bg-purple-100 text-purple-600
@@ -113,7 +113,7 @@
               <a hx-get="{% url 'secretary:appointment_cancel' pk=appt.pk %}" hx-target="#modal-root" hx-swap="innerHTML"
                  class="px-2 py-1 bg-red-100 text-red-600 rounded text-xs font-medium hover:bg-red-200 cursor-pointer">Cancel</a>
               <a hx-get="{% url 'secretary:appointment_confirm' pk=appt.pk %}" hx-target="#modal-root" hx-swap="innerHTML"
-                 class="px-2 py-1 bg-teal-100 text-teal-700 rounded text-xs font-medium hover:bg-teal-200 cursor-pointer">Confirm</a>
+                 class="px-2 py-1 bg-brand-100 text-brand-700 rounded text-xs font-medium hover:bg-brand-200 cursor-pointer">Confirm</a>
             </div>
 
             {% elif appt.status == 'Pending Reschedule' %}
@@ -151,7 +151,7 @@
         </a>
         <span class="shrink-0 inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-semibold
           {% if appt.status == 'Scheduled' %}bg-green-100 text-green-700
-          {% elif appt.status == 'Confirmed' %}bg-teal-100 text-teal-700
+          {% elif appt.status == 'Confirmed' %}bg-brand-100 text-brand-700
           {% elif appt.status == 'Completed' %}bg-blue-100 text-blue-700
           {% elif appt.status == 'Cancelled' %}bg-red-100 text-red-600
           {% elif appt.status == 'Pending Reschedule' %}bg-purple-100 text-purple-600
@@ -210,7 +210,7 @@
         <a hx-get="{% url 'secretary:appointment_cancel' pk=appt.pk %}" hx-target="#modal-root" hx-swap="innerHTML"
            class="flex-1 text-center px-3 py-2.5 bg-red-100 text-red-600 rounded-2xl text-sm font-semibold hover:bg-red-200 cursor-pointer">Cancel</a>
         <a hx-get="{% url 'secretary:appointment_confirm' pk=appt.pk %}" hx-target="#modal-root" hx-swap="innerHTML"
-           class="w-full text-center px-3 py-3 bg-teal-100 text-teal-700 rounded-2xl text-sm font-semibold hover:bg-teal-200 cursor-pointer">Confirm Arrival</a>
+           class="w-full text-center px-3 py-3 bg-brand-100 text-brand-700 rounded-2xl text-sm font-semibold hover:bg-brand-200 cursor-pointer">Confirm Arrival</a>
       </div>
 
       {% elif appt.status == 'Pending Reschedule' %}

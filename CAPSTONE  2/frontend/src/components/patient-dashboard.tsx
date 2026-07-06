@@ -117,7 +117,7 @@ function SectionHeading({ title, href }: { title: string; href?: string }) {
 			{href && (
 				<a
 					href={href}
-					className="text-sm font-medium text-[#2AAFC4] hover:underline"
+					className="text-sm font-medium text-[#1F4D11] hover:underline"
 				>
 					View all
 				</a>
@@ -171,7 +171,7 @@ function FeaturedDoctorCard({ doc }: { doc: DoctorCard }) {
 
 	return (
 		<div className="relative flex w-[240px] md:w-auto shrink-0 snap-start flex-col overflow-hidden rounded-3xl bg-white">
-			<a href={doc.href} className="block h-40 md:h-44 w-full bg-[#DCF4F8]">
+			<a href={doc.href} className="block h-40 md:h-44 w-full bg-[#E0EED5]">
 				{doc.photoUrl ? (
 					<img
 						src={doc.photoUrl}
@@ -180,7 +180,7 @@ function FeaturedDoctorCard({ doc }: { doc: DoctorCard }) {
 					/>
 				) : (
 					<span className="flex h-full w-full items-center justify-center">
-						<Stethoscope className="size-10 text-[#2AAFC4]" />
+						<Stethoscope className="size-10 text-[#1F4D11]" />
 					</span>
 				)}
 			</a>
@@ -232,7 +232,7 @@ function FeaturedDoctorCard({ doc }: { doc: DoctorCard }) {
 					<a
 						href={doc.href}
 						aria-label={`View ${doc.name}`}
-						className="flex size-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-b from-[#52C2D5] to-[#2AAFC4] text-white shadow-[0_4px_12px_rgba(42,175,196,0.4)] hover:shadow-[0_6px_16px_rgba(42,175,196,0.5)] transition-shadow"
+						className="flex size-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-b from-[#5E9A3C] to-[#1F4D11] text-white shadow-[0_4px_12px_rgba(31, 77, 17,0.4)] hover:shadow-[0_6px_16px_rgba(31, 77, 17,0.5)] transition-shadow"
 					>
 						<ArrowRight className="size-4" />
 					</a>

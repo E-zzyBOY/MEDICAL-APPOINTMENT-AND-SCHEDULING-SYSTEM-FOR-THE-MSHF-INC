@@ -13,7 +13,7 @@
   {% if pd %}
   <div>
     <p class="text-xs font-semibold text-[#6B7280] uppercase tracking-wide mb-2">Patient Information</p>
-    <div class="bg-[#F0FAFB] border border-[#DCF4F8] rounded-xl p-4 text-sm space-y-2">
+    <div class="bg-[#F1F7EC] border border-[#E0EED5] rounded-xl p-4 text-sm space-y-2">
       <div class="flex justify-between"><span class="text-[#6B7280]">Patient Name</span><span class="font-semibold text-[#1F2937]">{{ pd.first_name }}{% if pd.middle_name %} {{ pd.middle_name }}{% endif %} {{ pd.last_name }}</span></div>
       <div class="flex justify-between"><span class="text-[#6B7280]">Date of Birth</span><span class="font-medium text-[#1F2937]">{{ pd.date_of_birth|date:"F j, Y" }}</span></div>
       <div class="flex justify-between"><span class="text-[#6B7280]">Sex</span><span class="font-medium text-[#1F2937]">{% if pd.gender == 'M' %}Male{% elif pd.gender == 'F' %}Female{% else %}Other{% endif %}</span></div>

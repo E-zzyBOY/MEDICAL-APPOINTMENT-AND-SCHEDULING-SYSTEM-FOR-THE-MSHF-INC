@@ -8,21 +8,21 @@ step's bar is teal; later steps are dimmed and not clickable.
 <div class="mb-6">
   <div class="flex items-center gap-2 mb-2">
     {% if current > 1 %}
-    <a href="{% url 'patient:book_step1' %}" class="flex-1 h-1.5 rounded-full bg-gradient-to-r from-[#3FC0D2] to-[#1D8FA8]" title="1. Doctor"></a>
+    <a href="{% url 'patient:book_step1' %}" class="flex-1 h-1.5 rounded-full bg-gradient-to-r from-[#3FC0D2] to-[#183E0C]" title="1. Doctor"></a>
     {% else %}
-    <span class="flex-1 h-1.5 rounded-full {% if current == 1 %}bg-gradient-to-r from-[#3FC0D2] to-[#1D8FA8]{% else %}bg-[#E5E7EB]{% endif %}"></span>
+    <span class="flex-1 h-1.5 rounded-full {% if current == 1 %}bg-gradient-to-r from-[#3FC0D2] to-[#183E0C]{% else %}bg-[#E5E7EB]{% endif %}"></span>
     {% endif %}
     {% if current > 2 %}
-    <a href="/patient/appointments/book/{{ doctor_id }}/slots/?date={{ appointment_date }}" class="flex-1 h-1.5 rounded-full bg-gradient-to-r from-[#3FC0D2] to-[#1D8FA8]" title="2. Date"></a>
+    <a href="/patient/appointments/book/{{ doctor_id }}/slots/?date={{ appointment_date }}" class="flex-1 h-1.5 rounded-full bg-gradient-to-r from-[#3FC0D2] to-[#183E0C]" title="2. Date"></a>
     {% else %}
-    <span class="flex-1 h-1.5 rounded-full {% if current == 2 %}bg-gradient-to-r from-[#3FC0D2] to-[#1D8FA8]{% else %}bg-[#E5E7EB]{% endif %}"></span>
+    <span class="flex-1 h-1.5 rounded-full {% if current == 2 %}bg-gradient-to-r from-[#3FC0D2] to-[#183E0C]{% else %}bg-[#E5E7EB]{% endif %}"></span>
     {% endif %}
     {% if current > 3 %}
-    <a href="/patient/appointments/book/{{ doctor_id }}/details/?appointment_date={{ appointment_date }}" class="flex-1 h-1.5 rounded-full bg-gradient-to-r from-[#3FC0D2] to-[#1D8FA8]" title="3. Patient Details"></a>
+    <a href="/patient/appointments/book/{{ doctor_id }}/details/?appointment_date={{ appointment_date }}" class="flex-1 h-1.5 rounded-full bg-gradient-to-r from-[#3FC0D2] to-[#183E0C]" title="3. Patient Details"></a>
     {% else %}
-    <span class="flex-1 h-1.5 rounded-full {% if current == 3 %}bg-gradient-to-r from-[#3FC0D2] to-[#1D8FA8]{% else %}bg-[#E5E7EB]{% endif %}"></span>
+    <span class="flex-1 h-1.5 rounded-full {% if current == 3 %}bg-gradient-to-r from-[#3FC0D2] to-[#183E0C]{% else %}bg-[#E5E7EB]{% endif %}"></span>
     {% endif %}
-    <span class="flex-1 h-1.5 rounded-full {% if current == 4 %}bg-gradient-to-r from-[#3FC0D2] to-[#1D8FA8]{% else %}bg-[#E5E7EB]{% endif %}"></span>
+    <span class="flex-1 h-1.5 rounded-full {% if current == 4 %}bg-gradient-to-r from-[#3FC0D2] to-[#183E0C]{% else %}bg-[#E5E7EB]{% endif %}"></span>
   </div>
   <p class="text-[11px] text-[#9CA3AF]">
     Step {{ current }} of 4 —

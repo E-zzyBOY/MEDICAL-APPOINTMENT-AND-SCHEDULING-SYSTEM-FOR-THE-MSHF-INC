@@ -19,15 +19,15 @@
     {% if doctor.profile_picture %}
       <img src="{{ doctor.profile_picture.url }}" class="size-12 rounded-2xl object-cover" alt="">
     {% else %}
-      <div class="size-12 bg-[#DCF4F8] rounded-2xl flex items-center justify-center">
-        <span class="text-[#2AAFC4] font-semibold">{{ doctor.first_name.0 }}{{ doctor.last_name.0 }}</span>
+      <div class="size-12 bg-[#E0EED5] rounded-2xl flex items-center justify-center">
+        <span class="text-[#1F4D11] font-semibold">{{ doctor.first_name.0 }}{{ doctor.last_name.0 }}</span>
       </div>
     {% endif %}
     <div class="min-w-0">
       <p class="font-semibold text-[#1F2937]">Dr. {{ doctor.get_full_name }}</p>
-      <p class="text-sm text-[#1D8FA8] font-medium">{% if doctor.doctor_profile.specialization %}{{ doctor.doctor_profile.specialization }}{% else %}General Medicine{% endif %}</p>
+      <p class="text-sm text-[#183E0C] font-medium">{% if doctor.doctor_profile.specialization %}{{ doctor.doctor_profile.specialization }}{% else %}General Medicine{% endif %}</p>
     </div>
-    <a hx-get="{% url 'patient:doctor_profile' doctor_id=doctor.pk %}" hx-target="#modal-root" hx-swap="innerHTML" class="ml-auto shrink-0 text-sm text-[#1D8FA8] font-medium hover:underline cursor-pointer">View Profile</a>
+    <a hx-get="{% url 'patient:doctor_profile' doctor_id=doctor.pk %}" hx-target="#modal-root" hx-swap="innerHTML" class="ml-auto shrink-0 text-sm text-[#183E0C] font-medium hover:underline cursor-pointer">View Profile</a>
   </div>
 
   <!-- Calendar -->
@@ -41,7 +41,7 @@
 
   <!-- Clinic card -->
   <div class="bg-white rounded-3xl shadow-soft-sm p-4 mb-24 md:mb-6 flex items-center gap-4">
-    <span class="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-[#3FC0D2] to-[#1D8FA8] text-white">
+    <span class="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-[#3FC0D2] to-[#183E0C] text-white">
       <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.7" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 21h18M5 21V5a2 2 0 012-2h10a2 2 0 012 2v16M9 8h1m4 0h1M9 12h1m4 0h1M10 21v-4a1 1 0 011-1h2a1 1 0 011 1v4"/></svg>
     </span>
     <div class="min-w-0">

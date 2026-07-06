@@ -3,17 +3,17 @@
 {% block modal_content %}
 
 <!-- Doctor header card -->
-<div class="flex items-center gap-4 p-4 bg-gradient-to-r from-[#F0FAFB] to-[#DCF4F8] rounded-2xl mb-5">
+<div class="flex items-center gap-4 p-4 bg-gradient-to-r from-[#F1F7EC] to-[#E0EED5] rounded-2xl mb-5">
   {% if doctor.profile_picture %}
     <img src="{{ doctor.profile_picture.url }}" class="size-16 rounded-2xl object-cover shrink-0" alt="">
   {% else %}
-    <div class="size-16 rounded-2xl bg-[#DCF4F8] flex items-center justify-center shrink-0">
-      <span class="text-[#2AAFC4] font-semibold text-xl">{{ doctor.first_name.0 }}{{ doctor.last_name.0 }}</span>
+    <div class="size-16 rounded-2xl bg-[#E0EED5] flex items-center justify-center shrink-0">
+      <span class="text-[#1F4D11] font-semibold text-xl">{{ doctor.first_name.0 }}{{ doctor.last_name.0 }}</span>
     </div>
   {% endif %}
   <div class="min-w-0">
     <p class="font-semibold text-[#1F2937] text-base">Dr. {{ doctor.get_full_name }}</p>
-    <p class="text-sm font-medium text-[#1D8FA8]">{{ doctor.doctor_profile.specialization|default:"General Medicine" }}</p>
+    <p class="text-sm font-medium text-[#183E0C]">{{ doctor.doctor_profile.specialization|default:"General Medicine" }}</p>
 
     <p class="text-xs text-[#9CA3AF] flex items-center gap-1 mt-0.5">
       <svg class="w-3 h-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a2 2 0 01-2.828 0l-4.243-4.243a8 8 0 1111.314 0z"/><circle cx="12" cy="11" r="3" stroke-width="2"/></svg>
@@ -68,7 +68,7 @@
 <!-- Book Appointment -->
 <a hx-get="{% url 'patient:book_step2' doctor_id=doctor.pk %}"
    hx-target="#modal-root" hx-swap="innerHTML"
-   class="block w-full text-center bg-gradient-to-r from-[#3FC0D2] to-[#1D8FA8] hover:brightness-105 text-white font-medium py-3.5 rounded-2xl text-sm transition cursor-pointer shadow-soft-sm">
+   class="block w-full text-center bg-gradient-to-r from-[#3FC0D2] to-[#183E0C] hover:brightness-105 text-white font-medium py-3.5 rounded-2xl text-sm transition cursor-pointer shadow-soft-sm">
   Book Appointment
 </a>
 

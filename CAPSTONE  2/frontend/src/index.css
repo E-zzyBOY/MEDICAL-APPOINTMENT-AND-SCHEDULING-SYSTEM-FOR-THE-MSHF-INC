@@ -3,60 +3,60 @@
 @tailwind utilities;
 
 /*
- * MSHFI Healthcare design system (single source of truth):
- *   Primary   #2AAFC4   hsl(188 65% 47%)  teal — buttons, links, focus rings
- *   Secondary #93DCEA   hsl(191 68% 75%)  soft aqua          — accents, soft surfaces
- *   Soft gray #F5F7FA   hsl(210 33% 97%)  app background / muted surfaces
- *   Border    #E5E7EB   hsl(220 13% 91%)
- *   Text      #1F2937 / #6B7280
- * All tint values below are derived from this one family so every surface in
- * the dashboard stays calm, clinical, and consistent across all 4 roles.
+ * MSHFI · Meadow & Marigold design system (single source of truth):
+ *   Primary    #1F4D11   hsl(106 64% 18%)  forest green — buttons, links, focus rings
+ *   Secondary  #F4E23B   hsl(54 89% 59%)   marigold      — accents, highlights
+ *   Ink        #1E1A19   hsl(12 9% 11%)    charcoal text
+ *   Danger     #BA1606   hsl(5 94% 38%)    brick red — errors, destructive
+ *   Surface    #F7F8F8   hsl(180 7% 97%)   cloud app background / muted surfaces
+ * All tint values below are derived from this family so every surface in
+ * the dashboard stays natural, grounded, and consistent across all 4 roles.
  */
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 215 28% 17%;
+    --background: 180 7% 97%;
+    --foreground: 12 9% 11%;
     --card: 0 0% 100%;
-    --card-foreground: 215 28% 17%;
+    --card-foreground: 12 9% 11%;
     --popover: 0 0% 100%;
-    --popover-foreground: 215 28% 17%;
-    --primary: 188 65% 47%;
+    --popover-foreground: 12 9% 11%;
+    --primary: 106 64% 18%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 189 60% 94%;
-    --secondary-foreground: 191 72% 26%;
-    --muted: 210 33% 97%;
-    --muted-foreground: 220 9% 46%;
-    --accent: 189 60% 93%;
-    --accent-foreground: 191 72% 26%;
-    --destructive: 0 84% 60%;
+    --secondary: 55 88% 88%;
+    --secondary-foreground: 52 85% 16%;
+    --muted: 105 18% 95%;
+    --muted-foreground: 12 5% 40%;
+    --accent: 55 88% 86%;
+    --accent-foreground: 52 85% 16%;
+    --destructive: 5 94% 38%;
     --destructive-foreground: 0 0% 100%;
-    --border: 220 13% 91%;
-    --input: 220 13% 91%;
-    --ring: 188 65% 47%;
+    --border: 100 8% 89%;
+    --input: 100 8% 89%;
+    --ring: 106 64% 18%;
     --radius: 1rem; /* 16px cards per design spec */
-    --chart-1: 188 65% 47%;
-    --chart-2: 188 59% 71%;
-    --chart-3: 191 72% 32%;
-    --chart-4: 189 61% 58%;
-    --chart-5: 188 67% 92%;
+    --chart-1: 106 64% 18%;
+    --chart-2: 54 89% 59%;
+    --chart-3: 106 44% 33%;
+    --chart-4: 48 82% 44%;
+    --chart-5: 105 30% 86%;
     --sidebar-background: 0 0% 100%;
-    --sidebar-foreground: 220 9% 46%;
-    --sidebar-primary: 188 65% 47%;
+    --sidebar-foreground: 12 5% 40%;
+    --sidebar-primary: 106 64% 18%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 210 33% 97%;
-    --sidebar-accent-foreground: 191 72% 26%;
-    --sidebar-border: 220 13% 91%;
-    --sidebar-ring: 188 65% 47%;
+    --sidebar-accent: 105 18% 95%;
+    --sidebar-accent-foreground: 106 64% 18%;
+    --sidebar-border: 100 8% 89%;
+    --sidebar-ring: 106 64% 18%;
   }
   .dark {
-    --sidebar-background: 209 36% 12%;
-    --sidebar-foreground: 210 33% 92%;
-    --sidebar-primary: 207 31% 52%;
+    --sidebar-background: 106 40% 9%;
+    --sidebar-foreground: 100 15% 92%;
+    --sidebar-primary: 105 35% 42%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 208 34% 18%;
-    --sidebar-accent-foreground: 210 33% 92%;
-    --sidebar-border: 208 34% 18%;
-    --sidebar-ring: 207 31% 52%;
+    --sidebar-accent: 106 30% 14%;
+    --sidebar-accent-foreground: 100 15% 92%;
+    --sidebar-border: 106 30% 14%;
+    --sidebar-ring: 105 35% 42%;
   }
 }
 

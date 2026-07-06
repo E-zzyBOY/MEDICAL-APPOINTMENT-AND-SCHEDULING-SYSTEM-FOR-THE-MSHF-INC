@@ -11,7 +11,7 @@
 
   <!-- Header card: aqua banner + photo + name -->
   <div class="bg-white rounded-3xl shadow-soft-sm overflow-hidden mb-4">
-    <div class="relative h-24 bg-gradient-to-r from-[#DCF4F8] to-[#B9E8F0]">
+    <div class="relative h-24 bg-gradient-to-r from-[#E0EED5] to-[#C3DEAF]">
       <span class="absolute top-4 right-4 text-[#9CA3AF]" aria-hidden="true">{# decorative #}
         <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/></svg>
       </span>
@@ -21,13 +21,13 @@
         {% if doctor.profile_picture %}
           <img src="{{ doctor.profile_picture.url }}" class="size-20 rounded-2xl object-cover ring-4 ring-white shadow-soft-sm" alt="">
         {% else %}
-          <div class="size-20 rounded-2xl bg-[#DCF4F8] ring-4 ring-white shadow-soft-sm flex items-center justify-center">
-            <span class="text-[#2AAFC4] font-semibold text-2xl">{{ doctor.first_name.0 }}{{ doctor.last_name.0 }}</span>
+          <div class="size-20 rounded-2xl bg-[#E0EED5] ring-4 ring-white shadow-soft-sm flex items-center justify-center">
+            <span class="text-[#1F4D11] font-semibold text-2xl">{{ doctor.first_name.0 }}{{ doctor.last_name.0 }}</span>
           </div>
         {% endif %}
       </div>
       <p class="font-semibold text-[#1F2937] text-xl">Dr. {{ doctor.get_full_name }}</p>
-      <p class="text-sm font-medium text-[#1D8FA8] mb-3">{{ doctor.doctor_profile.specialization|default:"General Medicine" }}</p>
+      <p class="text-sm font-medium text-[#183E0C] mb-3">{{ doctor.doctor_profile.specialization|default:"General Medicine" }}</p>
       <div class="flex items-center gap-3 text-sm">
 
         <span class="text-[#4B5563]">{{ doctor.doctor_profile.years_of_experience|default:"—" }}{% if doctor.doctor_profile.years_of_experience %}+ Years Experience{% else %} Experience{% endif %}</span>
@@ -39,7 +39,7 @@
 
   <!-- Clinic card -->
   <div class="bg-white rounded-3xl shadow-soft-sm p-4 mb-4 flex items-center gap-4">
-    <span class="flex size-14 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-[#3FC0D2] to-[#1D8FA8] text-white shadow-soft-sm">
+    <span class="flex size-14 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-[#3FC0D2] to-[#183E0C] text-white shadow-soft-sm">
       <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="1.7" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 21h18M5 21V5a2 2 0 012-2h10a2 2 0 012 2v16M9 8h1m4 0h1M9 12h1m4 0h1M10 21v-4a1 1 0 011-1h2a1 1 0 011 1v4"/></svg>
     </span>
     <div class="flex-1 min-w-0">
@@ -47,7 +47,7 @@
       <p class="text-xs text-[#6B7280] mt-0.5">Panggao Saduc, Marawi City, Lanao del Sur</p>
     </div>
     {# display only #}
-    <span class="shrink-0 flex items-center gap-1 text-xs font-medium text-[#1D8FA8]">
+    <span class="shrink-0 flex items-center gap-1 text-xs font-medium text-[#183E0C]">
       <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a2 2 0 01-2.828 0l-4.243-4.243a8 8 0 1111.314 0z"/><circle cx="12" cy="11" r="3"/></svg>
       View on Map
     </span>
@@ -66,7 +66,7 @@
     {% if schedules %}
     <div class="flex flex-wrap gap-2">
       {% for s in schedules %}
-      <span class="inline-flex flex-col items-center rounded-2xl bg-[#F0FAFB] px-4 py-2.5 text-center">
+      <span class="inline-flex flex-col items-center rounded-2xl bg-[#F1F7EC] px-4 py-2.5 text-center">
         <span class="text-sm font-semibold text-[#1F2937]">{{ s.specific_date|date:"D, M j" }}</span>
         <span class="text-[11px] text-[#6B7280] mt-0.5">{{ s.start_time|time:"g:i A" }} – {{ s.end_time|time:"g:i A" }}</span>
       </span>
@@ -79,7 +79,7 @@
 
   <div class="mb-24 md:mb-6">
     <a href="{% url 'patient:book_step2' doctor_id=doctor.pk %}"
-       class="flex items-center justify-center gap-2 w-full text-center bg-gradient-to-r from-[#3FC0D2] to-[#1D8FA8] hover:brightness-105 text-white font-medium py-4 rounded-2xl text-sm transition shadow-soft">
+       class="flex items-center justify-center gap-2 w-full text-center bg-gradient-to-r from-[#3FC0D2] to-[#183E0C] hover:brightness-105 text-white font-medium py-4 rounded-2xl text-sm transition shadow-soft">
       <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
       Book Now
     </a>

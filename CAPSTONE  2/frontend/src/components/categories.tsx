@@ -50,7 +50,7 @@ export function Categories({
 			<div className="flex items-center justify-between mb-3">
 				<h2 className="font-semibold text-base text-[#1F2937]">Categories</h2>
 				{href && (
-					<a href={href} className="text-sm text-[#2AAFC4] hover:underline">
+					<a href={href} className="text-sm text-[#1F4D11] hover:underline">
 						See All
 					</a>
 				)}

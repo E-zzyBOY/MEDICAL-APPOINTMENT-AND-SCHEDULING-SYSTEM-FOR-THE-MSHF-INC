@@ -14,6 +14,7 @@ urlpatterns = [
     path('appointments/',             v.admin_appointment_list, name='appointment_list'),
     path('appointments/<int:pk>/detail/', v.admin_appointment_detail, name='appointment_detail'),
     path('appointments/<int:pk>/edit/',   v.admin_appointment_edit,   name='appointment_edit'),
-    path('feedback/',                 v.admin_feedback_list, name='feedback_list'),
-    path('feedback/<int:pk>/detail/', v.admin_feedback_detail, name='feedback_detail'),
+    path('feedback/',                    v.admin_feedback_list,       name='feedback_list'),
+    path('feedback/doctor/<int:pk>/',    v.admin_feedback_by_doctor, name='feedback_by_doctor'),
+    path('feedback/<int:pk>/detail/',    v.admin_feedback_detail,    name='feedback_detail'),
 ]

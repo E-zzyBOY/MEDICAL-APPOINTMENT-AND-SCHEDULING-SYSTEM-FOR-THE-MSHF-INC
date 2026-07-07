@@ -211,10 +211,27 @@ def admin_appointment_edit(request, pk):
 
 @role_required('admin')
 def admin_feedback_list(request):
-    feedbacks = Feedback.objects.all().select_related('patient', 'appointment').order_by('-date_submitted')
-    avg_rating = feedbacks.aggregate(avg=Avg('rating'))['avg']
+    doctors = CustomUser.objects.filter(
+        role='doctor',
+        doctor_appointments__feedback__isnull=False,
+    ).annotate(
+        avg_rating=Avg('doctor_appointments__feedback__rating'),
+        review_count=Count('doctor_appointments__feedback'),
+    ).select_related('doctor_profile').distinct()
     return render(request, 'admin_panel/feedback_list.html', {
-        'feedbacks': feedbacks, 'avg_rating': avg_rating
+        'doctors': doctors,
+    })
+
+
+@role_required('admin')
+def admin_feedback_by_doctor(request, pk):
+    doctor = get_object_or_404(CustomUser.objects.select_related('doctor_profile'), pk=pk, role='doctor')
+    feedbacks = Feedback.objects.filter(
+        appointment__doctor=doctor
+    ).select_related('patient', 'appointment').order_by('-date_submitted')
+    avg_rating = feedbacks.aggregate(avg=Avg('rating'))['avg']
+    return render(request, 'admin_panel/feedback_by_doctor.html', {
+        'doctor': doctor, 'feedbacks': feedbacks, 'avg_rating': avg_rating,
     })
 
 

@@ -2,7 +2,7 @@
 {% block page_title %}All Appointments{% endblock %}
 {% block admin_content %}
 <div class="bg-white rounded-2xl shadow-soft p-6">
-  <div class="flex gap-6 border-b border-gray-200 mb-5 flex-wrap">
+  <div class="flex gap-6 border-b border-gray-200 mb-5 flex-wrap" data-swipe-tabs>
     <a href="?status=Scheduled" class="pb-3 text-sm font-medium border-b-2 -mb-px transition-colors {% if status_filter == 'Scheduled' %}border-brand-600 text-brand-600 font-semibold{% else %}border-transparent text-gray-400 hover:text-gray-600{% endif %}">Scheduled</a>
     <a href="?status=Completed" class="pb-3 text-sm font-medium border-b-2 -mb-px transition-colors {% if status_filter == 'Completed' %}border-brand-600 text-brand-600 font-semibold{% else %}border-transparent text-gray-400 hover:text-gray-600{% endif %}">Completed</a>
     <a href="?status=Cancelled" class="pb-3 text-sm font-medium border-b-2 -mb-px transition-colors {% if status_filter == 'Cancelled' %}border-brand-600 text-brand-600 font-semibold{% else %}border-transparent text-gray-400 hover:text-gray-600{% endif %}">Cancelled</a>

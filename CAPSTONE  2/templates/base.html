@@ -372,5 +372,73 @@
       }
     });
   </script>
+
+  <!-- swipe-tabs script: on mobile, swiping left/right switches to the
+       next/previous tab in any visible [data-swipe-tabs] bar. It just
+       .click()s the neighboring tab, so existing click behavior (links,
+       onclick handlers, htmx) is reused — never replaced. -->
+  <script>
+  (function () {
+    var startX = 0, startY = 0, tracking = false, fromScrollable = false;
+
+    function horizontallyScrollable(el) {
+      while (el && el !== document.body) {
+        if (el.scrollWidth > el.clientWidth + 4) {
+          var o = getComputedStyle(el).overflowX;
+          if (o === 'auto' || o === 'scroll') return true;
+        }
+        el = el.parentElement;
+      }
+      return false;
+    }
+
+    document.addEventListener('touchstart', function (e) {
+      tracking = false;
+      if (e.touches.length !== 1) return;
+      if (window.matchMedia('(min-width: 768px)').matches) return; // mobile only
+      var modal = document.getElementById('modal-root');
+      if (modal && modal.children.length && modal.contains(e.target)) return; // not inside modals
+      startX = e.touches[0].clientX;
+      startY = e.touches[0].clientY;
+      fromScrollable = horizontallyScrollable(e.target); // don't hijack sideways scrolling
+      tracking = true;
+    }, { passive: true });
+
+    document.addEventListener('touchend', function (e) {
+      if (!tracking) return;
+      tracking = false;
+      if (fromScrollable) return;
+      var t = e.changedTouches[0];
+      var dx = t.clientX - startX;
+      var dy = t.clientY - startY;
+      if (Math.abs(dx) < 60 || Math.abs(dy) > Math.abs(dx) * 0.6) return; // clearly horizontal only
+
+      var bar = Array.prototype.find.call(
+        document.querySelectorAll('[data-swipe-tabs]'),
+        function (b) { return b.offsetParent !== null; }
+      );
+      if (!bar) return;
+
+      var tabs = Array.prototype.filter.call(
+        bar.querySelectorAll('a, button'),
+        function (el) { return el.offsetParent !== null; }
+      );
+      if (tabs.length < 2) return;
+
+      var active = -1;
+      for (var i = 0; i < tabs.length; i++) {
+        var c = tabs[i].className || '';
+        if (c.indexOf('border-brand') !== -1 && c.indexOf('border-transparent') === -1) { active = i; break; }
+      }
+      if (active === -1) active = 0;
+
+      var next = dx < 0 ? active + 1 : active - 1; // swipe left = next tab
+      if (next < 0 || next >= tabs.length) return;
+      tabs[next].click();
+      // keep the newly active tab visible in scrollable tab bars
+      try { tabs[next].scrollIntoView({ block: 'nearest', inline: 'center', behavior: 'smooth' }); } catch (err) {}
+    }, { passive: true });
+  })();
+  </script>
 </body>
 </html>

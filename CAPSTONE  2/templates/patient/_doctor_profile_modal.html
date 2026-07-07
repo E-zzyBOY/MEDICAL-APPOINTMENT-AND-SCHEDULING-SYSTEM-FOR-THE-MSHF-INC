@@ -75,7 +75,7 @@
 </div>
 
 <!-- Book Appointment -->
-<a hx-get="{% url 'patient:book_step2' doctor_id=doctor.pk %}"
+<a hx-get="{% url 'patient:book_step3_who' doctor_id=doctor.pk %}"
    hx-target="#modal-root" hx-swap="innerHTML"
    class="block w-full text-center bg-gradient-to-r from-[#5E9A3C] to-[#183E0C] hover:brightness-105 text-white font-medium py-3.5 rounded-2xl text-sm transition cursor-pointer shadow-soft-sm">
   Book Appointment

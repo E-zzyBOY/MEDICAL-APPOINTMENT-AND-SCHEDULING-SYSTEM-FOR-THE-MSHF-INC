@@ -18,7 +18,7 @@ directly by the including template, so this OOB copy is skipped then.
     <p class="font-semibold text-[#1F2937]">{{ selected_date_display }}</p>
     <p class="text-xs text-[#6B7280] mt-1">The exact time will be confirmed by our staff after you book.</p>
   </div>
-  <a hx-get="{% url 'patient:book_step3_who' doctor_id=doctor.pk %}?appointment_date={{ selected_date }}"
+  <a hx-get="{% url 'patient:book_step4' doctor_id=doctor.pk %}?appointment_date={{ selected_date }}"
      hx-target="#modal-root" hx-swap="innerHTML"
      class="shrink-0 bg-gradient-to-r from-[#5E9A3C] to-[#183E0C] hover:brightness-105 text-white font-medium py-3 px-6 rounded-full text-sm transition cursor-pointer shadow-soft-sm">
     Continue

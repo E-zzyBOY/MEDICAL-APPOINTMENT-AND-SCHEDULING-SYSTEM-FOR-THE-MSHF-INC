@@ -450,21 +450,23 @@ def book_step3_who(request, doctor_id):
     booking for themselves or someone else, shown right after the date
     selection and before the patient details form."""
     doctor = get_object_or_404(CustomUser, pk=doctor_id, role='doctor')
-    appointment_date = request.GET.get('appointment_date')
-    if not appointment_date:
-        return redirect('patient:book_step2', doctor_id=doctor.pk)
+    # This step now runs right after "Book Now", BEFORE the date is chosen,
+    # so appointment_date is normally empty here.
+    appointment_date = request.GET.get('appointment_date') or ''
 
     if request.method == 'POST':
         for_whom = request.POST.get('for_whom', 'self')
-        if for_whom == 'other':
+        # Remember the choice for the rest of this booking flow.
+        request.session['booking_for_whom'] = for_whom
+        if appointment_date:
+            # Backwards-compat: if a date was already picked (old deep links),
+            # skip straight to the details step like before.
             return redirect(
                 f"{reverse('patient:book_step4', kwargs={'doctor_id': doctor.pk})}"
-                f"?appointment_date={appointment_date}&for_whom=other"
+                f"?appointment_date={appointment_date}&for_whom={for_whom}"
             )
-        return redirect(
-            f"{reverse('patient:book_step4', kwargs={'doctor_id': doctor.pk})}"
-            f"?appointment_date={appointment_date}&for_whom=self"
-        )
+        # Normal new flow: continue to date selection.
+        return redirect('patient:book_step2', doctor_id=doctor.pk)
 
     context = {
         'doctor': doctor,
@@ -527,7 +529,8 @@ def book_step4_details(request, doctor_id):
     AppointmentPatientDetails snapshot) gets created on final confirm."""
     doctor = get_object_or_404(CustomUser, pk=doctor_id, role='doctor')
     appointment_date = request.POST.get('appointment_date') or request.GET.get('appointment_date', '')
-    for_whom = request.POST.get('for_whom') or request.GET.get('for_whom', 'self')
+    for_whom = (request.POST.get('for_whom') or request.GET.get('for_whom')
+                or request.session.get('booking_for_whom', 'self'))
 
     if not appointment_date:
         # Can't proceed without knowing which date this is for.

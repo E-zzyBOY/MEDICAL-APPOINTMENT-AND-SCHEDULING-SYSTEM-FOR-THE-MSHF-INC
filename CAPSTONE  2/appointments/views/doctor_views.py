@@ -614,7 +614,7 @@ def doctor_appointment_list(request):
 
 @role_required('doctor')
 def appointment_detail(request, pk):
-    appt = get_object_or_404(Appointment.objects.select_related('patient'), pk=pk, doctor=request.user)
+    appt = get_object_or_404(Appointment.objects.select_related('patient', 'patient_details'), pk=pk, doctor=request.user)
     return render(request, 'doctor/_appointment_detail_modal.html', {
         'appt': appt, 'title': 'Appointment Details',
     })

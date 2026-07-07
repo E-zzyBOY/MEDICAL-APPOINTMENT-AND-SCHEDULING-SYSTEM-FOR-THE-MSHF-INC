@@ -92,7 +92,7 @@ def secretary_appointment_list(request):
 @role_required('secretary')
 def appointment_detail(request, pk):
     doctor = _assigned_doctor(request.user)
-    appt = get_object_or_404(Appointment.objects.select_related('patient', 'doctor'), pk=pk, doctor=doctor)
+    appt = get_object_or_404(Appointment.objects.select_related('patient', 'doctor', 'patient_details'), pk=pk, doctor=doctor)
     return render(request, 'secretary/_appointment_detail_modal.html', {
         'appt': appt, 'title': 'Appointment Details',
     })

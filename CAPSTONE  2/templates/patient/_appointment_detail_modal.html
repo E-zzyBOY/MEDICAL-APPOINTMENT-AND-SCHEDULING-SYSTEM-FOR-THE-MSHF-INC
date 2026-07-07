@@ -20,6 +20,7 @@
       <div class="flex justify-between gap-4"><span class="text-[#6B7280] shrink-0">Address</span><span class="font-medium text-[#1F2937] text-right">{{ pd.address }}</span></div>
       <div class="flex justify-between"><span class="text-[#6B7280]">Mobile</span><span class="font-medium text-[#1F2937]">{{ pd.mobile_number }}</span></div>
       {% if pd.email %}<div class="flex justify-between"><span class="text-[#6B7280]">Email</span><span class="font-medium text-[#1F2937]">{{ pd.email }}</span></div>{% endif %}
+      {% if pd.relationship and pd.relationship != 'Self' %}<div class="flex justify-between"><span class="text-[#6B7280]">Relationship</span><span class="font-medium text-[#1F2937]">{{ pd.relationship }}</span></div>{% endif %}
     </div>
   </div>
   {% endif %}

@@ -39,6 +39,16 @@ class AppointmentPatientDetails(models.Model):
     """
     GENDER_CHOICES = [('M', 'Male'), ('F', 'Female'), ('O', 'Other')]
 
+    RELATIONSHIP_CHOICES = [
+        ('Self', 'Self'),
+        ('Mother', 'Mother'),
+        ('Father', 'Father'),
+        ('Sibling', 'Sibling'),
+        ('Child', 'Child'),
+        ('Spouse', 'Spouse'),
+        ('Other', 'Other'),
+    ]
+
     appointment   = models.OneToOneField(
         'Appointment', on_delete=models.CASCADE, related_name='patient_details'
     )
@@ -52,6 +62,11 @@ class AppointmentPatientDetails(models.Model):
     email         = models.EmailField(blank=True)
     chief_complaint = models.TextField(
         help_text='Reason for booking / chief complaint, shown to the assigned doctor.'
+    )
+    relationship  = models.CharField(
+        max_length=50, blank=True, default='Self',
+        help_text="Relationship of the actual patient to the account holder. "
+                  "'Self' means the booking is for the account owner."
     )
     terms_accepted_at = models.DateTimeField()
 

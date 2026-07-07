@@ -5,6 +5,17 @@ from accounts.models import CustomUser
 from accounts.validators import validate_ph_mobile_number, normalize_ph_mobile_number
 
 
+RELATIONSHIP_CHOICES = [
+    ('Self', 'Self'),
+    ('Mother', 'Mother'),
+    ('Father', 'Father'),
+    ('Sibling', 'Sibling'),
+    ('Child', 'Child'),
+    ('Spouse', 'Spouse'),
+    ('Other', 'Other'),
+]
+
+
 class PatientDetailsForm(forms.Form):
     """Step 4 of booking: 'Patient Details'. Pre-filled from the logged-in
     patient's profile where available; the patient can edit anything before
@@ -34,6 +45,9 @@ class PatientDetailsForm(forms.Form):
     )
     mobile_number = forms.CharField(max_length=20, required=True, label='Mobile Number')
     email         = forms.EmailField(required=False, label='Email Address')
+    relationship  = forms.ChoiceField(
+        choices=RELATIONSHIP_CHOICES, required=True, label='Relationship to Account Holder',
+    )
     reason        = forms.CharField(
         required=True, label='Reason for Booking / Chief Complaint',
         widget=forms.Textarea(attrs={'rows': 3})
@@ -45,8 +59,8 @@ class PatientDetailsForm(forms.Form):
 
     def clean_date_of_birth(self):
         dob = self.cleaned_data['date_of_birth']
-        if dob and dob > date.today():
-            raise forms.ValidationError('Date of birth cannot be a future date.')
+        if dob and dob >= date.today():
+            raise forms.ValidationError('Date of birth must be before today.')
         return dob
 
     def clean_mobile_number(self):

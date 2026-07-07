@@ -10,6 +10,7 @@
       class="space-y-4 hp-field" novalidate>
   {% csrf_token %}
   <input type="hidden" name="appointment_date" value="{{ appointment_date }}" />
+  <input type="hidden" name="for_whom" value="{{ for_whom|default:'self' }}" />
 
   <div class="bg-[#F5F7FA] rounded-xl px-4 py-3 text-sm text-[#1F2937] flex items-center justify-between flex-wrap gap-1">
     <span class="font-medium">Dr. {{ doctor.get_full_name }}</span>
@@ -42,7 +43,7 @@
     <div>
       <label class="block text-xs font-medium text-[#6B7280] mb-1.5 ml-1">Date of Birth</label>
       <input type="date" name="date_of_birth" required
-             max="{% now 'Y-m-d' %}"
+             max="{{ max_dob|default:'' }}"
              value="{{ form.date_of_birth.value|date:'Y-m-d'|default:'' }}"
              class="w-full bg-[#F5F7FA] border-0 rounded-xl px-4 py-3.5 text-sm text-[#1F2937] focus:outline-none focus:ring-2 {% if form.date_of_birth.errors %}ring-2 ring-[#EF4444]{% else %}focus:ring-[#1F293733]{% endif %}" />
       {% if form.date_of_birth.errors %}<p class="text-[#DC2626] text-xs mt-1 ml-1">{{ form.date_of_birth.errors.0 }}</p>{% endif %}
@@ -82,6 +83,26 @@
              class="w-full bg-[#F5F7FA] border-0 rounded-xl px-4 py-3.5 text-sm text-[#1F2937] placeholder-[#6B7280] focus:outline-none focus:ring-2 focus:ring-[#1F293733]" />
     </div>
   </div>
+
+  <!-- Relationship (only shown when booking for someone else) -->
+  {% if for_whom == 'other' %}
+  <div>
+    <label class="block text-xs font-medium text-[#6B7280] mb-1.5 ml-1">Relationship to Account Holder</label>
+    <select name="relationship" required
+            class="w-full bg-[#F5F7FA] border-0 rounded-xl px-4 py-3.5 text-sm text-[#1F2937] focus:outline-none focus:ring-2 {% if form.relationship.errors %}ring-2 ring-[#EF4444]{% else %}focus:ring-[#1F293733]{% endif %}">
+      <option value="" {% if not form.relationship.value %}selected{% endif %}>-- Select --</option>
+      <option value="Mother" {% if form.relationship.value == 'Mother' %}selected{% endif %}>Mother</option>
+      <option value="Father" {% if form.relationship.value == 'Father' %}selected{% endif %}>Father</option>
+      <option value="Sibling" {% if form.relationship.value == 'Sibling' %}selected{% endif %}>Sibling</option>
+      <option value="Child" {% if form.relationship.value == 'Child' %}selected{% endif %}>Child</option>
+      <option value="Spouse" {% if form.relationship.value == 'Spouse' %}selected{% endif %}>Spouse</option>
+      <option value="Other" {% if form.relationship.value == 'Other' %}selected{% endif %}>Other</option>
+    </select>
+    {% if form.relationship.errors %}<p class="text-[#DC2626] text-xs mt-1 ml-1">{{ form.relationship.errors.0 }}</p>{% endif %}
+  </div>
+  {% else %}
+  <input type="hidden" name="relationship" value="Self" />
+  {% endif %}
 
   <!-- Reason for booking -->
   <div>

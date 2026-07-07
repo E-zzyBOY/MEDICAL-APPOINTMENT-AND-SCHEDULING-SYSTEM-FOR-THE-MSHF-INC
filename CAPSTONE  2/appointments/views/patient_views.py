@@ -444,16 +444,51 @@ def book_step2_calendar_partial(request, doctor_id):
     })
 
 
-def _patient_details_initial(user):
-    """Builds initial form data for the Patient Details step from whatever
-    the logged-in patient already has on file. Missing fields are simply
-    left blank so the patient fills them in once and (per the spec) only
-    has to type the chief complaint if everything else is already complete."""
+@role_required('patient')
+def book_step3_who(request, doctor_id):
+    """Step 3 of booking: 'Who is this for?'. Asks whether the patient is
+    booking for themselves or someone else, shown right after the date
+    selection and before the patient details form."""
+    doctor = get_object_or_404(CustomUser, pk=doctor_id, role='doctor')
+    appointment_date = request.GET.get('appointment_date')
+    if not appointment_date:
+        return redirect('patient:book_step2', doctor_id=doctor.pk)
+
+    if request.method == 'POST':
+        for_whom = request.POST.get('for_whom', 'self')
+        if for_whom == 'other':
+            return redirect(
+                f"{reverse('patient:book_step4', kwargs={'doctor_id': doctor.pk})}"
+                f"?appointment_date={appointment_date}&for_whom=other"
+            )
+        return redirect(
+            f"{reverse('patient:book_step4', kwargs={'doctor_id': doctor.pk})}"
+            f"?appointment_date={appointment_date}&for_whom=self"
+        )
+
+    context = {
+        'doctor': doctor,
+        'appointment_date': appointment_date,
+        'title': 'Who is this for?',
+    }
+    if request.htmx:
+        return render(request, 'patient/_book_step3_who_modal.html', context)
+    return render(request, 'patient/book_step3_who.html', context)
+
+
+def _patient_details_initial(user, for_whom='self'):
+    """Builds initial form data for the Patient Details step.
+    When for_whom='self' (default), pre-fills from the logged-in patient's
+    account/profile. When for_whom='other', returns blank data since the
+    person being booked is a different individual."""
+    if for_whom != 'self':
+        return {'relationship': 'Other'}
     profile = getattr(user, 'patient_profile', None)
     initial = {
         'first_name':  user.first_name,
         'last_name':   user.last_name,
         'email':       user.email,
+        'relationship': 'Self',
     }
     if profile:
         initial.update({
@@ -485,13 +520,14 @@ def _patient_already_consented(user):
 
 @role_required('patient')
 def book_step4_details(request, doctor_id):
-    """Step 4 of booking: Patient Details. Sits between slot selection and
-    the review/confirm step. Nothing is written to the database here —
-    validated field values are carried forward as hidden form fields into
+    """Step 4 of booking: Patient Details. Sits between the 'Who is this for?'
+    step and the review/confirm step. Nothing is written to the database here
+    — validated field values are carried forward as hidden form fields into
     the review step, where the actual Appointment row (and the permanent
     AppointmentPatientDetails snapshot) gets created on final confirm."""
     doctor = get_object_or_404(CustomUser, pk=doctor_id, role='doctor')
     appointment_date = request.POST.get('appointment_date') or request.GET.get('appointment_date', '')
+    for_whom = request.POST.get('for_whom') or request.GET.get('for_whom', 'self')
 
     if not appointment_date:
         # Can't proceed without knowing which date this is for.
@@ -506,6 +542,8 @@ def book_step4_details(request, doctor_id):
         # patient or the policy version changed, the box is required.
         if already_consented:
             form.fields['terms_accepted'].required = False
+        if for_whom != 'self':
+            form.fields['relationship'].required = True
         if form.is_valid():
             context = {
                 'doctor': doctor,
@@ -513,6 +551,7 @@ def book_step4_details(request, doctor_id):
                 'appointment_date_display': _format_date_str(appointment_date),
                 'details': form.cleaned_data,
                 'already_consented': already_consented,
+                'for_whom': for_whom,
                 'title': 'Review Appointment',
             }
             if request.htmx:
@@ -522,14 +561,19 @@ def book_step4_details(request, doctor_id):
         # already typed (Django forms keep submitted values automatically).
         messages.error(request, 'Please complete all required fields before continuing.')
     else:
-        form = PatientDetailsForm(initial=_patient_details_initial(request.user))
+        form = PatientDetailsForm(initial=_patient_details_initial(request.user, for_whom))
+        if for_whom == 'self':
+            form.fields['relationship'].required = False
 
+    max_dob = (date.today() - timedelta(days=1)).isoformat()
     context = {
         'doctor': doctor,
         'appointment_date': appointment_date,
         'appointment_date_display': _format_date_str(appointment_date),
         'form': form,
         'already_consented': already_consented,
+        'for_whom': for_whom,
+        'max_dob': max_dob,
         'title': 'Patient Details',
     }
     if request.htmx:
@@ -561,12 +605,17 @@ def book_step3_confirm(request):
             form.fields['terms_accepted'].required = False
         if not form.is_valid():
             messages.error(request, 'Some patient details are missing or invalid. Please review and try again.')
+            rel = request.POST.get('relationship', 'Self')
+            for_whom = 'self' if rel == 'Self' else 'other'
+            max_dob = (date.today() - timedelta(days=1)).isoformat()
             response_ctx = {
                 'doctor': doctor,
                 'appointment_date': date_str,
                 'appointment_date_display': _format_date_str(date_str),
                 'form': form,
                 'already_consented': already_consented,
+                'for_whom': for_whom,
+                'max_dob': max_dob,
                 'title': 'Patient Details',
             }
             if request.htmx:
@@ -600,6 +649,7 @@ def book_step3_confirm(request):
                 mobile_number    = details['mobile_number'],
                 email            = details.get('email', ''),
                 chief_complaint  = details['reason'],
+                relationship     = details.get('relationship', 'Self'),
                 terms_accepted_at = terms_timestamp,
             )
 
@@ -619,9 +669,21 @@ def book_step3_confirm(request):
             send_booking_received_email(appointment)
         except Exception:
             pass
+        # Build a patient name for the notification. If the appointment is
+        # for someone other than the account holder, mention both names so
+        # staff know who the actual patient is.
+        is_for_self = details.get('relationship', 'Self') == 'Self'
+        patient_full_name = f"{details['first_name']} {details['last_name']}"
+        if is_for_self:
+            patient_identifier = request.user.get_full_name()
+        else:
+            patient_identifier = (
+                f"{request.user.get_full_name()} (for {patient_full_name}"
+                f" — {details.get('relationship', 'Other')})"
+            )
         _notify_assigned_secretaries_and_doctor(
             doctor,
-            f"{request.user.get_full_name()} requested an appointment with Dr. {doctor.get_full_name()} on "
+            f"{patient_identifier} requested an appointment with Dr. {doctor.get_full_name()} on "
             f"{appointment_date.strftime('%B %d, %Y')}. Awaiting time assignment."
         )
         _notify(request.user,

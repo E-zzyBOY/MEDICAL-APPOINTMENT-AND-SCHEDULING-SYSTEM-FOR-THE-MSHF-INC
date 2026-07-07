@@ -186,7 +186,7 @@ def admin_appointment_list(request):
 
 @role_required('admin')
 def admin_appointment_detail(request, pk):
-    appt = get_object_or_404(Appointment.objects.select_related('patient', 'doctor', 'secretary'), pk=pk)
+    appt = get_object_or_404(Appointment.objects.select_related('patient', 'doctor', 'secretary', 'patient_details'), pk=pk)
     return render(request, 'admin_panel/_appointment_detail_modal.html', {
         'appt': appt, 'title': 'Appointment Details',
     })

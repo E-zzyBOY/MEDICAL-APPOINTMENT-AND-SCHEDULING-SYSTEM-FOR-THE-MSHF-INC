@@ -1,6 +1,6 @@
 {% comment %}
 Shared progress indicator for the patient booking flow (segmented-bar style).
-Pass current (the active step number, 1-4), plus doctor_id and
+Pass current (the active step number, 1-5), plus doctor_id and
 appointment_date once a doctor/date have been chosen. Completed steps
 before the active one are clickable links back into the flow; the active
 step's bar is teal; later steps are dimmed and not clickable.
@@ -18,14 +18,19 @@ step's bar is teal; later steps are dimmed and not clickable.
     <span class="flex-1 h-1.5 rounded-full {% if current == 2 %}bg-gradient-to-r from-[#5E9A3C] to-[#183E0C]{% else %}bg-[#E5E7EB]{% endif %}"></span>
     {% endif %}
     {% if current > 3 %}
-    <a href="/patient/appointments/book/{{ doctor_id }}/details/?appointment_date={{ appointment_date }}" class="flex-1 h-1.5 rounded-full bg-gradient-to-r from-[#5E9A3C] to-[#183E0C]" title="3. Patient Details"></a>
+    <a href="/patient/appointments/book/{{ doctor_id }}/who/?appointment_date={{ appointment_date }}" class="flex-1 h-1.5 rounded-full bg-gradient-to-r from-[#5E9A3C] to-[#183E0C]" title="3. Who"></a>
     {% else %}
     <span class="flex-1 h-1.5 rounded-full {% if current == 3 %}bg-gradient-to-r from-[#5E9A3C] to-[#183E0C]{% else %}bg-[#E5E7EB]{% endif %}"></span>
     {% endif %}
+    {% if current > 4 %}
+    <a href="/patient/appointments/book/{{ doctor_id }}/details/?appointment_date={{ appointment_date }}" class="flex-1 h-1.5 rounded-full bg-gradient-to-r from-[#5E9A3C] to-[#183E0C]" title="4. Patient Details"></a>
+    {% else %}
     <span class="flex-1 h-1.5 rounded-full {% if current == 4 %}bg-gradient-to-r from-[#5E9A3C] to-[#183E0C]{% else %}bg-[#E5E7EB]{% endif %}"></span>
+    {% endif %}
+    <span class="flex-1 h-1.5 rounded-full {% if current == 5 %}bg-gradient-to-r from-[#5E9A3C] to-[#183E0C]{% else %}bg-[#E5E7EB]{% endif %}"></span>
   </div>
   <p class="text-[11px] text-[#9CA3AF]">
-    Step {{ current }} of 4 —
-    {% if current == 1 %}Choose Doctor{% elif current == 2 %}Pick a Date{% elif current == 3 %}Patient Details{% else %}Review &amp; Confirm{% endif %}
+    Step {{ current }} of 5 —
+    {% if current == 1 %}Choose Doctor{% elif current == 2 %}Pick a Date{% elif current == 3 %}For Whom{% elif current == 4 %}Patient Details{% else %}Review &amp; Confirm{% endif %}
   </p>
 </div>

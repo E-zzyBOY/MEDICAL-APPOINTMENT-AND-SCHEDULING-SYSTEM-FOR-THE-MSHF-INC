@@ -30,14 +30,14 @@
   {% if not role_filter %}
   <h2 class="text-base font-semibold text-gray-800 mb-3">Doctors &amp; Secretaries</h2>
   {% endif %}
-  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
+  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 mb-8">
     {% for user in staff_users %}
     <div hx-get="{% url 'admin_panel:user_detail' pk=user.pk %}" hx-target="#modal-root" hx-swap="innerHTML"
-         class="bg-white rounded-2xl border border-gray-200 shadow-soft-sm overflow-hidden cursor-pointer hover:shadow-md hover:-translate-y-0.5 transition">
-      <!-- Colored top area (like the Featured Doctors card) -->
-      <div class="relative h-32 flex items-center justify-center {% if user.role == 'doctor' %}bg-brand-100{% else %}bg-purple-100{% endif %}">
+         class="bg-white rounded-3xl border border-gray-200 shadow-soft-sm overflow-hidden cursor-pointer hover:shadow-md hover:-translate-y-0.5 transition">
+      <!-- Photo top area — same size as the patient "Featured Doctors" card -->
+      <div class="relative h-40 md:h-44 flex items-center justify-center overflow-hidden {% if user.role == 'doctor' %}bg-brand-100{% else %}bg-purple-100{% endif %}">
         {% if user.profile_picture %}
-        <img src="{{ user.profile_picture.url }}" alt="" class="size-20 rounded-full object-cover ring-4 ring-white shadow">
+        <img src="{{ user.profile_picture.url }}" alt="" class="h-full w-full object-cover">
         {% elif user.role == 'doctor' %}
         <svg class="w-12 h-12 text-brand-500" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
           <path d="M4.8 2.3A.3.3 0 1 0 5 2H4a2 2 0 0 0-2 2v5a6 6 0 0 0 6 6a6 6 0 0 0 6-6V4a2 2 0 0 0-2-2h-1a.2.2 0 1 0 .3.3"/>
@@ -50,7 +50,7 @@
           <circle cx="12" cy="7" r="4"/>
         </svg>
         {% endif %}
-        <span class="absolute top-3 right-3 px-2 py-0.5 rounded-full text-[11px] font-semibold capitalize bg-white/90
+        <span class="absolute top-3 right-3 px-2.5 py-1 rounded-full text-[11px] font-semibold capitalize bg-white/95 shadow-md
           {% if user.role == 'doctor' %}text-green-600{% else %}text-purple-600{% endif %}">
           {{ user.role }}
         </span>

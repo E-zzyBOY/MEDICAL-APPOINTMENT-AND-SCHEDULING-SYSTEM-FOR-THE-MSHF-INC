@@ -598,7 +598,7 @@ def schedule_delete(request, pk):
 @role_required('doctor')
 def doctor_appointment_list(request):
     status_filter = request.GET.get('status', '')
-    qs = Appointment.objects.filter(doctor=request.user).select_related('patient')
+    qs = Appointment.objects.filter(doctor=request.user).select_related('patient', 'patient_details')
     if status_filter:
         qs = qs.filter(status=status_filter)
     else:

@@ -172,7 +172,7 @@ def user_delete(request, pk):
 
 @role_required('admin')
 def admin_appointment_list(request):
-    qs = Appointment.objects.all().select_related('patient', 'doctor', 'secretary').order_by('-appointment_date', 'appointment_time')
+    qs = Appointment.objects.all().select_related('patient', 'doctor', 'secretary', 'patient_details').order_by('-appointment_date', 'appointment_time')
     return render(request, 'admin_panel/appointment_list.html', {
         # "Scheduled" bucket covers every appointment that hasn't finished or
         # been cancelled yet (Pending Assignment, Scheduled, Confirmed,

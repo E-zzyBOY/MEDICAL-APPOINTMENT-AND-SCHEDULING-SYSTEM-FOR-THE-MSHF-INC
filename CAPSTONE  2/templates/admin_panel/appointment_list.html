@@ -31,8 +31,9 @@
         </thead>
         <tbody class="divide-y divide-gray-100">
           {% for appt in scheduled %}
+          {% with pd=appt.patient_details %}
           <tr hx-get="{% url 'admin_panel:appointment_detail' pk=appt.pk %}" hx-target="#modal-root" hx-swap="innerHTML" class="cursor-pointer hover:bg-gray-50">
-            <td class="py-3 font-medium">{{ appt.patient.get_full_name }}</td>
+            <td class="py-3 font-medium">{% if pd %}{{ pd.full_name }}{% else %}{{ appt.patient.get_full_name }}{% endif %}{% if pd.relationship and pd.relationship != 'Self' %}<span class="text-[11px] text-gray-400 block">Booked by: {{ appt.patient.get_full_name }}</span>{% endif %}</td>
             <td class="py-3 text-gray-600">Dr. {{ appt.doctor.get_full_name }}</td>
             <td class="py-3 text-gray-500">{{ appt.appointment_date|date:"M j, Y" }}</td>
             <td class="py-3 text-gray-500">{% if appt.appointment_time %}{{ appt.appointment_time|time:"g:i A" }}{% else %}<span class="text-amber-600 italic">TBC</span>{% endif %}</td>
@@ -49,15 +50,17 @@
                  class="px-2 py-1 bg-indigo-100 text-indigo-700 rounded text-xs font-medium hover:bg-indigo-200 cursor-pointer">Reschedule</a>
             </td>
           </tr>
+          {% endwith %}
           {% endfor %}
         </tbody>
       </table>
     </div>
     <div class="flex md:hidden flex-col gap-3">
       {% for appt in scheduled %}
+      {% with pd=appt.patient_details %}
       <div hx-get="{% url 'admin_panel:appointment_detail' pk=appt.pk %}" hx-target="#modal-root" hx-swap="innerHTML" class="bg-white rounded-2xl border border-gray-200 p-4 shadow-soft-sm cursor-pointer hover:bg-gray-50">
         <div class="flex items-start justify-between gap-3">
-          <span class="font-medium text-gray-800 text-sm truncate">{{ appt.patient.get_full_name }}</span>
+          <span class="font-medium text-gray-800 text-sm truncate">{% if pd %}{{ pd.first_name }} {{ pd.last_name }}{% else %}{{ appt.patient.get_full_name }}{% endif %}</span>
           <span class="shrink-0 px-2 py-0.5 rounded-full text-xs font-semibold
             {% if appt.status == 'Scheduled' or appt.status == 'Confirmed' or appt.status == 'Rescheduled' %}bg-green-100 text-green-700
             {% elif appt.status == 'Pending Reschedule' %}bg-purple-100 text-purple-600
@@ -77,6 +80,7 @@
           </a>
         </div>
       </div>
+      {% endwith %}
       {% endfor %}
     </div>
     {% else %}
@@ -94,22 +98,25 @@
         </thead>
         <tbody class="divide-y divide-gray-100">
           {% for appt in completed %}
+          {% with pd=appt.patient_details %}
           <tr hx-get="{% url 'admin_panel:appointment_detail' pk=appt.pk %}" hx-target="#modal-root" hx-swap="innerHTML" class="cursor-pointer hover:bg-gray-50">
-            <td class="py-3 font-medium">{{ appt.patient.get_full_name }}</td>
+            <td class="py-3 font-medium">{% if pd %}{{ pd.full_name }}{% else %}{{ appt.patient.get_full_name }}{% endif %}{% if pd.relationship and pd.relationship != 'Self' %}<span class="text-[11px] text-gray-400 block">Booked by: {{ appt.patient.get_full_name }}</span>{% endif %}</td>
             <td class="py-3 text-gray-600">Dr. {{ appt.doctor.get_full_name }}</td>
             <td class="py-3 text-gray-500">{{ appt.appointment_date|date:"M j, Y" }}</td>
             <td class="py-3 text-gray-500">{% if appt.appointment_time %}{{ appt.appointment_time|time:"g:i A" }}{% else %}<span class="text-amber-600 italic">TBC</span>{% endif %}</td>
             <td class="py-3"><span class="px-2 py-0.5 rounded-full text-xs font-semibold bg-blue-100 text-blue-700">{{ appt.status }}</span></td>
           </tr>
+          {% endwith %}
           {% endfor %}
         </tbody>
       </table>
     </div>
     <div class="flex md:hidden flex-col gap-3">
       {% for appt in completed %}
+      {% with pd=appt.patient_details %}
       <div hx-get="{% url 'admin_panel:appointment_detail' pk=appt.pk %}" hx-target="#modal-root" hx-swap="innerHTML" class="bg-white rounded-2xl border border-gray-200 p-4 shadow-soft-sm cursor-pointer hover:bg-gray-50">
         <div class="flex items-start justify-between gap-3">
-          <span class="font-medium text-gray-800 text-sm truncate">{{ appt.patient.get_full_name }}</span>
+          <span class="font-medium text-gray-800 text-sm truncate">{% if pd %}{{ pd.first_name }} {{ pd.last_name }}{% else %}{{ appt.patient.get_full_name }}{% endif %}</span>
           <span class="shrink-0 px-2 py-0.5 rounded-full text-xs font-semibold bg-blue-100 text-blue-700">{{ appt.status }}</span>
         </div>
         <div class="mt-3 bg-gray-50 rounded-xl p-3 text-sm space-y-1.5">
@@ -118,6 +125,7 @@
           <div class="flex justify-between"><span class="text-gray-500">Time</span><span class="font-medium text-gray-800">{% if appt.appointment_time %}{{ appt.appointment_time|time:"g:i A" }}{% else %}<span class="text-amber-600">TBC</span>{% endif %}</span></div>
         </div>
       </div>
+      {% endwith %}
       {% endfor %}
     </div>
     {% else %}
@@ -135,22 +143,25 @@
         </thead>
         <tbody class="divide-y divide-gray-100">
           {% for appt in cancelled %}
+          {% with pd=appt.patient_details %}
           <tr hx-get="{% url 'admin_panel:appointment_detail' pk=appt.pk %}" hx-target="#modal-root" hx-swap="innerHTML" class="cursor-pointer hover:bg-gray-50">
-            <td class="py-3 font-medium">{{ appt.patient.get_full_name }}</td>
+            <td class="py-3 font-medium">{% if pd %}{{ pd.full_name }}{% else %}{{ appt.patient.get_full_name }}{% endif %}{% if pd.relationship and pd.relationship != 'Self' %}<span class="text-[11px] text-gray-400 block">Booked by: {{ appt.patient.get_full_name }}</span>{% endif %}</td>
             <td class="py-3 text-gray-600">Dr. {{ appt.doctor.get_full_name }}</td>
             <td class="py-3 text-gray-500">{{ appt.appointment_date|date:"M j, Y" }}</td>
             <td class="py-3 text-gray-500">{% if appt.appointment_time %}{{ appt.appointment_time|time:"g:i A" }}{% else %}<span class="text-amber-600 italic">TBC</span>{% endif %}</td>
             <td class="py-3"><span class="px-2 py-0.5 rounded-full text-xs font-semibold bg-red-100 text-red-600">{{ appt.status }}</span></td>
           </tr>
+          {% endwith %}
           {% endfor %}
         </tbody>
       </table>
     </div>
     <div class="flex md:hidden flex-col gap-3">
       {% for appt in cancelled %}
+      {% with pd=appt.patient_details %}
       <div hx-get="{% url 'admin_panel:appointment_detail' pk=appt.pk %}" hx-target="#modal-root" hx-swap="innerHTML" class="bg-white rounded-2xl border border-gray-200 p-4 shadow-soft-sm cursor-pointer hover:bg-gray-50">
         <div class="flex items-start justify-between gap-3">
-          <span class="font-medium text-gray-800 text-sm truncate">{{ appt.patient.get_full_name }}</span>
+          <span class="font-medium text-gray-800 text-sm truncate">{% if pd %}{{ pd.first_name }} {{ pd.last_name }}{% else %}{{ appt.patient.get_full_name }}{% endif %}</span>
           <span class="shrink-0 px-2 py-0.5 rounded-full text-xs font-semibold bg-red-100 text-red-600">{{ appt.status }}</span>
         </div>
         <div class="mt-3 bg-gray-50 rounded-xl p-3 text-sm space-y-1.5">
@@ -159,6 +170,7 @@
           <div class="flex justify-between"><span class="text-gray-500">Time</span><span class="font-medium text-gray-800">{% if appt.appointment_time %}{{ appt.appointment_time|time:"g:i A" }}{% else %}<span class="text-amber-600">TBC</span>{% endif %}</span></div>
         </div>
       </div>
+      {% endwith %}
       {% endfor %}
     </div>
     {% else %}

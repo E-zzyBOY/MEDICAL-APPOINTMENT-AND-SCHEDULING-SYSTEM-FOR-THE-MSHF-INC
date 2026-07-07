@@ -77,7 +77,7 @@ def secretary_appointment_list(request):
     doctor = _assigned_doctor(request.user)
     status_filter = request.GET.get('status', '')
     date_filter   = request.GET.get('date', '')
-    qs = Appointment.objects.filter(doctor=doctor).select_related('patient', 'doctor') if doctor else Appointment.objects.none()
+    qs = Appointment.objects.filter(doctor=doctor).select_related('patient', 'doctor', 'patient_details') if doctor else Appointment.objects.none()
     if status_filter:
         qs = qs.filter(status=status_filter)
     if date_filter:

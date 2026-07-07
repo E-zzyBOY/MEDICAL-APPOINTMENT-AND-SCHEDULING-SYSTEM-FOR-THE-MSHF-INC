@@ -1,7 +1,7 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.db.models import Count, Avg, Q
-from django.http import JsonResponse, HttpResponse
+from django.http import JsonResponse, HttpResponse, HttpResponseNotAllowed
 from datetime import date, timedelta
 from accounts.decorators import role_required
 from accounts.models import CustomUser, PatientProfile, DoctorProfile, SecretaryProfile
@@ -145,6 +145,22 @@ def user_edit(request, pk):
     if request.htmx:
         return render(request, 'admin_panel/_user_edit_modal.html', {'form': form, 'edited_user': user})
     return render(request, 'admin_panel/user_edit.html', {'form': form, 'edited_user': user})
+
+
+@role_required('admin')
+def user_toggle_active(request, pk):
+    user = get_object_or_404(CustomUser, pk=pk)
+    if request.method == 'POST':
+        user.is_active = not user.is_active
+        user.save(update_fields=['is_active'])
+        status = 'activated' if user.is_active else 'deactivated'
+        messages.success(request, f'{user.get_full_name()} {status}.')
+        if request.htmx:
+            response = HttpResponse('')
+            response['HX-Redirect'] = '/admin-panel/users/'
+            return response
+        return redirect('admin_panel:user_list')
+    return HttpResponseNotAllowed(['POST'])
 
 
 @role_required('admin')

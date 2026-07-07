@@ -10,6 +10,7 @@ urlpatterns = [
     path('users/create/',             v.user_create,        name='user_create'),
     path('users/<int:pk>/detail/',    v.user_detail,        name='user_detail'),
     path('users/<int:pk>/edit/',      v.user_edit,          name='user_edit'),
+    path('users/<int:pk>/toggle-active/', v.user_toggle_active, name='user_toggle_active'),
     path('users/<int:pk>/delete/',    v.user_delete,        name='user_delete'),
     path('appointments/',             v.admin_appointment_list, name='appointment_list'),
     path('appointments/<int:pk>/detail/', v.admin_appointment_detail, name='appointment_detail'),

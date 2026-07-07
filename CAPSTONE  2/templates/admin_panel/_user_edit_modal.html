@@ -36,6 +36,13 @@
               Cancel
             </button>
           </div>
+          <div class="text-center pt-3">
+            <a hx-get="{% url 'admin_panel:user_delete' pk=edited_user.pk %}" hx-target="#modal-root" hx-swap="innerHTML"
+               onclick="event.stopPropagation()"
+               class="text-xs text-red-400 hover:text-red-600 transition cursor-pointer">
+              Delete permanently
+            </a>
+          </div>
         </form>
       </div>
     </div>

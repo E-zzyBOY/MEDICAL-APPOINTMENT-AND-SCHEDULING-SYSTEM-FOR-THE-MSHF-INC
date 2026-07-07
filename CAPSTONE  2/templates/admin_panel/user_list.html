@@ -3,9 +3,7 @@
 {% block page_title %}Manage Users{% endblock %}
 
 {% block admin_content %}
-<div class="max-w-3xl mx-auto">
-
-  <h1 class="text-xl font-semibold text-gray-800 text-center mb-5">Manage Users</h1>
+<div class="max-w-5xl mx-auto">
 
   <!-- Tabs -->
   <div class="flex items-center border-b border-gray-200 mb-5">
@@ -15,119 +13,158 @@
     <a href="?role=secretary" class="flex-1 text-center pb-3 text-sm font-medium border-b-2 transition-colors {% if role_filter == 'secretary' %}text-brand-600 font-semibold border-brand-500{% else %}text-gray-400 border-transparent hover:text-gray-600{% endif %}">Secretaries</a>
   </div>
 
-  <div class="flex gap-2 mb-5">
+  <div class="flex gap-2 mb-6">
     <a hx-get="/admin-panel/users/create/?role=doctor" hx-target="#modal-root" hx-swap="innerHTML" class="flex-1 text-center px-4 py-2.5 bg-green-600 text-white text-sm font-medium rounded-xl hover:bg-green-700 transition cursor-pointer">+ Doctor</a>
     <a hx-get="/admin-panel/users/create/?role=secretary" hx-target="#modal-root" hx-swap="innerHTML" class="flex-1 text-center px-4 py-2.5 bg-purple-600 text-white text-sm font-medium rounded-xl hover:bg-purple-700 transition cursor-pointer">+ Secretary</a>
   </div>
 
-  {% if users %}
-  <div class="hidden md:block overflow-x-auto">
-    <table class="w-full text-sm">
-      <thead class="text-left text-gray-500 border-b border-gray-200">
-        <tr><th class="pb-3 font-semibold">Name</th><th class="pb-3 font-semibold">Role</th><th class="pb-3 font-semibold">Email</th><th class="pb-3 font-semibold">Status</th><th class="pb-3 font-semibold">Actions</th></tr>
-      </thead>
-      <tbody class="divide-y divide-gray-100">
-        {% for user in users %}
-        <tr hx-get="{% url 'admin_panel:user_detail' pk=user.pk %}" hx-target="#modal-root" hx-swap="innerHTML" class="cursor-pointer hover:bg-gray-50">
-          <td class="py-3 font-medium text-gray-800">{{ user.get_full_name|default:user.username }}</td>
-          <td class="py-3">
-            <span class="px-2 py-0.5 rounded-full text-xs font-semibold capitalize
-              {% if user.role == 'patient' %}bg-blue-100 text-blue-700
-              {% elif user.role == 'doctor' %}bg-green-100 text-green-600
-              {% else %}bg-purple-100 text-purple-600{% endif %}">
-              {{ user.role }}
-            </span>
-          </td>
-          <td class="py-3 text-gray-500">{{ user.email }}</td>
-          <td class="py-3">
-            <div class="flex items-center gap-2">
-              <form method="post" action="{% url 'admin_panel:user_toggle_active' pk=user.pk %}"
-                    hx-post="{% url 'admin_panel:user_toggle_active' pk=user.pk %}"
-                    hx-target="#modal-root" hx-swap="innerHTML" class="inline-flex items-center"
-                    onsubmit="event.stopPropagation()">
-                {% csrf_token %}
-                <button type="submit" onclick="event.stopPropagation()"
-                   class="relative inline-flex h-5 w-9 items-center rounded-full transition-colors duration-200
-                          focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-1
-                          {% if user.is_active %}bg-green-500{% else %}bg-gray-300{% endif %}">
-                  <span class="inline-block h-4 w-4 transform rounded-full bg-white shadow transition duration-200
-                               {% if user.is_active %}translate-x-[18px]{% else %}translate-x-[2px]{% endif %}">
-                  </span>
-                </button>
-              </form>
-              <span class="text-xs font-medium {% if user.is_active %}text-green-600{% else %}text-gray-400{% endif %}">
-                {% if user.is_active %}Active{% else %}Inactive{% endif %}
-              </span>
-            </div>
-          </td>
-          <td class="py-3">
-            <a hx-get="/admin-panel/users/{{ user.pk }}/edit/" hx-target="#modal-root" hx-swap="innerHTML" onclick="event.stopPropagation()" class="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs font-medium hover:bg-blue-200 cursor-pointer">Edit</a>
-          </td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </div>
-  <div class="flex md:hidden flex-col gap-3">
-    {% for user in users %}
-    <div hx-get="{% url 'admin_panel:user_detail' pk=user.pk %}" hx-target="#modal-root" hx-swap="innerHTML" class="bg-white rounded-2xl border border-gray-200 p-3 shadow-soft-sm cursor-pointer hover:bg-gray-50">
-      <div class="flex items-center gap-3">
+  {% if not users %}
+  <p class="text-gray-400 text-center py-10">No users found.</p>
+  {% endif %}
+
+  <!-- ============================================================= -->
+  <!-- Doctors & Secretaries: profile cards (few of them, easier to  -->
+  <!-- view — styled like the patient home "Featured Doctors" card)  -->
+  <!-- ============================================================= -->
+  {% if staff_users %}
+  {% if not role_filter %}
+  <h2 class="text-base font-semibold text-gray-800 mb-3">Doctors &amp; Secretaries</h2>
+  {% endif %}
+  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
+    {% for user in staff_users %}
+    <div hx-get="{% url 'admin_panel:user_detail' pk=user.pk %}" hx-target="#modal-root" hx-swap="innerHTML"
+         class="bg-white rounded-2xl border border-gray-200 shadow-soft-sm overflow-hidden cursor-pointer hover:shadow-md hover:-translate-y-0.5 transition">
+      <!-- Colored top area (like the Featured Doctors card) -->
+      <div class="relative h-32 flex items-center justify-center {% if user.role == 'doctor' %}bg-brand-100{% else %}bg-purple-100{% endif %}">
         {% if user.profile_picture %}
-        <img src="{{ user.profile_picture.url }}" alt="" class="size-14 rounded-xl object-cover shrink-0">
+        <img src="{{ user.profile_picture.url }}" alt="" class="size-20 rounded-full object-cover ring-4 ring-white shadow">
+        {% elif user.role == 'doctor' %}
+        <svg class="w-12 h-12 text-brand-500" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+          <path d="M4.8 2.3A.3.3 0 1 0 5 2H4a2 2 0 0 0-2 2v5a6 6 0 0 0 6 6a6 6 0 0 0 6-6V4a2 2 0 0 0-2-2h-1a.2.2 0 1 0 .3.3"/>
+          <path d="M8 15v1a6 6 0 0 0 6 6a6 6 0 0 0 6-6v-4"/>
+          <circle cx="20" cy="10" r="2"/>
+        </svg>
         {% else %}
-        <img src="{% static 'img/default-avatar.svg' %}" alt="" class="size-14 rounded-xl object-cover shrink-0 bg-gray-100 p-2.5">
+        <svg class="w-12 h-12 text-purple-500" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+          <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/>
+          <circle cx="12" cy="7" r="4"/>
+        </svg>
         {% endif %}
-        <div class="flex-1 min-w-0">
-          <div class="flex items-start justify-between gap-2">
-            <span class="font-semibold text-gray-800 text-sm truncate">{{ user.get_full_name|default:user.username }}</span>
-            <span class="shrink-0 px-2 py-0.5 rounded-full text-xs font-semibold capitalize
-              {% if user.role == 'patient' %}bg-blue-100 text-blue-700
-              {% elif user.role == 'doctor' %}bg-green-100 text-green-600
-              {% else %}bg-purple-100 text-purple-600{% endif %}">
-              {{ user.role }}
-            </span>
-          </div>
-          <p class="text-xs text-gray-500 truncate mt-0.5">
-            {% if user.role == 'doctor' %}
-              {{ user.doctor_profile.specialization|default:"General Practice" }}
-            {% elif user.role == 'secretary' %}
-              {% if user.secretary_profile.assigned_doctor %}Assigned to Dr. {{ user.secretary_profile.assigned_doctor.get_full_name }}{% else %}Unassigned{% endif %}
-            {% else %}
-              {{ user.email }}
-            {% endif %}
-          </p>
-          <div class="flex items-center gap-1.5 mt-1">
-            <form method="post" action="{% url 'admin_panel:user_toggle_active' pk=user.pk %}"
-                  hx-post="{% url 'admin_panel:user_toggle_active' pk=user.pk %}"
-                  hx-target="#modal-root" hx-swap="innerHTML" class="inline-flex items-center gap-1.5"
-                  onsubmit="event.stopPropagation()">
-              {% csrf_token %}
-              <button type="submit" onclick="event.stopPropagation()"
-                 class="relative inline-flex h-5 w-9 items-center rounded-full transition-colors duration-200
-                        focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-1
-                        {% if user.is_active %}bg-green-500{% else %}bg-gray-300{% endif %}">
-                <span class="inline-block h-4 w-4 transform rounded-full bg-white shadow transition duration-200
-                             {% if user.is_active %}translate-x-[18px]{% else %}translate-x-[2px]{% endif %}">
-                </span>
-              </button>
-              <span class="text-xs font-medium {% if user.is_active %}text-green-600{% else %}text-gray-400{% endif %}">
-                {% if user.is_active %}Active{% else %}Inactive{% endif %}
-              </span>
-            </form>
+        <span class="absolute top-3 right-3 px-2 py-0.5 rounded-full text-[11px] font-semibold capitalize bg-white/90
+          {% if user.role == 'doctor' %}text-green-600{% else %}text-purple-600{% endif %}">
+          {{ user.role }}
+        </span>
+      </div>
+      <!-- White bottom area -->
+      <div class="p-4">
+        <p class="font-semibold text-gray-800 truncate">{% if user.role == 'doctor' %}Dr. {% endif %}{{ user.get_full_name|default:user.username }}</p>
+        <p class="text-sm text-gray-500 truncate mt-0.5">
+          {% if user.role == 'doctor' %}
+            {{ user.doctor_profile.specialization|default:"General Practice" }}
+          {% else %}
+            {% if user.secretary_profile.assigned_doctor %}Assigned to Dr. {{ user.secretary_profile.assigned_doctor.get_full_name }}{% else %}Unassigned{% endif %}
+          {% endif %}
+        </p>
+        <p class="text-xs text-gray-400 truncate mt-0.5">{{ user.email }}</p>
+        <div class="flex items-center justify-between mt-3">
+          {% if user.is_active %}
+          <span class="px-2.5 py-1 rounded-full bg-green-100 text-green-700 text-xs font-semibold">Active</span>
+          {% else %}
+          <span class="px-2.5 py-1 rounded-full bg-red-100 text-red-500 text-xs font-semibold">Inactive</span>
+          {% endif %}
+          <div class="flex gap-1.5">
+            <a hx-get="/admin-panel/users/{{ user.pk }}/edit/" hx-target="#modal-root" hx-swap="innerHTML" onclick="event.stopPropagation()" class="px-2.5 py-1 bg-blue-100 text-blue-700 rounded-lg text-xs font-medium hover:bg-blue-200 cursor-pointer">Edit</a>
+            <a hx-get="/admin-panel/users/{{ user.pk }}/delete/" hx-target="#modal-root" hx-swap="innerHTML" onclick="event.stopPropagation()" class="px-2.5 py-1 bg-red-100 text-red-600 rounded-lg text-xs font-medium hover:bg-red-200 cursor-pointer">Delete</a>
           </div>
         </div>
-      </div>
-      <div class="mt-3 bg-gray-50 rounded-xl p-3 text-sm space-y-1.5">
-        <div class="flex justify-between gap-3"><span class="text-gray-500 shrink-0">Email</span><span class="font-medium text-gray-800 text-right truncate">{{ user.email }}</span></div>
-      </div>
-      <div class="mt-3 flex gap-2">
-        <a hx-get="/admin-panel/users/{{ user.pk }}/edit/" hx-target="#modal-root" hx-swap="innerHTML" onclick="event.stopPropagation()" class="flex-1 text-center px-3 py-2 bg-blue-100 text-blue-700 rounded-xl text-xs font-medium hover:bg-blue-200 cursor-pointer">Edit</a>
       </div>
     </div>
     {% endfor %}
   </div>
-  {% else %}
-  <p class="text-gray-400 text-center py-10">No users found.</p>
   {% endif %}
+
+  <!-- ============================================================= -->
+  <!-- Patients: table (many of them)                                -->
+  <!-- ============================================================= -->
+  {% if patient_users %}
+  {% if not role_filter %}
+  <h2 class="text-base font-semibold text-gray-800 mb-3">Patients</h2>
+  {% endif %}
+  <div class="hidden md:block bg-white rounded-2xl border border-gray-200 shadow-soft-sm overflow-hidden mb-8">
+    <div class="overflow-x-auto">
+      <table class="w-full text-sm">
+        <thead class="text-left text-gray-500 bg-softgray/60 border-b border-gray-200">
+          <tr>
+            <th class="px-5 py-3.5 font-semibold">Name</th>
+            <th class="px-5 py-3.5 font-semibold">Username</th>
+            <th class="px-5 py-3.5 font-semibold">Email</th>
+            <th class="px-5 py-3.5 font-semibold">Status</th>
+            <th class="px-5 py-3.5 font-semibold">Actions</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-200">
+          {% for user in patient_users %}
+          <tr hx-get="{% url 'admin_panel:user_detail' pk=user.pk %}" hx-target="#modal-root" hx-swap="innerHTML" class="cursor-pointer hover:bg-brand-50/60 transition-colors">
+            <td class="px-5 py-4 font-medium text-gray-800">
+              <div class="flex items-center gap-3">
+                <span class="flex size-9 shrink-0 items-center justify-center rounded-full bg-blue-100 text-blue-700 font-semibold text-xs">{{ user.first_name.0 }}{{ user.last_name.0 }}</span>
+                <span class="hover:underline">{{ user.get_full_name|default:user.username }}</span>
+              </div>
+            </td>
+            <td class="px-5 py-4 text-gray-500">{{ user.username }}</td>
+            <td class="px-5 py-4 text-gray-500">{{ user.email }}</td>
+            <td class="px-5 py-4">
+              {% if user.is_active %}
+              <span class="text-green-600 text-xs font-semibold">Active</span>
+              {% else %}
+              <span class="text-red-500 text-xs font-semibold">Inactive</span>
+              {% endif %}
+            </td>
+            <td class="px-5 py-4">
+              <div class="flex gap-1">
+                <a hx-get="/admin-panel/users/{{ user.pk }}/edit/" hx-target="#modal-root" hx-swap="innerHTML" onclick="event.stopPropagation()" class="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs font-medium hover:bg-blue-200 cursor-pointer">Edit</a>
+                <a hx-get="/admin-panel/users/{{ user.pk }}/delete/" hx-target="#modal-root" hx-swap="innerHTML" onclick="event.stopPropagation()" class="px-2 py-1 bg-red-100 text-red-600 rounded text-xs font-medium hover:bg-red-200 cursor-pointer">Delete</a>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Mobile: patients as stacked cards -->
+  <div class="flex md:hidden flex-col gap-3">
+    {% for user in patient_users %}
+    <div hx-get="{% url 'admin_panel:user_detail' pk=user.pk %}" hx-target="#modal-root" hx-swap="innerHTML" class="bg-white rounded-2xl border border-gray-200 p-3 shadow-soft-sm cursor-pointer hover:bg-gray-50">
+      <div class="flex items-center gap-3">
+        {% if user.profile_picture %}
+        <img src="{{ user.profile_picture.url }}" alt="" class="size-12 rounded-xl object-cover shrink-0">
+        {% else %}
+        <span class="flex size-12 shrink-0 items-center justify-center rounded-xl bg-blue-100 text-blue-700 font-semibold text-sm">{{ user.first_name.0 }}{{ user.last_name.0 }}</span>
+        {% endif %}
+        <div class="flex-1 min-w-0">
+          <p class="font-semibold text-gray-800 text-sm truncate">{{ user.get_full_name|default:user.username }}</p>
+          <p class="text-xs text-gray-500 truncate mt-0.5">{{ user.email }}</p>
+          <div class="flex items-center gap-1.5 mt-1">
+            {% if user.is_active %}
+            <span class="size-1.5 rounded-full bg-green-500"></span>
+            <span class="text-green-600 text-xs font-semibold">Active</span>
+            {% else %}
+            <span class="size-1.5 rounded-full bg-red-400"></span>
+            <span class="text-red-500 text-xs font-semibold">Inactive</span>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+      <div class="mt-3 flex gap-2">
+        <a hx-get="/admin-panel/users/{{ user.pk }}/edit/" hx-target="#modal-root" hx-swap="innerHTML" onclick="event.stopPropagation()" class="flex-1 text-center px-3 py-2 bg-blue-100 text-blue-700 rounded-xl text-xs font-medium hover:bg-blue-200 cursor-pointer">Edit</a>
+        <a hx-get="/admin-panel/users/{{ user.pk }}/delete/" hx-target="#modal-root" hx-swap="innerHTML" onclick="event.stopPropagation()" class="flex-1 text-center px-3 py-2 bg-red-100 text-red-600 rounded-xl text-xs font-medium hover:bg-red-200 cursor-pointer">Delete</a>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
 </div>
 {% endblock %}

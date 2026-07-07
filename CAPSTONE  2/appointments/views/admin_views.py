@@ -96,8 +96,11 @@ def user_list(request):
             Q(last_name__icontains=search) |
             Q(username__icontains=search)
         )
+        users = users.distinct().order_by('role', 'last_name')
     return render(request, 'admin_panel/user_list.html', {
-        'users': users.distinct().order_by('role', 'last_name'),
+        'users': users,
+        'staff_users': [u for u in users if u.role in ('doctor', 'secretary')],
+        'patient_users': [u for u in users if u.role == 'patient'],
         'role_filter': role_filter, 'search': search,
     })
 

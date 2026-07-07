@@ -14,7 +14,7 @@ whole grid. The prev/next month arrows go through the server (different
 month = different days to render) and re-render just this fragment,
 carrying the selected date along so the day-detail panel isn't disturbed.
 {% endcomment %}
-<div id="schedule-main-calendar-widget" class="bg-[#F5F7FA] rounded-2xl p-4">
+<div id="schedule-main-calendar-widget" class="bg-[#F5F7FA] rounded-2xl p-4 max-w-sm border border-gray-200 shadow-soft-sm">
   <!-- Month header + nav -->
   <div class="flex items-center justify-between mb-4">
     <p class="font-semibold text-[#1F2937] text-sm">{{ calendar_month_name }} {{ calendar_year }}</p>

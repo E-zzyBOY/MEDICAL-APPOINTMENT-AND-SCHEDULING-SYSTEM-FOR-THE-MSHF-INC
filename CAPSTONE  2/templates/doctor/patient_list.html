@@ -1,22 +1,57 @@
 {% extends "doctor/base_doctor.html" %}
 {% block page_title %}My Patients{% endblock %}
 {% block doctor_content %}
-<div class="max-w-3xl mx-auto">
-  <h1 class="text-xl font-semibold text-gray-800 text-center mb-5">Patients</h1>
+<div>
+  <h1 class="text-xl font-semibold text-ink text-center mb-5">Patients</h1>
+
   {% if patients %}
-  <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+  <div class="hidden md:block bg-white rounded-2xl border border-gray-200 shadow-soft-sm overflow-hidden">
+    <div class="overflow-x-auto">
+      <table class="w-full text-sm">
+        <thead class="text-left text-gray-500 bg-softgray/60 border-b border-gray-200">
+          <tr>
+            <th class="px-5 py-3.5 font-semibold">Patient</th>
+            <th class="px-5 py-3.5 font-semibold">Email</th>
+            <th class="px-5 py-3.5 font-semibold">Actions</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-200">
+          {% for patient in patients %}
+          <tr hx-get="{% url 'doctor:patient_quickview' patient_id=patient.pk %}" hx-target="#modal-root" hx-swap="innerHTML"
+              class="cursor-pointer hover:bg-brand-50/60 transition-colors">
+            <td class="px-5 py-4 font-medium text-gray-800">
+              <div class="flex items-center gap-3">
+                <span class="flex size-9 shrink-0 items-center justify-center rounded-full bg-brand-100 text-brand-700 font-semibold text-xs">{{ patient.first_name.0 }}{{ patient.last_name.0 }}</span>
+                <span class="hover:underline">{{ patient.get_full_name }}</span>
+              </div>
+            </td>
+            <td class="px-5 py-4 text-gray-500">{{ patient.email }}</td>
+            <td class="px-5 py-4">
+              <a href="/doctor/patients/{{ patient.pk }}/records/" onclick="event.stopPropagation()"
+                 class="px-2 py-1 bg-brand-100 text-brand-700 rounded text-xs font-medium hover:bg-brand-200 cursor-pointer">View Records</a>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="flex md:hidden flex-col gap-3">
     {% for patient in patients %}
     <div hx-get="{% url 'doctor:patient_quickview' patient_id=patient.pk %}" hx-target="#modal-root" hx-swap="innerHTML"
-         class="flex items-center gap-4 p-4 bg-white rounded-2xl border border-gray-200 shadow-soft-sm hover:border-green-400 hover:bg-green-50 transition cursor-pointer">
-      <div class="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
-        <span class="text-green-600 font-semibold">{{ patient.first_name.0 }}{{ patient.last_name.0 }}</span>
+         class="border border-gray-200 rounded-2xl p-4 bg-white shadow-soft-sm cursor-pointer">
+      <div class="flex items-center gap-3">
+        <span class="flex size-10 shrink-0 items-center justify-center rounded-full bg-brand-100 text-brand-700 font-semibold text-sm">{{ patient.first_name.0 }}{{ patient.last_name.0 }}</span>
+        <div class="min-w-0 flex-1">
+          <p class="font-medium text-gray-800 text-sm truncate">{{ patient.get_full_name }}</p>
+          <p class="text-xs text-gray-400 truncate">{{ patient.email }}</p>
+        </div>
       </div>
-      <div class="flex-1">
-        <p class="font-semibold text-gray-800">{{ patient.get_full_name }}</p>
-        <p class="text-sm text-gray-400">{{ patient.email }}</p>
+      <div class="mt-3">
+        <a href="/doctor/patients/{{ patient.pk }}/records/" onclick="event.stopPropagation()"
+           class="block w-full text-center px-3 py-2.5 bg-brand-100 text-brand-700 rounded-2xl text-sm font-semibold hover:bg-brand-200 cursor-pointer">View Records</a>
       </div>
-      <a href="/doctor/patients/{{ patient.pk }}/records/" onclick="event.stopPropagation()"
-         class="text-sm text-green-600 hover:underline flex-shrink-0">View Records</a>
     </div>
     {% endfor %}
   </div>

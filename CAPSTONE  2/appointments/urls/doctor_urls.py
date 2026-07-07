@@ -8,6 +8,7 @@ urlpatterns = [
     path('dashboard/data/',                         v.doctor_dashboard_data,     name='dashboard_data'),
     path('schedule/',                               v.schedule_list,             name='schedule_list'),
     path('schedule/calendar/',                      v.schedule_calendar_partial, name='schedule_calendar_partial'),
+    path('schedule/grid/',                          v.schedule_grid_partial,     name='schedule_grid_partial'),
     path('schedule/day/',                           v.schedule_day_detail,       name='schedule_day_detail'),
     path('schedule/add/',                           v.schedule_add,              name='schedule_add'),
     path('schedule/add/calendar/',                  v.schedule_add_calendar_partial, name='schedule_add_calendar_partial'),

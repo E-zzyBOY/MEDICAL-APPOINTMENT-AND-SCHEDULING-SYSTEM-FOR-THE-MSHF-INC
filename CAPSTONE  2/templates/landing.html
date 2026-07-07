@@ -15,7 +15,7 @@
 
   /* Landing-page indigo palette (matches reference design) */
   .bg-ind {
-    background-image: linear-gradient(135deg, #2CB4C9 0%, #1B86A0 100%);
+    background-image: linear-gradient(135deg, #1F4D11 0%, #183E0C 100%);
   }
 
   .bg-ind-2 {
@@ -24,7 +24,7 @@
   }
 
   .bg-ind-3 {
-    background-color: #35B4C8;
+    background-color: #5E9A3C;
   }
 
   .text-ind {
@@ -40,7 +40,7 @@
   }
 
   .hover\:bg-ind-3:hover {
-    background-color: #35B4C8;
+    background-color: #5E9A3C;
   }
 
   .photo-slot {
@@ -52,7 +52,7 @@
 {% endblock %}
 
 {% block body %}
-<div class="lp min-h-screen bg-[#EFF9FB] text-ink">
+<div class="lp min-h-screen bg-[#F1F7EC] text-ink">
 
   <!-- ══════════ HERO (single pre-tinted photo — gradient already baked into the image) ══════════ -->
   <section class="relative text-white overflow-hidden bg-ind">
@@ -311,7 +311,7 @@
         <img src="{% static 'img/about-big.jpg' %}" alt="MSHFI operating room staff"
           class="rounded-3xl w-4/5 h-64 object-cover">
         <img src="{% static 'img/about-small.jpg' %}" alt="MSHFI staff at work"
-          class="rounded-2xl w-2/5 h-40 absolute -bottom-8 right-6 ring-8 ring-[#EFF9FB] object-cover">
+          class="rounded-2xl w-2/5 h-40 absolute -bottom-8 right-6 ring-8 ring-[#F1F7EC] object-cover">
         <div
           class="absolute left-1/3 bottom-0 flex flex-col items-center justify-center size-24 rounded-full bg-ind text-white shadow-soft-lg">
           <span class="lp-heading font-semibold text-xl leading-none">30+</span>
@@ -340,7 +340,7 @@
             </svg> Discount on all Pathology &amp; Radiology Treatment</li>
         </ul>
         <a href="{% url 'accounts:register' %}"
-          class="inline-block px-6 py-3 rounded-xl bg-gradient-to-r from-[#3FC0D2] to-[#183E0C] hover:brightness-105 text-white text-sm font-medium transition-colors">More
+          class="inline-block px-6 py-3 rounded-xl bg-gradient-to-r from-[#5E9A3C] to-[#183E0C] hover:brightness-105 text-white text-sm font-medium transition-colors">More
           Info</a>
       </div>
     </div>
@@ -432,7 +432,7 @@
             class="px-6 py-2.5 rounded-full border border-gray-200 text-ink-soft hover:border-ind hover:text-ind text-sm font-medium transition-colors">Contact
             Now</a>
           <a href="{% url 'accounts:register' %}"
-            class="px-6 py-2.5 rounded-full bg-gradient-to-r from-[#3FC0D2] to-[#183E0C] hover:brightness-105 text-white text-sm font-medium transition-colors">Learn
+            class="px-6 py-2.5 rounded-full bg-gradient-to-r from-[#5E9A3C] to-[#183E0C] hover:brightness-105 text-white text-sm font-medium transition-colors">Learn
             More</a>
         </div>
       </div>

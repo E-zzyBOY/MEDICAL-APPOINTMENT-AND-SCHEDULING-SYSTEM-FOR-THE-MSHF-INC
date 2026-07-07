@@ -276,6 +276,58 @@
       }
     });
 
+    // Mobile slide-out nav drawer — mirrors the modal's backdrop-click/Escape pattern above,
+    // but runs independently since the drawer is static per-pageload (no htmx round-trip).
+    function openMobileDrawer() {
+      const drawer = document.getElementById('mobile-drawer');
+      const backdrop = document.getElementById('mobile-drawer-backdrop');
+      const panel = document.getElementById('mobile-drawer-panel');
+      if (!drawer || !backdrop || !panel) return;
+      drawer.classList.remove('pointer-events-none');
+      drawer.setAttribute('aria-hidden', 'false');
+      backdrop.classList.add('opacity-100');
+      panel.classList.remove('-translate-x-full');
+      document.body.classList.add('overflow-hidden');
+    }
+
+    function closeMobileDrawer() {
+      const drawer = document.getElementById('mobile-drawer');
+      const backdrop = document.getElementById('mobile-drawer-backdrop');
+      const panel = document.getElementById('mobile-drawer-panel');
+      if (!drawer || !backdrop || !panel) return;
+      backdrop.classList.remove('opacity-100');
+      panel.classList.add('-translate-x-full');
+      document.body.classList.remove('overflow-hidden');
+      setTimeout(() => {
+        drawer.classList.add('pointer-events-none');
+        drawer.setAttribute('aria-hidden', 'true');
+      }, 300);
+    }
+
+    function toggleMobileDrawer() {
+      const panel = document.getElementById('mobile-drawer-panel');
+      if (!panel) return;
+      if (panel.classList.contains('-translate-x-full')) {
+        openMobileDrawer();
+      } else {
+        closeMobileDrawer();
+      }
+    }
+
+    document.addEventListener('click', function(event) {
+      if (event.target.id === 'mobile-drawer-backdrop') {
+        closeMobileDrawer();
+      }
+    });
+
+    document.addEventListener('keydown', function(event) {
+      if (event.key === 'Escape') {
+        const panel = document.getElementById('mobile-drawer-panel');
+        if (panel && !panel.classList.contains('-translate-x-full')) {
+          closeMobileDrawer();
+        }
+      }
+    });
 
     // Mobile account bottom sheet — same backdrop-click/Escape pattern as the
     // nav drawer above, but slides up from the bottom instead of in from the side.

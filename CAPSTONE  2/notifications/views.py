@@ -11,9 +11,12 @@ ROLE_TEMPLATES = {
     'admin': 'notifications/notification_list_admin.html',
 }
 
-# Bell-icon panel only previews the most recent notifications; the rest are
-# reachable via the "See more" link, which routes to the full /notifications/ page.
-PANEL_PREVIEW_LIMIT = 8
+# Every list-style modal in the app previews the same number of items and
+# hands off to a "View more" link for the rest — kept as one shared constant
+# so all modals (notifications, doctor availability, etc.) stay in sync.
+MODAL_PREVIEW_LIMIT = 5
+# Backwards-compatible alias.
+PANEL_PREVIEW_LIMIT = MODAL_PREVIEW_LIMIT
 
 
 @login_required(login_url='/accounts/login/')
@@ -22,8 +25,13 @@ def notification_list(request):
     # Bell icon opens this as a modal (htmx request); the sidebar/menu link
     # is a normal navigation and still gets the full page below.
     if getattr(request, 'htmx', False):
+        total_count = notifications.count()
+        preview = notifications[:MODAL_PREVIEW_LIMIT]
         return render(request, 'notifications/_notification_list_modal.html', {
-            'notifications': notifications, 'title': 'Notifications',
+            'notifications': preview,
+            'has_more': total_count > MODAL_PREVIEW_LIMIT,
+            'remaining_count': total_count - MODAL_PREVIEW_LIMIT,
+            'title': 'Notifications',
         })
     template = ROLE_TEMPLATES.get(request.user.role, 'notifications/notification_list_patient.html')
     return render(request, template, {

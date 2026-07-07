@@ -2,7 +2,7 @@
 {% block page_title %}My Schedule{% endblock %}
 
 {% block doctor_content %}
-<div class="max-w-3xl space-y-4">
+<div class="max-w-3xl md:max-w-5xl space-y-4">
   <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
     <p class="text-gray-500 text-sm">Manage your consultation schedule by date. Appointments will only be bookable during these hours.</p>
     <a hx-get="{% url 'doctor:schedule_add' %}?date={{ selected_date }}"
@@ -13,10 +13,17 @@
     </a>
   </div>
 
-  {% include "doctor/_schedule_main_calendar_fragment.html" %}
+  <!-- Desktop: rectangular grid with inline day details (selecting a day
+       expands that day's own cell instead of using a separate panel). -->
+  {% include "doctor/_schedule_grid_desktop.html" %}
 
-  <div id="schedule-day-detail">
-    {% include "doctor/_schedule_day_detail.html" with date_str=selected_date date_display=selected_date_display slots=selected_slots %}
+  <!-- Mobile: original circle calendar + separate day-detail panel below,
+       unchanged. -->
+  <div class="md:hidden space-y-4">
+    {% include "doctor/_schedule_main_calendar_fragment.html" %}
+    <div id="schedule-day-detail">
+      {% include "doctor/_schedule_day_detail.html" with date_str=selected_date date_display=selected_date_display slots=selected_slots %}
+    </div>
   </div>
 </div>
 {% endblock %}

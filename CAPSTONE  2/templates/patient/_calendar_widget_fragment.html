@@ -50,7 +50,7 @@ staff, not chosen here.
                 hx-get="{% url 'patient:book_step2_partial' doctor_id=doctor.pk %}?date={{ cell.date }}"
                 hx-target="#slot-grid" hx-swap="innerHTML"
                 class="calendar-day aspect-square rounded-full text-sm font-medium flex items-center justify-center transition cursor-pointer
-                  {% if cell.date == selected_date %}bg-gradient-to-br from-[#3FC0D2] to-[#183E0C] text-white shadow-soft-sm{% else %}text-[#1F2937] hover:bg-[#E0EED5]{% endif %}">
+                  {% if cell.date == selected_date %}bg-gradient-to-br from-[#5E9A3C] to-[#183E0C] text-white shadow-soft-sm{% else %}text-[#1F2937] hover:bg-[#E0EED5]{% endif %}">
           {{ cell.day }}
         </button>
         {% elif cell.status == 'unavailable' %}

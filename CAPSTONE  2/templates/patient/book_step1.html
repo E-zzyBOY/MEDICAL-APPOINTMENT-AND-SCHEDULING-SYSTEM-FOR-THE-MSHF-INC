@@ -26,12 +26,12 @@
   </div>
   <div class="flex items-center gap-2 mb-6 overflow-x-auto pb-1">
     <a href="{% url 'patient:book_step1' %}{% if query %}?q={{ query }}{% endif %}"
-       class="shrink-0 px-4 py-2 rounded-full text-sm font-medium transition {% if not selected_specialty %}bg-gradient-to-r from-[#3FC0D2] to-[#183E0C] text-white shadow-soft-sm{% else %}bg-white text-[#4B5563] shadow-soft-sm hover:bg-[#F1F7EC]{% endif %}">
+       class="shrink-0 px-4 py-2 rounded-full text-sm font-medium transition {% if not selected_specialty %}bg-gradient-to-r from-[#5E9A3C] to-[#183E0C] text-white shadow-soft-sm{% else %}bg-white text-[#4B5563] shadow-soft-sm hover:bg-[#F1F7EC]{% endif %}">
       All
     </a>
     {% for spec in specializations %}
     <a href="?specialty={{ spec }}{% if query %}&q={{ query }}{% endif %}"
-       class="shrink-0 px-4 py-2 rounded-full text-sm font-medium transition {% if selected_specialty == spec %}bg-gradient-to-r from-[#3FC0D2] to-[#183E0C] text-white shadow-soft-sm{% else %}bg-white text-[#4B5563] shadow-soft-sm hover:bg-[#F1F7EC]{% endif %}">
+       class="shrink-0 px-4 py-2 rounded-full text-sm font-medium transition {% if selected_specialty == spec %}bg-gradient-to-r from-[#5E9A3C] to-[#183E0C] text-white shadow-soft-sm{% else %}bg-white text-[#4B5563] shadow-soft-sm hover:bg-[#F1F7EC]{% endif %}">
       {{ spec }}
     </a>
     {% endfor %}
@@ -80,7 +80,7 @@
           <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/></svg>
         </span>
         <a href="{% url 'patient:book_step2' doctor_id=doctor.pk %}"
-           class="px-5 py-2.5 rounded-full bg-gradient-to-r from-[#3FC0D2] to-[#183E0C] hover:brightness-105 text-white text-sm font-medium transition shadow-soft-sm">
+           class="px-5 py-2.5 rounded-full bg-gradient-to-r from-[#5E9A3C] to-[#183E0C] hover:brightness-105 text-white text-sm font-medium transition shadow-soft-sm">
           Book Now
         </a>
       </div>

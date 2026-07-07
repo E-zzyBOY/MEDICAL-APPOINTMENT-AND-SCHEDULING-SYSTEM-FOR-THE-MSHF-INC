@@ -221,6 +221,38 @@ def schedule_calendar_partial(request):
 
 
 @role_required('doctor')
+def schedule_grid_partial(request):
+    """Desktop-only rectangular grid calendar (see _schedule_grid_desktop.html).
+    Unlike the mobile circle calendar + separate day-detail panel below it,
+    here the selected day's slots (or a 'no slots yet' note) render right
+    inside that day's own cell — clicking a day re-renders this whole grid
+    with the new date selected, the same technique the prev/next month
+    arrows already use, so there's no separate panel to keep in sync."""
+    selected_date_str = request.GET.get('date') or date.today().isoformat()
+    year, month = _resolve_calendar_month(request, selected_date_str)
+    calendar_weeks = _compute_schedule_month(request.user, year, month)
+
+    selected_slots = []
+    try:
+        the_date = datetime.strptime(selected_date_str, '%Y-%m-%d').date()
+        selected_slots = list(
+            Schedule.objects.filter(doctor=request.user, specific_date=the_date).order_by('start_time')
+        )
+    except ValueError:
+        pass
+
+    return render(request, 'doctor/_schedule_grid_desktop.html', {
+        'calendar_weeks': calendar_weeks,
+        'calendar_year': year, 'calendar_month': month,
+        'calendar_month_name': calendar_module.month_name[month],
+        'today_iso': date.today().isoformat(),
+        'selected_date': selected_date_str,
+        'selected_date_display': _format_date_str(selected_date_str),
+        'selected_slots': selected_slots,
+    })
+
+
+@role_required('doctor')
 def schedule_day_detail(request):
     """Action-capable version of the day-info panel: fetched whenever the
     doctor clicks a date on the main schedule calendar. Unlike
@@ -498,6 +530,12 @@ def doctor_appointment_list(request):
     qs = Appointment.objects.filter(doctor=request.user).select_related('patient')
     if status_filter:
         qs = qs.filter(status=status_filter)
+    else:
+        # Doctors only need to see their active/upcoming and completed
+        # appointments here. Pending assignment, pending reschedule, and
+        # cancelled appointments are the secretary's responsibility and
+        # are handled on the secretary's own appointments page instead.
+        qs = qs.filter(status__in=['Scheduled', 'Confirmed', 'Rescheduled', 'Completed'])
     return render(request, 'doctor/appointment_list.html', {
         'appointments': qs, 'status_filter': status_filter
     })

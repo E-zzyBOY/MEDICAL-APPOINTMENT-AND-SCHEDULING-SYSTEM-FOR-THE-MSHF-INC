@@ -1,9 +1,18 @@
 {% extends "secretary/base_secretary.html" %}
 {% load django_vite %}
-{% block page_title %}Secretary Dashboard{% endblock %}
+{# The "Secretary Dashboard" title was removed — the greeting now lives in the top bar instead. #}
+{% block page_title %}Welcome back, {{ request.user.first_name|default:request.user.username }}!<span class="block text-sm font-normal text-gray-500 mt-0.5">let's get things done.</span>{% endblock %}
 
 {% block secretary_content %}
 {{ dashboard_data|json_script:"dashboard-data" }}
+<style>
+  /* The greeting moved into the desktop top bar (page title), so hide the
+     duplicate greeting rendered inside the React dashboard on md+ screens.
+     On mobile the top bar title isn't shown, so the in-content greeting stays. */
+  @media (min-width: 768px) {
+    #react-dashboard-root[data-role="secretary"] > div > div:first-child { display: none; }
+  }
+</style>
 <div id="react-dashboard-root"></div>
 {% vite_asset 'frontend/src/main-secretary.tsx' %}
 {% endblock %}

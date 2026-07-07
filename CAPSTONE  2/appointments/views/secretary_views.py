@@ -492,13 +492,46 @@ def vitals_add(request, patient_id):
     })
 
 
+def _schedule_calendar_context(doctor, year=None, month=None):
+    """Build the same month-grid (with inline slots) that the doctor's
+    'My Schedule' calendar uses, but read-only for the secretary."""
+    from calendar import month_name
+    from appointments.views.doctor_views import _compute_schedule_month_with_slots
+    today = date.today()
+    year = year or today.year
+    month = month or today.month
+    return {
+        'calendar_weeks': _compute_schedule_month_with_slots(doctor, year, month) if doctor else [],
+        'calendar_year': year,
+        'calendar_month': month,
+        'calendar_month_name': month_name[month],
+        'today_iso': today.isoformat(),
+    }
+
+
 @role_required('secretary')
 def view_all_schedules(request):
     doctor = _assigned_doctor(request.user)
     schedules = Schedule.objects.filter(doctor=doctor).order_by('specific_date', 'start_time') if doctor else Schedule.objects.none()
-    return render(request, 'secretary/schedules.html', {
-        'schedules': schedules, 'doctor': doctor
-    })
+    context = {'schedules': schedules, 'doctor': doctor}
+    context.update(_schedule_calendar_context(doctor))
+    return render(request, 'secretary/schedules.html', context)
+
+
+@role_required('secretary')
+def schedule_grid_partial(request):
+    """htmx endpoint: re-render the read-only availability calendar for
+    a different month (Prev / Next navigation)."""
+    doctor = _assigned_doctor(request.user)
+    try:
+        year = int(request.GET.get('year'))
+        month = int(request.GET.get('month'))
+    except (TypeError, ValueError):
+        today = date.today()
+        year, month = today.year, today.month
+    context = {'doctor': doctor}
+    context.update(_schedule_calendar_context(doctor, year, month))
+    return render(request, 'secretary/_schedule_grid_readonly.html', context)
 
 
 @role_required('secretary')

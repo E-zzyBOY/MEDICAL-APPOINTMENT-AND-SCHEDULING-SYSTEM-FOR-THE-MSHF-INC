@@ -2,20 +2,24 @@
 {% block page_title %}My Schedule{% endblock %}
 
 {% block doctor_content %}
-<div class="max-w-3xl md:max-w-5xl space-y-4">
+<div class="max-w-3xl md:max-w-6xl space-y-3 md:-mt-2">
   <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
     <p class="text-gray-500 text-sm">Manage your consultation schedule by date. Appointments will only be bookable during these hours.</p>
     <a hx-get="{% url 'doctor:schedule_add' %}?date={{ selected_date }}"
        hx-target="#modal-root"
        hx-swap="innerHTML"
-       class="shrink-0 whitespace-nowrap text-center px-4 py-2 bg-green-600 text-white rounded-xl text-sm font-medium hover:bg-green-700 transition cursor-pointer">
+       class="md:hidden shrink-0 whitespace-nowrap text-center px-4 py-2 bg-green-600 text-white rounded-xl text-sm font-medium hover:bg-green-700 transition cursor-pointer">
       + Add Slot
     </a>
   </div>
 
-  <!-- Desktop: rectangular grid with inline day details (selecting a day
-       expands that day's own cell instead of using a separate panel). -->
-  {% include "doctor/_schedule_grid_desktop.html" %}
+  <!-- Desktop: grid calendar (every day's slots always visible inline,
+       click opens a modal) + a static "Today's Schedule" sidebar that
+       doesn't change as you browse other months. -->
+  <div class="hidden md:flex items-start gap-5">
+    {% include "doctor/_schedule_grid_desktop.html" with calendar_weeks=calendar_weeks_with_slots %}
+    {% include "doctor/_schedule_selected_day_panel.html" %}
+  </div>
 
   <!-- Mobile: original circle calendar + separate day-detail panel below,
        unchanged. -->

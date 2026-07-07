@@ -1,0 +1,32 @@
+{% comment %}
+Desktop-only sidebar next to the grid calendar, always showing today's
+actual schedule regardless of which month is being browsed — it isn't
+part of the htmx-swapped grid, so month nav doesn't touch it.
+{% endcomment %}
+<div class="bg-white rounded-2xl border border-gray-200 shadow-soft-sm p-5 w-72 shrink-0">
+  <p class="font-semibold text-ink text-sm">Today's Schedule</p>
+  <p class="text-xs text-gray-400 mt-0.5">{{ today_display }}</p>
+
+  {% if today_slots %}
+  <div class="mt-4 space-y-2.5">
+    {% for s in today_slots %}
+    <div class="flex items-center gap-2.5 bg-green-50/60 border border-green-100 rounded-xl px-3 py-2.5">
+      <span class="flex size-7 shrink-0 items-center justify-center rounded-full bg-green-100 text-green-700">
+        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+      </span>
+      <p class="text-xs font-medium text-green-800">{{ s.start_time|time:"g:i A" }} &ndash; {{ s.end_time|time:"g:i A" }}</p>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="mt-4 py-6 text-center">
+    <p class="text-xs text-gray-400">No slots set for today.</p>
+  </div>
+  {% endif %}
+
+  <a hx-get="{% url 'doctor:schedule_add' %}?date={{ today_iso }}"
+     hx-target="#modal-root" hx-swap="innerHTML"
+     class="block w-full text-center mt-4 px-3 py-2.5 rounded-xl bg-brand-50 text-brand-700 text-xs font-semibold hover:bg-brand-100 transition cursor-pointer">
+    + Add Time for Today
+  </a>
+</div>

@@ -1,8 +1,8 @@
 {% extends "doctor/base_doctor.html" %}
 {% block page_title %}My Patients{% endblock %}
 {% block doctor_content %}
-<div>
-  <h1 class="text-xl font-semibold text-ink text-center mb-5">Patients</h1>
+<div class="md:-mt-2">
+  <h1 class="md:hidden text-xl font-semibold text-ink text-center mb-5">Patients</h1>
 
   {% if patients %}
   <div class="hidden md:block bg-white rounded-2xl border border-gray-200 shadow-soft-sm overflow-hidden">

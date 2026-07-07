@@ -1,9 +1,10 @@
 from django.shortcuts import render, redirect, get_object_or_404
+from django.template.loader import render_to_string
 from django.urls import reverse
 from django.contrib import messages
 from django.db import transaction
 from django.db.models import Count
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse
 from datetime import date, datetime, timedelta
 import calendar as calendar_module
 from accounts.decorators import role_required
@@ -106,6 +107,52 @@ def _compute_schedule_month(doctor, year, month):
     return weeks
 
 
+def _compute_schedule_month_with_slots(doctor, year, month):
+    """Same grid as _compute_schedule_month, but each cell also carries its
+    own actual Schedule rows (up to 3, plus a remaining count) so the
+    desktop grid can show every day's time slots inline, always visible,
+    without needing a click to reveal them."""
+    today = date.today()
+    first_weekday, days_in_month = calendar_module.monthrange(year, month)
+    month_start = date(year, month, 1)
+    month_end   = date(year, month, days_in_month)
+
+    month_slots = Schedule.objects.filter(
+        doctor=doctor,
+        specific_date__gte=month_start,
+        specific_date__lte=month_end,
+    ).order_by('specific_date', 'start_time')
+
+    slots_by_date = {}
+    for s in month_slots:
+        slots_by_date.setdefault(s.specific_date, []).append(s)
+
+    PREVIEW_LIMIT = 3
+    weeks = []
+    week = [None] * first_weekday
+    for day in range(1, days_in_month + 1):
+        d = date(year, month, day)
+        day_slots = slots_by_date.get(d, [])
+        if d < today:
+            status = 'past'
+        elif day_slots:
+            status = 'has_slots'
+        else:
+            status = 'open'
+        week.append({
+            'day': day, 'date': d.isoformat(), 'status': status,
+            'slots': day_slots[:PREVIEW_LIMIT],
+            'more_count': max(0, len(day_slots) - PREVIEW_LIMIT),
+        })
+        if len(week) == 7:
+            weeks.append(week)
+            week = []
+    if week:
+        week += [None] * (7 - len(week))
+        weeks.append(week)
+    return weeks
+
+
 def _build_doctor_dashboard_data(request):
     today_appts = Appointment.objects.filter(
         doctor=request.user,
@@ -175,13 +222,14 @@ def doctor_dashboard_data(request):
 
 @role_required('doctor')
 def schedule_list(request):
-    """Main 'My Schedule' page — now a calendar (mirrors the patient
-    booking calendar look) instead of a flat list. Clicking a date shows
-    that date's slots (with Edit/Delete) in the panel below via htmx,
-    without leaving the page."""
+    """Main 'My Schedule' page. Mobile shows a circle calendar with a
+    separate day-detail panel below; desktop shows a full grid with every
+    day's slots always visible inline, plus a sidebar that shows today's
+    schedule by default and switches to show whichever day is clicked."""
     selected_date_str = request.GET.get('date') or date.today().isoformat()
     year, month = _resolve_calendar_month(request, selected_date_str)
     calendar_weeks = _compute_schedule_month(request.user, year, month)
+    calendar_weeks_with_slots = _compute_schedule_month_with_slots(request.user, year, month)
 
     selected_slots = []
     try:
@@ -192,15 +240,18 @@ def schedule_list(request):
     except ValueError:
         pass
 
-    return render(request, 'doctor/schedule_list.html', {
+    context = {
         'calendar_weeks': calendar_weeks,
+        'calendar_weeks_with_slots': calendar_weeks_with_slots,
         'calendar_year': year, 'calendar_month': month,
         'calendar_month_name': calendar_module.month_name[month],
         'today_iso': date.today().isoformat(),
         'selected_date': selected_date_str,
         'selected_date_display': _format_date_str(selected_date_str),
         'selected_slots': selected_slots,
-    })
+    }
+    context.update(_panel_context_for_date(request.user, selected_date_str))
+    return render(request, 'doctor/schedule_list.html', context)
 
 
 @role_required('doctor')
@@ -220,36 +271,53 @@ def schedule_calendar_partial(request):
     })
 
 
+def _panel_context_for_date(doctor, date_str):
+    """Builds the context the sidebar panel needs for a given date: its
+    slots, a friendly display string, whether it's today, and the plain
+    iso string used for the Add/Edit/Delete links."""
+    today = date.today()
+    the_date = today
+    if date_str:
+        try:
+            the_date = datetime.strptime(date_str, '%Y-%m-%d').date()
+        except ValueError:
+            the_date = today
+    slots = list(
+        Schedule.objects.filter(doctor=doctor, specific_date=the_date).order_by('start_time')
+    )
+    return {
+        'panel_date_iso': the_date.isoformat(),
+        'panel_date_display': _format_date_str(the_date.isoformat()),
+        'panel_slots': slots,
+        'panel_is_today': the_date == today,
+    }
+
+
 @role_required('doctor')
 def schedule_grid_partial(request):
     """Desktop-only rectangular grid calendar (see _schedule_grid_desktop.html).
-    Unlike the mobile circle calendar + separate day-detail panel below it,
-    here the selected day's slots (or a 'no slots yet' note) render right
-    inside that day's own cell — clicking a day re-renders this whole grid
-    with the new date selected, the same technique the prev/next month
-    arrows already use, so there's no separate panel to keep in sync."""
+    Every day's time slots are always visible right inside that day's own
+    cell. Clicking a day re-renders this grid (so the clicked day shows as
+    selected) AND rides an out-of-band swap along in the same response to
+    update the 'Today's Schedule' sidebar with that day's full detail
+    (add/edit/delete) instead — no modal, matching the old below-the-
+    calendar panel's behavior but positioned on the right."""
     selected_date_str = request.GET.get('date') or date.today().isoformat()
     year, month = _resolve_calendar_month(request, selected_date_str)
-    calendar_weeks = _compute_schedule_month(request.user, year, month)
+    calendar_weeks = _compute_schedule_month_with_slots(request.user, year, month)
 
-    selected_slots = []
-    try:
-        the_date = datetime.strptime(selected_date_str, '%Y-%m-%d').date()
-        selected_slots = list(
-            Schedule.objects.filter(doctor=request.user, specific_date=the_date).order_by('start_time')
-        )
-    except ValueError:
-        pass
-
-    return render(request, 'doctor/_schedule_grid_desktop.html', {
+    grid_html = render_to_string('doctor/_schedule_grid_desktop.html', {
         'calendar_weeks': calendar_weeks,
         'calendar_year': year, 'calendar_month': month,
         'calendar_month_name': calendar_module.month_name[month],
         'today_iso': date.today().isoformat(),
         'selected_date': selected_date_str,
-        'selected_date_display': _format_date_str(selected_date_str),
-        'selected_slots': selected_slots,
-    })
+    }, request=request)
+    panel_html = render_to_string('doctor/_schedule_selected_day_panel.html', {
+        'oob': True,
+        **_panel_context_for_date(request.user, selected_date_str),
+    }, request=request)
+    return HttpResponse(grid_html + panel_html)
 
 
 @role_required('doctor')
@@ -359,6 +427,8 @@ def schedule_add(request):
                 )
             elif not saved_dates:
                 skipped_display = ', '.join(d.strftime('%b %d') for d, _r in skipped)
+                conflict_msg = f"This schedule conflicts with an existing time slot on {skipped_display}. Please choose a different time."
+                form.add_error(None, conflict_msg)
                 messages.error(request, f"No slots were added — every selected date already has an overlapping slot ({skipped_display}).")
 
             if saved_dates:
@@ -431,6 +501,7 @@ def schedule_edit(request, pk):
             end_time__gt=updated.start_time,
         ).exclude(pk=pk).exists()
         if overlap:
+            form.add_error(None, 'This schedule conflicts with an existing time slot on that date. Please choose a different time.')
             messages.error(request, 'This schedule overlaps with an existing one on that date.')
             if request.htmx:
                 return render(request, 'doctor/_schedule_modal.html', {

@@ -1,0 +1,50 @@
+{% comment %}
+Desktop sidebar next to the grid calendar. Shows today's schedule by
+default on page load; clicking any day on the grid updates this panel
+(via an htmx out-of-band swap riding along with the grid's own request)
+to show that day's slots instead — same add/edit/delete actions the old
+below-the-calendar panel had, just living on the right now.
+{% endcomment %}
+<div id="schedule-day-sidebar" {% if oob %}hx-swap-oob="true"{% endif %} class="bg-white rounded-2xl border border-gray-200 shadow-soft-sm p-5 w-72 shrink-0">
+  <p class="font-semibold text-ink text-sm">
+    {% if panel_is_today %}Today's Schedule{% else %}Schedule{% endif %}
+  </p>
+  <p class="text-xs text-gray-400 mt-0.5">{{ panel_date_display }}</p>
+
+  {% if panel_slots %}
+  <div class="mt-4 space-y-2">
+    {% for s in panel_slots %}
+    <div class="flex items-center justify-between gap-2 bg-green-50/60 border border-green-100 rounded-xl px-3 py-2.5">
+      <div class="flex items-center gap-2 min-w-0">
+        <span class="flex size-6 shrink-0 items-center justify-center rounded-full bg-green-100 text-green-700">
+          <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        </span>
+        <p class="text-xs font-medium text-green-800 truncate">{{ s.start_time|time:"g:i A" }} &ndash; {{ s.end_time|time:"g:i A" }}</p>
+      </div>
+      <div class="flex gap-1.5 shrink-0">
+        <a hx-get="{% url 'doctor:schedule_edit' pk=s.pk %}?date={{ panel_date_iso }}"
+           hx-target="#modal-root" hx-swap="innerHTML"
+           class="text-blue-600 hover:text-blue-800 cursor-pointer" title="Edit">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+        </a>
+        <a hx-get="{% url 'doctor:schedule_delete' pk=s.pk %}"
+           hx-target="#modal-root" hx-swap="innerHTML"
+           class="text-red-500 hover:text-red-700 cursor-pointer" title="Delete">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+        </a>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="mt-4 py-6 text-center">
+    <p class="text-xs text-gray-400">No slots set for this date.</p>
+  </div>
+  {% endif %}
+
+  <a hx-get="{% url 'doctor:schedule_add' %}?date={{ panel_date_iso }}"
+     hx-target="#modal-root" hx-swap="innerHTML"
+     class="block w-full text-center mt-4 px-3 py-2.5 rounded-xl bg-brand-50 text-brand-700 text-xs font-semibold hover:bg-brand-100 transition cursor-pointer">
+    + Add Time for This Day
+  </a>
+</div>

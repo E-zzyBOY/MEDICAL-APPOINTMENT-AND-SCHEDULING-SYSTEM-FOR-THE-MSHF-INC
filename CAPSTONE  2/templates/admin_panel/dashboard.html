@@ -1,9 +1,18 @@
 {% extends "admin_panel/base_admin.html" %}
 {% load django_vite %}
-{% block page_title %}Admin Dashboard{% endblock %}
+{# "Admin Dashboard" title removed — the greeting now lives in the top bar. #}
+{% block page_title %}Welcome back, {{ request.user.first_name|default:request.user.username }}!<span class="block text-sm font-normal text-gray-500 mt-0.5">let's get things done.</span>{% endblock %}
 
 {% block admin_content %}
 {{ dashboard_data|json_script:"dashboard-data" }}
+<style>
+  /* Greeting moved into the desktop top bar, so hide the duplicate greeting
+     inside the React dashboard on md+ screens. On mobile the top bar title
+     isn't shown, so the in-content greeting stays. */
+  @media (min-width: 768px) {
+    #react-dashboard-root[data-role="admin"] > div > div:first-child { display: none; }
+  }
+</style>
 <div id="react-dashboard-root"></div>
 {% vite_asset 'frontend/src/main-admin.tsx' %}
 {% endblock %}

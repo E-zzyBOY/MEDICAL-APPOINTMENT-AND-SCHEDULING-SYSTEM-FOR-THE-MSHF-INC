@@ -1,9 +1,18 @@
 {% extends "patient/base_patient.html" %}
 {% load django_vite %}
-{% block page_title %}Dashboard{% endblock %}
+{# "Dashboard" title removed — the greeting now lives in the top bar. #}
+{% block page_title %}<span class="block text-sm font-normal text-gray-500">{{ dashboard_data.greeting|default:"Welcome back" }},</span>{{ dashboard_data.userName|default:request.user.first_name }} <span aria-hidden="true">&#128075;</span>{% endblock %}
 
 {% block patient_content %}
 {{ dashboard_data|json_script:"dashboard-data" }}
+<style>
+  /* Greeting moved into the desktop top bar, so hide the duplicate greeting
+     inside the React dashboard on md+ screens. On mobile the top bar title
+     isn't shown, so the in-content greeting stays. */
+  @media (min-width: 768px) {
+    #react-dashboard-root > div > div:first-child { display: none; }
+  }
+</style>
 <div id="react-dashboard-root"></div>
 {% vite_asset 'frontend/src/main-patient.tsx' %}
 {% endblock %}

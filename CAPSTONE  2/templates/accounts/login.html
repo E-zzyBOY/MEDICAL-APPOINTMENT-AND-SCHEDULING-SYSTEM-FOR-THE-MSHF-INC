@@ -148,12 +148,35 @@
       <!-- Sign in panel -->
       <div class="auth-form-panel sign-in-panel">
         <div class="auth-form-inner">
-          <div class="flex flex-col items-center mb-6">
-            <div class="flex size-14 items-center justify-center rounded-2xl bg-brand-500 text-white shadow-soft mb-4">
-              <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M11 3a1 1 0 00-1 1v5a1 1 0 01-1 1H4a1 1 0 00-1 1v2a1 1 0 001 1h5a1 1 0 011 1v5a1 1 0 001 1h2a1 1 0 001-1v-5a1 1 0 011-1h5a1 1 0 001-1v-2a1 1 0 00-1-1h-5a1 1 0 01-1-1V4a1 1 0 00-1-1h-2z"/></svg>
+          <div class="flex flex-col items-center mb-5">
+            <div class="flex items-center gap-2.5 mb-5">
+              <div class="flex size-11 items-center justify-center rounded-xl bg-brand-500 text-white shadow-soft-sm shrink-0">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M11 3a1 1 0 00-1 1v5a1 1 0 01-1 1H4a1 1 0 00-1 1v2a1 1 0 001 1h5a1 1 0 011 1v5a1 1 0 001 1h2a1 1 0 001-1v-5a1 1 0 011-1h5a1 1 0 001-1v-2a1 1 0 00-1-1h-5a1 1 0 01-1-1V4a1 1 0 00-1-1h-2z"/></svg>
+              </div>
+              <span class="text-xl font-bold tracking-tight text-ink">MSHFI</span>
             </div>
-            <h1 class="text-2xl font-semibold text-ink">Welcome back</h1>
-            <p class="text-ink-soft text-sm mt-1 text-center">Sign in to MSHFI Medical Appointment System</p>
+            <h1 class="text-2xl font-semibold text-ink">Sign In</h1>
+            <p class="text-ink-soft text-sm mt-1 text-center">Welcome back! Sign in to manage your appointments.</p>
+          </div>
+
+          <div class="flex items-center justify-center gap-3 mb-5">
+            <button type="button" disabled title="Coming soon" aria-label="Sign in with Facebook"
+                    class="flex size-10 items-center justify-center rounded-full border border-line opacity-60 cursor-not-allowed">
+              <svg class="w-4 h-4" fill="#1877F2" viewBox="0 0 24 24"><path d="M22 12.06C22 6.51 17.52 2 12 2S2 6.51 2 12.06c0 5 3.66 9.15 8.44 9.94v-7.03H7.9v-2.91h2.54V9.85c0-2.51 1.49-3.9 3.77-3.9 1.09 0 2.24.2 2.24.2v2.46h-1.26c-1.24 0-1.63.77-1.63 1.56v1.89h2.78l-.44 2.91h-2.34V22c4.78-.79 8.44-4.94 8.44-9.94z"/></svg>
+            </button>
+            <button type="button" disabled title="Coming soon" aria-label="Sign in with Google"
+                    class="flex size-10 items-center justify-center rounded-full border border-line opacity-60 cursor-not-allowed">
+              <span class="text-sm font-bold" style="color:#EA4335;">G</span>
+            </button>
+            <button type="button" disabled title="Coming soon" aria-label="Sign in with mobile OTP"
+                    class="flex size-10 items-center justify-center rounded-full border border-line opacity-60 cursor-not-allowed">
+              <svg class="w-4 h-4 text-ink-soft" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M7 4h10a1 1 0 011 1v14a1 1 0 01-1 1H7a1 1 0 01-1-1V5a1 1 0 011-1z"/><path stroke-linecap="round" d="M11 18h2"/></svg>
+            </button>
+          </div>
+          <div class="flex items-center gap-3 mb-5">
+            <span class="h-px flex-1 bg-line"></span>
+            <span class="text-[11px] text-ink-soft uppercase tracking-wide">or use your account</span>
+            <span class="h-px flex-1 bg-line"></span>
           </div>
 
           <form method="post" action="{% url 'accounts:login' %}" class="space-y-3 hp-field">
@@ -194,12 +217,35 @@
       <!-- Sign up panel -->
       <div class="auth-form-panel sign-up-panel">
         <div class="auth-form-inner" style="max-width: 420px;">
-          <div class="flex flex-col items-center mb-5">
-            <div class="flex size-14 items-center justify-center rounded-2xl bg-brand-500 text-white shadow-soft mb-4">
-              <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M11 3a1 1 0 00-1 1v5a1 1 0 01-1 1H4a1 1 0 00-1 1v2a1 1 0 001 1h5a1 1 0 011 1v5a1 1 0 001 1h2a1 1 0 001-1v-5a1 1 0 011-1h5a1 1 0 001-1v-2a1 1 0 00-1-1h-5a1 1 0 01-1-1V4a1 1 0 00-1-1h-2z"/></svg>
+          <div class="flex flex-col items-center mb-4">
+            <div class="flex items-center gap-2.5 mb-4">
+              <div class="flex size-11 items-center justify-center rounded-xl bg-brand-500 text-white shadow-soft-sm shrink-0">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M11 3a1 1 0 00-1 1v5a1 1 0 01-1 1H4a1 1 0 00-1 1v2a1 1 0 001 1h5a1 1 0 011 1v5a1 1 0 001 1h2a1 1 0 001-1v-5a1 1 0 011-1h5a1 1 0 001-1v-2a1 1 0 00-1-1h-5a1 1 0 01-1-1V4a1 1 0 00-1-1h-2z"/></svg>
+              </div>
+              <span class="text-xl font-bold tracking-tight text-ink">MSHFI</span>
             </div>
-            <h1 class="text-2xl font-semibold text-ink">Create your account</h1>
-            <p class="text-ink-soft text-sm mt-1 text-center">Book appointments online in minutes</p>
+            <h1 class="text-2xl font-semibold text-ink">Create Account</h1>
+            <p class="text-ink-soft text-sm mt-1 text-center">Join MSHFI to book appointments and manage your visits online.</p>
+          </div>
+
+          <div class="flex items-center justify-center gap-3 mb-4">
+            <button type="button" disabled title="Coming soon" aria-label="Sign up with Facebook"
+                    class="flex size-10 items-center justify-center rounded-full border border-line opacity-60 cursor-not-allowed">
+              <svg class="w-4 h-4" fill="#1877F2" viewBox="0 0 24 24"><path d="M22 12.06C22 6.51 17.52 2 12 2S2 6.51 2 12.06c0 5 3.66 9.15 8.44 9.94v-7.03H7.9v-2.91h2.54V9.85c0-2.51 1.49-3.9 3.77-3.9 1.09 0 2.24.2 2.24.2v2.46h-1.26c-1.24 0-1.63.77-1.63 1.56v1.89h2.78l-.44 2.91h-2.34V22c4.78-.79 8.44-4.94 8.44-9.94z"/></svg>
+            </button>
+            <button type="button" disabled title="Coming soon" aria-label="Sign up with Google"
+                    class="flex size-10 items-center justify-center rounded-full border border-line opacity-60 cursor-not-allowed">
+              <span class="text-sm font-bold" style="color:#EA4335;">G</span>
+            </button>
+            <button type="button" disabled title="Coming soon" aria-label="Sign up with mobile OTP"
+                    class="flex size-10 items-center justify-center rounded-full border border-line opacity-60 cursor-not-allowed">
+              <svg class="w-4 h-4 text-ink-soft" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M7 4h10a1 1 0 011 1v14a1 1 0 01-1 1H7a1 1 0 01-1-1V5a1 1 0 011-1z"/><path stroke-linecap="round" d="M11 18h2"/></svg>
+            </button>
+          </div>
+          <div class="flex items-center gap-3 mb-4">
+            <span class="h-px flex-1 bg-line"></span>
+            <span class="text-[11px] text-ink-soft uppercase tracking-wide">or use your email</span>
+            <span class="h-px flex-1 bg-line"></span>
           </div>
 
           <form method="post" action="{% url 'accounts:register' %}" class="space-y-3 hp-field" novalidate>

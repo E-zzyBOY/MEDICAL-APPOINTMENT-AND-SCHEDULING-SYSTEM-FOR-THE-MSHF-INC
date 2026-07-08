@@ -59,7 +59,11 @@
         {% for field in form %}
         <div class="{% if field.name == 'address' %}sm:col-span-2{% endif %}">
           <label class="block text-sm font-semibold text-gray-700 mb-1">{{ field.label }}</label>
+          {% if field.name == 'address' %}
+            {% include "components/_address_picker.html" with initial=field.value errors=field.errors %}
+          {% else %}
           {{ field }}
+          {% endif %}
           {% if field.errors %}<p class="text-red-600 text-xs mt-1">{{ field.errors.0 }}</p>{% endif %}
         </div>
         {% endfor %}

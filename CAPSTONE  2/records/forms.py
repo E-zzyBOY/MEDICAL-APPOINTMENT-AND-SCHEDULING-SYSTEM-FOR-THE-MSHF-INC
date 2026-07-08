@@ -26,8 +26,8 @@ class PrescriptionForm(forms.ModelForm):
         widgets = {
             'date_issued':      forms.DateInput(attrs={'type': 'date'}),
             'medication_names': forms.Textarea(attrs={'rows': 3, 'placeholder': 'e.g. Amoxicillin 500mg — 3x daily for 7 days'}),
-            'notes':            forms.Textarea(attrs={'rows': 3}),
-            'treatment':        forms.Textarea(attrs={'rows': 3}),
+            'notes':            forms.Textarea(attrs={'rows': 3, 'placeholder': 'e.g. Patient presented with mild fever and sore throat for 3 days. No signs of respiratory distress. Advised rest and hydration.'}),
+            'treatment':        forms.Textarea(attrs={'rows': 3, 'placeholder': 'e.g. Rest for 3–5 days, increase fluid intake, monitor temperature. Return if fever persists beyond 3 days.'}),
             'attachment':       forms.ClearableFileInput(attrs={'accept': '.jpg,.jpeg,.png,.pdf'}),
         }
 

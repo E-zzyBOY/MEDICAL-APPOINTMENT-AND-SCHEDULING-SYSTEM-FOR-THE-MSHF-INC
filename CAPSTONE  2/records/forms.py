@@ -25,7 +25,7 @@ class PrescriptionForm(forms.ModelForm):
         fields = ['date_issued', 'medication_names', 'notes', 'treatment', 'attachment']
         widgets = {
             'date_issued':      forms.DateInput(attrs={'type': 'date'}),
-            'medication_names': forms.Textarea(attrs={'rows': 3}),
+            'medication_names': forms.Textarea(attrs={'rows': 3, 'placeholder': 'e.g. Amoxicillin 500mg — 3x daily for 7 days'}),
             'notes':            forms.Textarea(attrs={'rows': 3}),
             'treatment':        forms.Textarea(attrs={'rows': 3}),
             'attachment':       forms.ClearableFileInput(attrs={'accept': '.jpg,.jpeg,.png,.pdf'}),

@@ -4,7 +4,7 @@
 <div class="max-w-xl">
   <div class="bg-white rounded-2xl shadow-soft p-8">
     <h2 class="text-xl font-semibold text-gray-800 mb-2">Consultation Results</h2>
-    <p class="text-sm text-gray-500 mb-6">Patient: {{ appointment.patient.get_full_name }} — {{ appointment.appointment_date|date:"F j, Y" }}</p>
+    <p class="text-sm text-gray-500 mb-6">Patient: {% with pd=appointment.patient_details %}{% if pd %}{{ pd.full_name }}{% if pd.relationship and pd.relationship != 'Self' %} <span class="text-gray-400">(Booked by: {{ appointment.patient.get_full_name }})</span>{% endif %}{% else %}{{ appointment.patient.get_full_name }}{% endif %}{% endwith %} — {{ appointment.appointment_date|date:"F j, Y" }}</p>
     <form method="post" class="space-y-4">
       {% csrf_token %}
       {% for field in form %}

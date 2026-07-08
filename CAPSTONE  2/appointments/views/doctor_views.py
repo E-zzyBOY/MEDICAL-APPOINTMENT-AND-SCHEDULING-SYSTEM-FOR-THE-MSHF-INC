@@ -918,6 +918,7 @@ def add_consultation_results(request, pk):
 
 @role_required('doctor')
 def add_prescription(request, pk):
+    from datetime import date
     appt = get_object_or_404(Appointment, pk=pk, doctor=request.user)
     from records.models import ResultsConsultation, Prescription
     from records.forms import PrescriptionForm
@@ -926,7 +927,7 @@ def add_prescription(request, pk):
     except ResultsConsultation.DoesNotExist:
         messages.error(request, 'Please add consultation results first.')
         return redirect('doctor:add_results', pk=pk)
-    form = PrescriptionForm(request.POST or None, request.FILES or None)
+    form = PrescriptionForm(request.POST or None, request.FILES or None, initial={'date_issued': date.today()})
     if request.method == 'POST' and form.is_valid():
         prescription = form.save(commit=False)
         prescription.results_consultation = results

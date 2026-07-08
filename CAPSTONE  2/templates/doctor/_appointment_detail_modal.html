@@ -63,7 +63,7 @@
   </div>
   {% endif %}
   {% endwith %}
-  <div class="flex gap-3 pt-2">
+  <div class="flex gap-3 pt-2 flex-wrap">
     {% if appt.status == 'Pending Reschedule' %}
     <a hx-get="{% url 'doctor:reschedule_approve' pk=appt.pk %}" hx-target="#modal-root" hx-swap="innerHTML"
        class="flex-1 text-center bg-purple-600 text-white font-semibold py-3 rounded-xl hover:bg-purple-700 transition cursor-pointer">
@@ -77,6 +77,29 @@
     <a hx-get="{% url 'doctor:assign_time' pk=appt.pk %}" hx-target="#modal-root" hx-swap="innerHTML"
        class="flex-1 text-center bg-amber-600 text-white font-semibold py-3 rounded-xl hover:bg-amber-700 transition cursor-pointer">
       Assign Time
+    </a>
+    {% elif appt.status == 'Scheduled' or appt.status == 'Rescheduled' %}
+    <a hx-get="/doctor/appointments/{{ appt.pk }}/accept/" hx-target="#modal-root" hx-swap="innerHTML"
+       class="flex-1 text-center bg-green-600 text-white font-semibold py-3 rounded-xl hover:bg-green-700 transition cursor-pointer">
+      Confirm
+    </a>
+    <a href="/doctor/appointments/{{ appt.pk }}/reschedule/"
+       class="flex-1 text-center bg-blue-100 text-blue-700 font-semibold py-3 rounded-xl hover:bg-blue-200 transition">
+      Reschedule
+    </a>
+    <a hx-get="/doctor/appointments/{{ appt.pk }}/decline/" hx-target="#modal-root" hx-swap="innerHTML"
+       class="flex-1 text-center bg-red-100 text-red-600 font-semibold py-3 rounded-xl hover:bg-red-200 transition cursor-pointer">
+      Cancel
+    </a>
+    {% elif appt.status == 'Confirmed' %}
+    <a href="/doctor/appointments/{{ appt.pk }}/complete/"
+       class="flex-1 text-center bg-blue-600 text-white font-semibold py-3 rounded-xl hover:bg-blue-700 transition">
+      Complete
+    </a>
+    {% elif appt.status == 'Completed' %}
+    <a href="/doctor/appointments/{{ appt.pk }}/results/"
+       class="flex-1 text-center bg-blue-100 text-blue-700 font-semibold py-3 rounded-xl hover:bg-blue-200 transition">
+      Results
     </a>
     {% else %}
     <button type="button" onclick="closeModal()" class="flex-1 border border-gray-300 text-gray-700 font-semibold py-3 rounded-xl hover:bg-gray-50 transition">

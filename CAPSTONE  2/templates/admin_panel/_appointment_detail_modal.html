@@ -2,7 +2,6 @@
 {% block modal_content %}
 <div class="space-y-4">
   <div class="bg-gray-50 rounded-xl p-4 text-sm space-y-2">
-    <div class="flex justify-between"><span class="text-gray-500">Booked By</span><span class="font-medium">{{ appt.patient.get_full_name }}</span></div>
     <div class="flex justify-between"><span class="text-gray-500">Doctor</span><span class="font-medium">Dr. {{ appt.doctor.get_full_name }}</span></div>
     <div class="flex justify-between"><span class="text-gray-500">Secretary</span><span class="font-medium">{{ appt.secretary.get_full_name|default:"—" }}</span></div>
     <div class="flex justify-between"><span class="text-gray-500">Date</span><span class="font-medium">{{ appt.appointment_date|date:"F j, Y" }}</span></div>
@@ -10,34 +9,10 @@
     <div class="flex justify-between"><span class="text-gray-500">Status</span><span class="font-medium">{{ appt.status }}</span></div>
     <div class="flex justify-between"><span class="text-gray-500">Reason</span><span class="font-medium">{{ appt.reason|default:"—" }}</span></div>
   </div>
-  {% with details=appt.patient_details %}
-  {% if details %}
-  <div class="rounded-xl border border-gray-100 bg-gray-50 p-4">
-    <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Patient Details</p>
-    <div class="grid grid-cols-2 gap-y-2 gap-x-4 text-sm">
-      <div><span class="text-gray-500">Name</span></div>
-      <div class="font-medium text-gray-800">{{ details.full_name }}</div>
-      <div><span class="text-gray-500">Date of Birth</span></div>
-      <div class="font-medium text-gray-800">{{ details.date_of_birth|date:"M j, Y" }}</div>
-      <div><span class="text-gray-500">Sex</span></div>
-      <div class="font-medium text-gray-800">{{ details.get_gender_display }}</div>
-      <div><span class="text-gray-500">Mobile</span></div>
-      <div class="font-medium text-gray-800">{{ details.mobile_number }}</div>
-      {% if details.relationship and details.relationship != 'Self' %}
-      <div><span class="text-gray-500">Relationship</span></div>
-      <div class="font-medium text-gray-800">{{ details.relationship }}</div>
-      {% endif %}
-      <div class="col-span-2"><span class="text-gray-500">Address</span></div>
-      <div class="col-span-2 font-medium text-gray-800">{{ details.address }}</div>
-    </div>
-  </div>
-  {% endif %}
-  {% endwith %}
+  {# Patient identity is hidden from the admin for data privacy — only the
+     doctor and the assigned secretary can view patient details. #}
+  <p class="text-xs text-gray-400 italic">Patient details are hidden for data privacy.</p>
   <div class="flex gap-3 pt-2">
-    <a hx-get="{% url 'admin_panel:appointment_edit' pk=appt.pk %}" hx-target="#modal-root" hx-swap="innerHTML"
-       class="flex-1 text-center bg-brand-600 text-white font-semibold py-3 rounded-xl hover:bg-brand-700 transition cursor-pointer">
-      Edit
-    </a>
     <button type="button" onclick="closeModal()" class="flex-1 border border-gray-300 text-gray-700 font-semibold py-3 rounded-xl hover:bg-gray-50 transition">
       Close
     </button>

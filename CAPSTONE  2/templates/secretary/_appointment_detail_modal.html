@@ -84,13 +84,20 @@
        class="flex-1 text-center bg-indigo-100 text-indigo-700 font-semibold py-3 rounded-xl hover:bg-indigo-200 transition cursor-pointer">
       Reschedule
     </a>
+    {% if appt.appointment_date < today %}
+    <a hx-get="{% url 'secretary:appointment_cancel' pk=appt.pk %}?mode=no_show" hx-target="#modal-root" hx-swap="innerHTML"
+       class="flex-1 text-center bg-gray-200 text-gray-700 font-semibold py-3 rounded-xl hover:bg-gray-300 transition cursor-pointer">
+      No-Show
+    </a>
+    {% else %}
     <a hx-get="{% url 'secretary:appointment_cancel' pk=appt.pk %}" hx-target="#modal-root" hx-swap="innerHTML"
        class="flex-1 text-center bg-red-100 text-red-600 font-semibold py-3 rounded-xl hover:bg-red-200 transition cursor-pointer">
-      Cancel
+      Cancelled
     </a>
+    {% endif %}
     <a hx-get="{% url 'secretary:appointment_confirm' pk=appt.pk %}" hx-target="#modal-root" hx-swap="innerHTML"
        class="w-full text-center bg-brand-500 text-white font-semibold py-3 rounded-xl hover:bg-brand-600 transition cursor-pointer">
-      Confirm Arrival
+      Checked In
     </a>
     {% elif appt.status == 'Confirmed' %}
     <a hx-get="{% url 'secretary:appointment_complete' pk=appt.pk %}" hx-target="#modal-root" hx-swap="innerHTML"

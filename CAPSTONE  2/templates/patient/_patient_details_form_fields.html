@@ -107,7 +107,7 @@
   <!-- Reason for booking -->
   <div>
     <textarea name="reason" rows="3" required
-              placeholder="Reason for booking / chief complaint..."
+              placeholder="Chief complaint..."
               class="w-full bg-[#F5F7FA] border-0 rounded-xl px-4 py-3.5 text-sm text-[#1F2937] placeholder-[#6B7280] focus:outline-none focus:ring-2 {% if form.reason.errors %}ring-2 ring-[#EF4444]{% else %}focus:ring-[#1F293733]{% endif %}">{{ form.reason.value|default:'' }}</textarea>
     {% if form.reason.errors %}<p class="text-[#DC2626] text-xs mt-1 ml-1">{{ form.reason.errors.0 }}</p>{% else %}<p class="text-[#9CA3AF] text-xs mt-1 ml-1">Visible to your doctor before the consultation.</p>{% endif %}
   </div>
@@ -146,3 +146,20 @@
     </button>
   </div>
 </form>
+
+{% if for_whom == 'other' %}
+<script>
+  // Live-retitle the form: "Mother's Details", "Father's Details", etc.
+  (function () {
+    var sel = document.querySelector('select[name="relationship"]');
+    var title = document.getElementById('patient-details-title') || document.getElementById('modal-title');
+    if (!sel || !title) return;
+    function update() {
+      var v = sel.value;
+      title.textContent = (v && v !== 'Self' && v !== 'Other') ? v + "'s Details" : 'Patient Details';
+    }
+    sel.addEventListener('change', update);
+    update();
+  })();
+</script>
+{% endif %}

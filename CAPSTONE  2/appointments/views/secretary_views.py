@@ -93,7 +93,7 @@ def appointment_detail(request, pk):
     doctor = _assigned_doctor(request.user)
     appt = get_object_or_404(Appointment.objects.select_related('patient', 'doctor', 'patient_details'), pk=pk, doctor=doctor)
     return render(request, 'secretary/_appointment_detail_modal.html', {
-        'appt': appt, 'title': 'Appointment Details',
+        'appt': appt, 'title': 'Appointment Details', 'today': date.today(),
     })
 
 
@@ -287,28 +287,37 @@ def appointment_cancel(request, pk):
     appt = get_object_or_404(
         Appointment, pk=pk, status__in=['Pending Assignment', 'Scheduled'], doctor=doctor
     )
+    mode = request.POST.get('mode') or request.GET.get('mode') or 'cancel'
     if request.method == 'POST':
         reason = request.POST.get('reason', '')
-        appt.status = 'Cancelled'
+        # "Cancelled" = called off before the date; "No-Show" = the patient
+        # simply didn't arrive for the appointment.
+        appt.status = 'No-Show' if mode == 'no_show' else 'Cancelled'
         appt.secretary = request.user
         appt.save()
         try:
             send_cancellation_email(appt, reason)
         except Exception:
             pass
-        _notify(appt.patient,
-                f"Your appointment with Dr. {appt.doctor.get_full_name()} on "
-                f"{appt.appointment_date.strftime('%B %d, %Y')} was cancelled.")
-        messages.success(request, 'Appointment cancelled and patient notified.')
+        if mode == 'no_show':
+            _notify(appt.patient,
+                    f"Your appointment with Dr. {appt.doctor.get_full_name()} on "
+                    f"{appt.appointment_date.strftime('%B %d, %Y')} was marked as No-Show.")
+            messages.success(request, 'Appointment marked as No-Show.')
+        else:
+            _notify(appt.patient,
+                    f"Your appointment with Dr. {appt.doctor.get_full_name()} on "
+                    f"{appt.appointment_date.strftime('%B %d, %Y')} was cancelled.")
+            messages.success(request, 'Appointment cancelled and patient notified.')
         if request.htmx:
-            response = render(request, 'secretary/_appointment_action_modal.html', {'appointment': appt, 'action': 'cancel'})
+            response = render(request, 'secretary/_appointment_action_modal.html', {'appointment': appt, 'action': 'cancel', 'mode': mode})
             response['HX-Redirect'] = '/secretary/appointments/'
             return response
         return redirect('secretary:appointment_list')
     if request.htmx:
-        return render(request, 'secretary/_appointment_action_modal.html', {'appointment': appt, 'action': 'cancel'})
+        return render(request, 'secretary/_appointment_action_modal.html', {'appointment': appt, 'action': 'cancel', 'mode': mode})
     return render(request, 'secretary/appointment_confirm_action.html', {
-        'appointment': appt, 'action': 'cancel'
+        'appointment': appt, 'action': 'cancel', 'mode': mode
     })
 
 

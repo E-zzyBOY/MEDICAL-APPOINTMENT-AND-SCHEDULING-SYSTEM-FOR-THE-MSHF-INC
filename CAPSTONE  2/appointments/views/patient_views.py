@@ -255,7 +255,7 @@ def appointment_list(request):
     ).select_related('doctor', 'results', 'patient_details').order_by('-appointment_date')
     cancelled = Appointment.objects.filter(
         patient=request.user,
-        status='Cancelled'
+        status__in=['Cancelled', 'No-Show']
     ).select_related('doctor', 'patient_details').order_by('-appointment_date')
     completed_appointment_ids = set(completed.values_list('pk', flat=True))
     reviewed_appointment_ids = set(

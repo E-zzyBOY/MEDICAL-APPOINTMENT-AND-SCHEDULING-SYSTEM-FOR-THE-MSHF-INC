@@ -1,3 +1,4 @@
+from datetime import date
 from django import forms
 from django.contrib.auth.forms import UserCreationForm
 import re
@@ -116,6 +117,12 @@ class PatientRegistrationForm(UserCreationForm):
         model  = CustomUser
         fields = ['username', 'first_name', 'last_name', 'email', 'password1', 'password2']
 
+    def clean_date_of_birth(self):
+        dob = self.cleaned_data.get('date_of_birth')
+        if dob and dob >= date.today():
+            raise forms.ValidationError('Date of birth must be in the past — it cannot be today or a future date.')
+        return dob
+
     def save(self, commit=True):
         user = super().save(commit=False)
         user.role       = 'patient'
@@ -156,6 +163,12 @@ class PatientProfileEditForm(forms.ModelForm):
         if self.instance and self.instance.user_id:
             self.fields['first_name'].initial = self.instance.user.first_name
             self.fields['last_name'].initial  = self.instance.user.last_name
+
+    def clean_date_of_birth(self):
+        dob = self.cleaned_data.get('date_of_birth')
+        if dob and dob >= date.today():
+            raise forms.ValidationError('Date of birth must be in the past — it cannot be today or a future date.')
+        return dob
 
 
 class DoctorProfileEditForm(forms.ModelForm):

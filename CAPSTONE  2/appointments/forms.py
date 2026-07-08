@@ -49,7 +49,7 @@ class PatientDetailsForm(forms.Form):
         choices=RELATIONSHIP_CHOICES, required=True, label='Relationship to Account Holder',
     )
     reason        = forms.CharField(
-        required=True, label='Reason for Booking / Chief Complaint',
+        required=True, label='Chief Complaint',
         widget=forms.Textarea(attrs={'rows': 3})
     )
     terms_accepted = forms.BooleanField(

@@ -5,7 +5,7 @@
       <div class="bg-white h-full md:!h-auto max-h-full rounded-t-2xl md:!rounded-2xl shadow-soft-lg flex flex-col">
         <!-- Header -->
         <div class="flex items-center justify-between px-6 py-4 border-b border-gray-200 flex-shrink-0">
-          <h2 id="modal-title" class="text-lg font-semibold text-gray-800">Cancel Appointment</h2>
+          <h2 id="modal-title" class="text-lg font-semibold text-gray-800">{% if mode == 'no_show' %}Mark as No-Show{% else %}Cancel Appointment{% endif %}</h2>
           <button type="button" onclick="closeModal()" aria-label="Close" class="w-8 h-8 flex items-center justify-center rounded-full text-gray-400 hover:text-gray-600 hover:bg-gray-100 text-2xl leading-none">&times;</button>
         </div>
         <!-- Content -->
@@ -33,8 +33,9 @@
                 hx-target="#modal-root" hx-swap="innerHTML"
                 class="space-y-4">
             {% csrf_token %}
+            <input type="hidden" name="mode" value="{{ mode|default:'cancel' }}" />
             <div>
-              <label class="block text-sm font-semibold text-gray-700 mb-1">Reason for Cancellation</label>
+              <label class="block text-sm font-semibold text-gray-700 mb-1">{% if mode == 'no_show' %}Notes (optional){% else %}Reason for Cancellation{% endif %}</label>
               <textarea name="reason" rows="3"
                         class="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
                         placeholder="Provide a reason..."></textarea>
@@ -42,7 +43,7 @@
             <div class="flex gap-3 pt-2">
               <button type="submit"
                       class="flex-1 font-semibold py-3 rounded-xl transition bg-red-600 text-white hover:bg-red-700">
-                Confirm Cancel
+                {% if mode == 'no_show' %}Mark No-Show{% else %}Confirm Cancel{% endif %}
               </button>
               <button type="button" onclick="closeModal()" class="flex-1 border border-gray-300 text-gray-700 font-semibold py-3 rounded-xl hover:bg-gray-50 transition">
                 Cancel

@@ -87,6 +87,7 @@ class Appointment(models.Model):
         ('Confirmed',          'Confirmed'),
         ('Completed',          'Completed'),
         ('Cancelled',          'Cancelled'),
+        ('No-Show',            'No-Show'),
         ('Rescheduled',        'Rescheduled'),
         ('Pending Reschedule', 'Pending Reschedule'),
     ]

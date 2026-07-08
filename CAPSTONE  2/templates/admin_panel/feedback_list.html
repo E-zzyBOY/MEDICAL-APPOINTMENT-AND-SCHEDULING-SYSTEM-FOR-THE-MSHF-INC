@@ -11,15 +11,11 @@
     <a href="{% url 'admin_panel:feedback_by_doctor' pk=doctor.pk %}"
        class="block bg-white rounded-2xl border border-gray-200 shadow-soft-sm p-5 hover:shadow-soft hover:border-brand-200 transition cursor-pointer">
       <div class="flex items-center gap-4">
-        {% if doctor.doctor_profile.profile_picture %}
-          <img src="{{ doctor.doctor_profile.profile_picture.url }}" class="w-14 h-14 rounded-xl object-cover object-top flex-shrink-0" alt="">
-        {% else %}
-          <div class="w-14 h-14 rounded-xl bg-[#E0EED5] flex items-center justify-center flex-shrink-0">
-            <span class="text-[#1F4D11] font-semibold text-lg">{{ doctor.first_name.0 }}{{ doctor.last_name.0 }}</span>
-          </div>
-        {% endif %}
+        <span class="flex w-14 h-14 items-center justify-center rounded-xl bg-brand-100 flex-shrink-0">
+            <svg class="w-6 h-6 text-brand-600" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M4.8 2.3A.3.3 0 1 0 5 2H4a2 2 0 0 0-2 2v5a6 6 0 0 0 6 6a6 6 0 0 0 6-6V4a2 2 0 0 0-2-2h-1a.2.2 0 1 0 .3.3"/><path d="M8 15v1a6 6 0 0 0 6 6a6 6 0 0 0 6-6v-4"/><circle cx="20" cy="10" r="2"/></svg>
+          </span>
         <div class="min-w-0">
-          <p class="font-semibold text-gray-800">Dr. {{ doctor.get_full_name }}</p>
+          <p class="font-semibold text-gray-800">Doctor {{ forloop.counter }}</p>
           <p class="text-sm text-gray-500">{{ doctor.doctor_profile.specialization|default:"General Medicine" }}</p>
         </div>
       </div>

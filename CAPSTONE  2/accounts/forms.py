@@ -4,6 +4,7 @@ from django.contrib.auth.forms import UserCreationForm
 import re
 from .models import CustomUser, PatientProfile, DoctorProfile, SecretaryProfile
 from .validators import validate_ph_mobile_number, normalize_ph_mobile_number
+from .psgc import validate_picker_data
 
 
 def _slugify_name_part(value):
@@ -110,12 +111,20 @@ class PatientRegistrationForm(UserCreationForm):
     gender         = forms.ChoiceField(choices=[('', '-- Select --')] + PatientProfile.GENDER_CHOICES, required=False)
     date_of_birth  = forms.DateField(required=False, widget=forms.DateInput(attrs={'type': 'date'}))
     place_of_birth = forms.CharField(max_length=150, required=False)
-    address        = forms.CharField(widget=forms.Textarea(attrs={'rows': 3}), required=False)
+    address        = forms.CharField(widget=forms.Textarea(attrs={'rows': 3}), required=True, label='Address')
     guardian       = forms.CharField(max_length=150, required=False, label='Guardian (optional)')
 
     class Meta:
         model  = CustomUser
         fields = ['username', 'first_name', 'last_name', 'email', 'password1', 'password2']
+
+
+    def clean(self):
+        cleaned = super().clean()
+        err = validate_picker_data(self.data, forms, required=True)
+        if err:
+            self.add_error('address', err)
+        return cleaned
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -172,14 +181,19 @@ class PatientProfileEditForm(forms.ModelForm):
             'address': forms.Textarea(attrs={'rows': 3}),
         }
 
+
+    def clean(self):
+        cleaned = super().clean()
+        err = validate_picker_data(self.data, forms)
+        if err:
+            self.add_error('address', err)
+        return cleaned
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         if self.instance and self.instance.user_id:
             self.fields['first_name'].initial = self.instance.user.first_name
             self.fields['last_name'].initial  = self.instance.user.last_name
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
         # Browser-side guard: the date picker can't go past the newest
         # allowed birthday (16 years old today). Server-side check below.
         t = date.today()

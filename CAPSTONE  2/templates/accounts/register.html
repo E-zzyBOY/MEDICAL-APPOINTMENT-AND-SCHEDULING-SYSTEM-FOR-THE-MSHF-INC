@@ -259,7 +259,9 @@
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {% for field in register_form %}
               <div class="{% if field.name == 'address' %}sm:col-span-2{% endif %}">
-                {% if field.field.widget.input_type == 'select' or field.name == 'gender' %}
+                {% if field.name == 'address' %}
+                  {% include "components/_address_picker.html" with initial=field.value errors=field.errors %}
+                {% elif field.field.widget.input_type == 'select' or field.name == 'gender' %}
                   {{ field }}
                 {% else %}
                   <input type="{{ field.field.widget.input_type }}"

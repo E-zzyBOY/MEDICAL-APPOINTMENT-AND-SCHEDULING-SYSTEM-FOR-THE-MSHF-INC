@@ -1,4 +1,5 @@
 from django import forms
+from accounts.psgc import validate_picker_data
 from datetime import date, datetime
 from .models import Schedule, Appointment, AppointmentPatientDetails
 from accounts.models import CustomUser
@@ -56,6 +57,13 @@ class PatientDetailsForm(forms.Form):
         required=True, label='I agree to the Terms and Conditions and Privacy Policy',
         error_messages={'required': 'You must agree to the Terms and Conditions and Privacy Policy to continue.'}
     )
+
+    def clean(self):
+        cleaned = super().clean()
+        err = validate_picker_data(self.data, forms)
+        if err:
+            self.add_error('address', err)
+        return cleaned
 
     def clean_date_of_birth(self):
         dob = self.cleaned_data['date_of_birth']

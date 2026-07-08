@@ -1,54 +1,70 @@
 {% comment %}
-Step-by-step address picker locked to Lanao del Sur (Shopee-style):
-  Province (fixed) -> Municipality (searchable) -> Barangay (searchable)
-  -> Street / Purok / House No.
-Submits the combined string in a hidden input named "address" plus
-companion fields addr_municipality / addr_barangay for server-side
-validation. Include with:
-  {% include "components/_address_picker.html" with initial=form.address.value errors=form.address.errors %}
-Works on full pages and inside htmx modals; multiple instances are safe.
+Shopee/TikTok-style address picker locked to Lanao del Sur.
+Tapping the location row opens a bottom sheet:
+  "Select Municipality" (Lanao del Sur | Municipality tabs)
+    -> "Select Barangay" (Lanao del Sur | <Municipality> | Barangay tabs)
+Users can ONLY tap from the official PSGC lists — no free typing for the
+municipality/barangay. Only the street/purok line is typed.
+Submits: hidden "address" (combined) + addr_municipality / addr_barangay
+for server-side validation. Safe on pages and inside htmx modals.
 {% endcomment %}
 <div data-address-picker class="space-y-2">
   <input type="hidden" name="address" value="{{ initial|default:'' }}" data-ap-address>
   <input type="hidden" name="addr_municipality" value="" data-ap-mun-hidden>
   <input type="hidden" name="addr_barangay" value="" data-ap-brgy-hidden>
 
-  <!-- Step 1: Province (locked to scope) -->
-  <div class="relative">
-    <input type="text" value="Lanao del Sur" readonly tabindex="-1"
-           class="w-full bg-gray-100 border-0 rounded-xl px-4 py-3.5 text-sm text-gray-500 cursor-not-allowed" />
-    <span class="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-semibold uppercase tracking-wide text-gray-400">Province</span>
-  </div>
+  <!-- Location row (tap to open the sheet; not typeable) -->
+  <button type="button" data-ap-open
+          class="w-full flex items-center justify-between gap-3 bg-[#F5F7FA] rounded-xl px-4 py-3.5 text-sm text-left focus:outline-none focus:ring-2 focus:ring-brand-500/20">
+    <span class="min-w-0">
+      <span class="block text-[10px] font-semibold uppercase tracking-wide text-gray-400">Location</span>
+      <span data-ap-label class="block truncate text-[#6B7280]">Lanao del Sur &rsaquo; Select Municipality &rsaquo; Barangay</span>
+    </span>
+    <svg class="w-4 h-4 text-gray-400 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+  </button>
 
-  <!-- Step 2: Municipality / City (search as you type) -->
-  <div class="relative">
-    <input type="text" data-ap-mun autocomplete="off"
-           placeholder="Municipality / City — type to search..."
-           class="w-full bg-[#F5F7FA] border-0 rounded-xl px-4 py-3.5 text-sm text-[#1F2937] placeholder-[#6B7280] focus:outline-none focus:ring-2 focus:ring-brand-500/20" />
-    <ul data-ap-mun-list class="hidden absolute z-30 left-0 right-0 mt-1 max-h-52 overflow-y-auto bg-white border border-gray-200 rounded-xl shadow-lg text-sm"></ul>
-  </div>
-
-  <!-- Step 3: Barangay (unlocks after municipality) -->
-  <div class="relative">
-    <input type="text" data-ap-brgy autocomplete="off" disabled
-           placeholder="Barangay — choose a municipality first"
-           class="w-full bg-[#F5F7FA] border-0 rounded-xl px-4 py-3.5 text-sm text-[#1F2937] placeholder-[#6B7280] focus:outline-none focus:ring-2 focus:ring-brand-500/20 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed" />
-    <ul data-ap-brgy-list class="hidden absolute z-30 left-0 right-0 mt-1 max-h-52 overflow-y-auto bg-white border border-gray-200 rounded-xl shadow-lg text-sm"></ul>
-  </div>
-
-  <!-- Step 4: Street / Purok / House No. -->
+  <!-- Street / Purok / House No. (the only typed part) -->
   <input type="text" data-ap-street autocomplete="off"
          placeholder="Street / Purok / House No."
          class="w-full bg-[#F5F7FA] border-0 rounded-xl px-4 py-3.5 text-sm text-[#1F2937] placeholder-[#6B7280] focus:outline-none focus:ring-2 focus:ring-brand-500/20" />
 
   <p data-ap-error class="hidden text-[#DC2626] text-xs ml-1"></p>
   {% if errors %}<p class="text-[#DC2626] text-xs ml-1">{{ errors.0 }}</p>{% endif %}
+
+  <!-- ============ Bottom sheet ============ -->
+  <div data-ap-sheet class="hidden fixed inset-0 z-[80]">
+    <div data-ap-backdrop class="absolute inset-0 bg-black/50"></div>
+    <div class="absolute inset-x-0 bottom-0 sm:inset-0 sm:m-auto sm:max-w-md sm:h-[70vh] bg-white rounded-t-2xl sm:rounded-2xl flex flex-col max-h-[85vh] shadow-2xl">
+      <!-- Header -->
+      <div class="flex items-center gap-3 px-4 py-4 border-b border-gray-100">
+        <button type="button" data-ap-back class="hidden p-1 -ml-1 text-gray-500 hover:text-gray-800">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
+        </button>
+        <h3 data-ap-title class="flex-1 text-center font-semibold text-[#1F2937]">Select Municipality</h3>
+        <button type="button" data-ap-close class="p-1 -mr-1 text-gray-500 hover:text-gray-800">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
+      <!-- Breadcrumb tabs -->
+      <div class="flex items-center gap-5 px-4 pt-3 text-sm overflow-x-auto whitespace-nowrap">
+        <span class="pb-2 border-b-2 border-transparent text-gray-400">Lanao del Sur</span>
+        <span data-ap-tab-mun class="pb-2 border-b-2 border-[#1F4D11] font-semibold text-[#1F2937]">Municipality</span>
+        <span data-ap-tab-brgy class="hidden pb-2 border-b-2 border-transparent text-gray-400">Barangay</span>
+      </div>
+      <!-- Search (filters the list — still tap-to-select only) -->
+      <div class="px-4 py-2.5">
+        <input type="text" data-ap-search autocomplete="off" placeholder="Search..."
+               class="w-full bg-[#F5F7FA] border-0 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20" />
+      </div>
+      <!-- List -->
+      <div data-ap-list class="flex-1 overflow-y-auto px-4 pb-6"></div>
+    </div>
+  </div>
 </div>
 
 <script>
 (function () {
   'use strict';
-  // Load the Lanao del Sur dataset once, share it between all pickers.
   if (!window.__ldsData) {
     window.__ldsData = fetch('/static/data/lanao_del_sur.json').then(function (r) { return r.json(); });
   }
@@ -57,16 +73,14 @@ Works on full pages and inside htmx modals; multiple instances are safe.
     if (root.dataset.apBound) return;
     root.dataset.apBound = '1';
 
-    var hidden  = root.querySelector('[data-ap-address]');
-    var munH    = root.querySelector('[data-ap-mun-hidden]');
-    var brgyH   = root.querySelector('[data-ap-brgy-hidden]');
-    var munI    = root.querySelector('[data-ap-mun]');
-    var brgyI   = root.querySelector('[data-ap-brgy]');
-    var street  = root.querySelector('[data-ap-street]');
-    var munL    = root.querySelector('[data-ap-mun-list]');
-    var brgyL   = root.querySelector('[data-ap-brgy-list]');
-    var errEl   = root.querySelector('[data-ap-error]');
-    var data    = null;
+    var q = function (sel) { return root.querySelector(sel); };
+    var hidden = q('[data-ap-address]'), munH = q('[data-ap-mun-hidden]'), brgyH = q('[data-ap-brgy-hidden]');
+    var openBtn = q('[data-ap-open]'), label = q('[data-ap-label]'), street = q('[data-ap-street]');
+    var sheet = q('[data-ap-sheet]'), backdrop = q('[data-ap-backdrop]');
+    var backBtn = q('[data-ap-back]'), closeBtn = q('[data-ap-close]'), title = q('[data-ap-title]');
+    var tabMun = q('[data-ap-tab-mun]'), tabBrgy = q('[data-ap-tab-brgy]');
+    var search = q('[data-ap-search]'), list = q('[data-ap-list]'), errEl = q('[data-ap-error]');
+    var data = null, view = 'mun';
 
     function compose() {
       var parts = [];
@@ -76,108 +90,138 @@ Works on full pages and inside htmx modals; multiple instances are safe.
       parts.push('Lanao del Sur');
       hidden.value = (munH.value && brgyH.value) ? parts.join(', ') : '';
     }
-
-    function renderList(listEl, names, onPick) {
-      listEl.innerHTML = '';
-      if (!names.length) {
-        var li = document.createElement('li');
-        li.className = 'px-4 py-2.5 text-gray-400';
-        li.textContent = 'No match found';
-        listEl.appendChild(li);
+    function updateLabel() {
+      if (munH.value && brgyH.value) {
+        label.textContent = 'Lanao del Sur \u203A ' + munH.value + ' \u203A Brgy. ' + brgyH.value;
+        label.classList.remove('text-[#6B7280]'); label.classList.add('text-[#1F2937]');
+      } else if (munH.value) {
+        label.textContent = 'Lanao del Sur \u203A ' + munH.value + ' \u203A Select Barangay';
+      } else {
+        label.textContent = 'Lanao del Sur \u203A Select Municipality \u203A Barangay';
       }
-      names.slice(0, 60).forEach(function (n) {
-        var li = document.createElement('li');
-        li.className = 'px-4 py-2.5 hover:bg-brand-50 cursor-pointer';
-        li.textContent = n;
-        li.addEventListener('mousedown', function (e) { e.preventDefault(); onPick(n); });
-        listEl.appendChild(li);
-      });
-      listEl.classList.remove('hidden');
-    }
-    function hide(listEl) { setTimeout(function () { listEl.classList.add('hidden'); }, 120); }
-    function filter(names, q) {
-      q = q.trim().toLowerCase();
-      if (!q) return names;
-      return names.filter(function (n) { return n.toLowerCase().indexOf(q) !== -1; });
     }
 
+    // Alphabetically grouped, tap-to-select list (letter headers like Shopee)
+    function renderList(names, onPick) {
+      list.innerHTML = '';
+      var term = (search.value || '').trim().toLowerCase();
+      var shown = term ? names.filter(function (n) { return n.toLowerCase().indexOf(term) !== -1; }) : names;
+      if (!shown.length) {
+        var p = document.createElement('p');
+        p.className = 'text-center text-gray-400 text-sm py-8';
+        p.textContent = 'No match found';
+        list.appendChild(p);
+        return;
+      }
+      var letter = '';
+      shown.forEach(function (n) {
+        var first = n.charAt(0).toUpperCase();
+        if (first !== letter) {
+          letter = first;
+          var h = document.createElement('p');
+          h.className = 'pt-4 pb-1 text-xs font-bold text-gray-400';
+          h.textContent = letter;
+          list.appendChild(h);
+        }
+        var row = document.createElement('button');
+        row.type = 'button';
+        row.className = 'w-full text-left py-3 border-b border-gray-100 text-sm text-[#1F2937] hover:bg-brand-50 active:bg-brand-50 px-1';
+        row.textContent = n;
+        row.addEventListener('click', function () { onPick(n); });
+        list.appendChild(row);
+      });
+    }
+
+    function showMunView() {
+      view = 'mun';
+      title.textContent = 'Select Municipality';
+      backBtn.classList.add('hidden');
+      tabMun.textContent = 'Municipality';
+      tabMun.className = 'pb-2 border-b-2 border-[#1F4D11] font-semibold text-[#1F2937]';
+      tabBrgy.classList.add('hidden');
+      search.value = ''; search.placeholder = 'Search municipality...';
+      renderList(Object.keys(data), pickMun);
+      list.scrollTop = 0;
+    }
+    function showBrgyView() {
+      view = 'brgy';
+      title.textContent = 'Select Barangay';
+      backBtn.classList.remove('hidden');
+      tabMun.textContent = munH.value;
+      tabMun.className = 'pb-2 border-b-2 border-transparent text-gray-400 cursor-pointer';
+      tabBrgy.classList.remove('hidden');
+      tabBrgy.className = 'pb-2 border-b-2 border-[#1F4D11] font-semibold text-[#1F2937]';
+      search.value = ''; search.placeholder = 'Search barangay...';
+      renderList(data[munH.value] || [], pickBrgy);
+      list.scrollTop = 0;
+    }
     function pickMun(name) {
-      munI.value = name; munH.value = name;
-      munL.classList.add('hidden');
-      // reset + unlock barangay (Shopee-style auto-advance)
-      brgyI.value = ''; brgyH.value = '';
-      brgyI.disabled = false;
-      brgyI.placeholder = 'Barangay — type to search...';
-      compose();
-      brgyI.focus();
+      munH.value = name; brgyH.value = '';
+      compose(); updateLabel();
+      showBrgyView();                       // auto-advance, Shopee-style
     }
     function pickBrgy(name) {
-      brgyI.value = name; brgyH.value = name;
-      brgyL.classList.add('hidden');
-      compose();
+      brgyH.value = name;
+      compose(); updateLabel();
+      closeSheet();
+      errEl.classList.add('hidden');
       street.focus();
+    }
+    function openSheet() {
+      sheet.classList.remove('hidden');
+      document.body.style.overflow = 'hidden';
+      if (munH.value && !brgyH.value) showBrgyView(); else showMunView();
+    }
+    function closeSheet() {
+      sheet.classList.add('hidden');
+      document.body.style.overflow = '';
     }
 
     window.__ldsData.then(function (d) {
       data = d;
-      var muns = Object.keys(d);
-
-      munI.addEventListener('focus', function () { renderList(munL, filter(muns, munI.value), pickMun); });
-      munI.addEventListener('input', function () {
-        if (munH.value && munI.value !== munH.value) {           // typed over a chosen value
-          munH.value = ''; brgyI.value = ''; brgyH.value = '';
-          brgyI.disabled = true; brgyI.placeholder = 'Barangay — choose a municipality first';
-          compose();
-        }
-        renderList(munL, filter(muns, munI.value), pickMun);
+      openBtn.addEventListener('click', openSheet);
+      closeBtn.addEventListener('click', closeSheet);
+      backdrop.addEventListener('click', closeSheet);
+      backBtn.addEventListener('click', showMunView);
+      tabMun.addEventListener('click', function () { if (view === 'brgy') showMunView(); });
+      search.addEventListener('input', function () {
+        if (view === 'mun') renderList(Object.keys(data), pickMun);
+        else renderList(data[munH.value] || [], pickBrgy);
       });
-      munI.addEventListener('blur', function () { hide(munL); });
-
-      brgyI.addEventListener('focus', function () {
-        if (!munH.value) return;
-        renderList(brgyL, filter(data[munH.value], brgyI.value), pickBrgy);
-      });
-      brgyI.addEventListener('input', function () {
-        if (!munH.value) return;
-        if (brgyH.value && brgyI.value !== brgyH.value) { brgyH.value = ''; compose(); }
-        renderList(brgyL, filter(data[munH.value], brgyI.value), pickBrgy);
-      });
-      brgyI.addEventListener('blur', function () { hide(brgyL); });
-
       street.addEventListener('input', compose);
 
-      // Prefill from an existing "..., Brgy. X, Municipality, Lanao del Sur" value
+      // Prefill "street, Brgy. X, Municipality, Lanao del Sur" or legacy text
       var init = hidden.value.trim();
       if (init) {
         var m = init.match(/^(?:(.*),\s*)?Brgy\.\s*(.+?),\s*(.+?),\s*Lanao del Sur$/i);
+        var muns = Object.keys(d);
         if (m) {
           var mun = muns.find(function (n) { return n.toLowerCase() === m[3].trim().toLowerCase(); });
           if (mun) {
-            pickMun(mun);
-            var b = d[mun].find(function (n) { return n.toLowerCase() === m[2].trim().toLowerCase(); });
-            if (b) pickBrgy(b);
+            munH.value = mun;
+            var b = (d[mun] || []).find(function (n) { return n.toLowerCase() === m[2].trim().toLowerCase(); });
+            if (b) brgyH.value = b;
             street.value = m[1] || '';
-            compose();
-            munI.blur(); brgyI.blur(); street.blur();
+          } else {
+            street.value = init;
           }
         } else {
-          street.value = init;   // legacy free-text address -> keep as street line
+          street.value = init;               // legacy free-text -> street line
         }
+        compose(); updateLabel();
       }
     });
 
-    // Don't allow submitting a half-finished address
+    // Block submitting a half-finished address
     var form = root.closest('form');
     if (form && !form.dataset.apSubmitBound) {
       form.dataset.apSubmitBound = '1';
       form.addEventListener('submit', function (e) {
         if (!munH.value || !brgyH.value) {
           e.preventDefault();
-          errEl.textContent = !munH.value
-            ? 'Please choose your municipality in Lanao del Sur.'
-            : 'Please choose your barangay.';
+          errEl.textContent = 'Please select your municipality and barangay.';
           errEl.classList.remove('hidden');
-          (!munH.value ? munI : brgyI).focus();
+          openSheet();
         } else {
           errEl.classList.add('hidden');
           compose();

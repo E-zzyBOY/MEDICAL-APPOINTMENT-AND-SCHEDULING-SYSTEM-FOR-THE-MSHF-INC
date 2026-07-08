@@ -117,10 +117,24 @@ class PatientRegistrationForm(UserCreationForm):
         model  = CustomUser
         fields = ['username', 'first_name', 'last_name', 'email', 'password1', 'password2']
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Browser-side guard: the date picker can't go past the newest
+        # allowed birthday (16 years old today). Server-side check below.
+        t = date.today()
+        latest = t.replace(year=t.year - 16)
+        self.fields['date_of_birth'].widget.attrs['max'] = latest.isoformat()
+
     def clean_date_of_birth(self):
         dob = self.cleaned_data.get('date_of_birth')
-        if dob and dob >= date.today():
+        if not dob:
+            return dob
+        if dob >= date.today():
             raise forms.ValidationError('Date of birth must be in the past — it cannot be today or a future date.')
+        t = date.today()
+        age = t.year - dob.year - ((t.month, t.day) < (dob.month, dob.day))
+        if age < 16:
+            raise forms.ValidationError('You must be at least 16 years old to have an account.')
         return dob
 
     def save(self, commit=True):
@@ -164,10 +178,24 @@ class PatientProfileEditForm(forms.ModelForm):
             self.fields['first_name'].initial = self.instance.user.first_name
             self.fields['last_name'].initial  = self.instance.user.last_name
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Browser-side guard: the date picker can't go past the newest
+        # allowed birthday (16 years old today). Server-side check below.
+        t = date.today()
+        latest = t.replace(year=t.year - 16)
+        self.fields['date_of_birth'].widget.attrs['max'] = latest.isoformat()
+
     def clean_date_of_birth(self):
         dob = self.cleaned_data.get('date_of_birth')
-        if dob and dob >= date.today():
+        if not dob:
+            return dob
+        if dob >= date.today():
             raise forms.ValidationError('Date of birth must be in the past — it cannot be today or a future date.')
+        t = date.today()
+        age = t.year - dob.year - ((t.month, t.day) < (dob.month, dob.day))
+        if age < 16:
+            raise forms.ValidationError('You must be at least 16 years old to have an account.')
         return dob
 
 

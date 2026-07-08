@@ -1,0 +1,45 @@
+{% extends "doctor/base_doctor.html" %}
+{% block page_title %}Consultation Results{% endblock %}
+{% block doctor_content %}
+<div class="max-w-xl">
+  <div class="bg-white rounded-2xl shadow-soft p-8">
+    <p class="text-sm text-gray-500 mb-6">Patient: {% with pd=appointment.patient_details %}{% if pd %}{{ pd.full_name }}{% if pd.relationship and pd.relationship != 'Self' %} <span class="text-gray-400">(Booked by: {{ appointment.patient.get_full_name }})</span>{% endif %}{% else %}{{ appointment.patient.get_full_name }}{% endif %}{% endwith %} — {{ appointment.appointment_date|date:"F j, Y" }}</p>
+
+    <div class="space-y-5">
+      <div>
+        <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Diagnosis</p>
+        <div class="bg-gray-50 rounded-xl p-4 text-sm text-gray-800">{{ results.diagnosis|linebreaks }}</div>
+      </div>
+
+      {% if prescriptions %}
+      <div>
+        <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Prescriptions</p>
+        <div class="space-y-3">
+          {% for rx in prescriptions %}
+          <div class="border border-gray-200 rounded-xl p-4 text-sm">
+            <p class="font-semibold text-gray-700">{{ rx.medication_names }}</p>
+            {% if rx.treatment %}<p class="text-gray-500 mt-1.5">Treatment: {{ rx.treatment }}</p>{% endif %}
+            {% if rx.notes %}<p class="text-gray-500 mt-1.5">Notes: {{ rx.notes }}</p>{% endif %}
+            {% if rx.attachment %}
+            <a href="{% url 'records:prescription_attachment' pk=rx.pk %}" target="_blank" rel="noopener"
+               class="inline-flex items-center gap-1.5 mt-2 text-brand-600 hover:text-brand-700 font-medium text-xs">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4">
+                <path fill-rule="evenodd" d="M15.621 4.379a3 3 0 00-4.242 0l-7 7a3 3 0 004.241 4.243h.001l.497-.5a.75.75 0 011.064 1.057l-.498.501-.002.002a4.5 4.5 0 01-6.364-6.364l7-7a4.5 4.5 0 116.368 6.36l-3.455 3.553A2.625 2.625 0 119.52 9.52l3.45-3.451a.75.75 0 111.061 1.06l-3.45 3.451a1.125 1.125 0 001.587 1.595l3.454-3.553a3 3 0 000-4.242z" clip-rule="evenodd" />
+              </svg>
+              View attachment
+            </a>
+            {% endif %}
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+      {% endif %}
+    </div>
+
+    <div class="flex gap-3 pt-6">
+      <a href="/doctor/appointments/{{ appointment.pk }}/results/?edit=1" class="flex-1 text-center bg-brand-600 text-white font-semibold py-3 rounded-xl hover:bg-brand-700 transition">Edit</a>
+      <a href="/doctor/appointments/" class="flex-1 text-center border border-gray-300 text-gray-700 font-semibold py-3 rounded-xl hover:bg-gray-50 transition">Back to Appointments</a>
+    </div>
+  </div>
+</div>
+{% endblock %}

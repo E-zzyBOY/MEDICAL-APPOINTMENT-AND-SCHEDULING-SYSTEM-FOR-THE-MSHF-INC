@@ -900,6 +900,11 @@ def add_consultation_results(request, pk):
     from records.models import ResultsConsultation, MedicalRecords
     from records.forms import ResultsConsultationForm
     existing = getattr(appt, 'results', None)
+    if request.method == 'GET' and existing and 'edit' not in request.GET:
+        prescriptions = existing.prescriptions.all()
+        return render(request, 'doctor/_consultation_readonly.html', {
+            'appointment': appt, 'results': existing, 'prescriptions': prescriptions
+        })
     form = ResultsConsultationForm(request.POST or None, instance=existing)
     if request.method == 'POST' and form.is_valid():
         result = form.save(commit=False)

@@ -429,7 +429,7 @@ def vitals_add(request, patient_id):
     patient = get_object_or_404(CustomUser, pk=patient_id, role='patient')
     from records.forms import VitalSignForm
     from records.models import VitalSign
-    form = VitalSignForm(request.POST or None)
+    form = VitalSignForm(request.POST or None, initial={'date_taken': date.today()})
     if request.method == 'POST' and form.is_valid():
         vital = form.save(commit=False)
         vital.patient   = patient

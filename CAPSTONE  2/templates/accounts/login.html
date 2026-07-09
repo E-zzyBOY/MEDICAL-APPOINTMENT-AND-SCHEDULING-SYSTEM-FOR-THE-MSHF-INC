@@ -116,7 +116,7 @@
   }
 
   @media (max-width: 767.98px) {
-    .auth-shell { min-height: 0; }
+    .auth-shell { min-height: 0; overflow: visible; }
     .auth-form-panel {
       position: static;
       width: 100%;
@@ -125,6 +125,8 @@
       opacity: 1 !important;
       transform: none !important;
       max-height: 80vh;
+      align-items: flex-start;
+      overflow-y: auto;
     }
     .auth-shell[data-active="login"] .sign-in-panel { display: flex !important; }
     .auth-shell[data-active="register"] .sign-up-panel { display: flex !important; }

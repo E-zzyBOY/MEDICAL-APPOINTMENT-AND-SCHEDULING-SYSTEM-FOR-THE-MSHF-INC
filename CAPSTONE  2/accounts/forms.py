@@ -6,6 +6,12 @@ from .models import CustomUser, PatientProfile, DoctorProfile, SecretaryProfile
 from .validators import validate_ph_mobile_number, normalize_ph_mobile_number
 from .psgc import validate_picker_data, validate_place_of_birth_data
 
+# Sanity floor for SecretaryCreationForm.date_assigned — generous on purpose
+# (a staff assignment date can legitimately be backdated), just enough to
+# guarantee a real, 4-digit year and catch the native date-input "6 digit
+# year" typing glitch (see clean_date_assigned below).
+DATE_ASSIGNED_MIN_YEAR = 2000
+
 
 def _slugify_name_part(value):
     """Lowercases and strips a name down to safe username characters."""
@@ -281,6 +287,32 @@ class SecretaryCreationForm(UserCreationForm):
     class Meta:
         model  = CustomUser
         fields = ['username', 'first_name', 'last_name', 'email', 'password1', 'password2']
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Same defensive bounding used on VitalSignForm.date_taken (records/forms.py):
+        # gives the native date picker a min/max so a stray 6-digit year
+        # (e.g. "202506" instead of "2025" — a known native <input type="date">
+        # typing quirk) lands outside the allowed range instead of just
+        # looking wrong. Kept generous since this is a staff-assignment date,
+        # not a same-visit reading — it just needs to be a real, 4-digit year.
+        self.fields['date_assigned'].widget.attrs['min'] = date(DATE_ASSIGNED_MIN_YEAR, 1, 1).isoformat()
+        self.fields['date_assigned'].widget.attrs['max'] = date.today().isoformat()
+
+    def clean_date_assigned(self):
+        # Belt-and-suspenders: the widget's min/max only guard the picker
+        # UI. Reject anything outside a sane range server-side too, so a
+        # malformed/overflowed year (or a direct POST) can never actually
+        # be saved onto a secretary's profile.
+        d = self.cleaned_data.get('date_assigned')
+        if not d:
+            return d
+        today = date.today()
+        if d > today:
+            raise forms.ValidationError('Date assigned cannot be in the future.')
+        if d.year < DATE_ASSIGNED_MIN_YEAR:
+            raise forms.ValidationError(f'Date assigned must be {DATE_ASSIGNED_MIN_YEAR} or later.')
+        return d
 
     def save(self, commit=True):
         user = super().save(commit=False)

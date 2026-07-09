@@ -160,6 +160,23 @@
       }, 6000);
     });
 
+    // Native <input type="date"> year-segment bug: typing quickly (or on
+    // some mobile keyboards) can push a 5th/6th digit into the year before
+    // the browser locks it to 4, leaving something like "202506" visible
+    // instead of "2025". The browser can't represent that as a real date,
+    // so it reports the field as badInput with an empty .value the moment
+    // it happens — we use that signal to reset the field immediately
+    // instead of leaving the broken digits on screen. Delegated on
+    // `document` (capture phase) so it covers every date field on every
+    // page, including ones swapped in later via htmx (e.g. the admin
+    // "Create Secretary" modal's Date Assigned field).
+    document.addEventListener('input', function (event) {
+      const el = event.target;
+      if (el.tagName === 'INPUT' && el.type === 'date' && el.validity && el.validity.badInput) {
+        el.value = '';
+      }
+    }, true);
+
     // Submit buttons with data-loading-text swap their label and disable while the form submits.
     document.addEventListener('submit', function (event) {
       const btn = event.target.querySelector('button[type="submit"][data-loading-text]');

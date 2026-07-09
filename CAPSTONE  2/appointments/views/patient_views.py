@@ -66,7 +66,14 @@ def _compute_month_availability(doctor, year, month):
         if current_date < today:
             status = 'past'
         elif current_date in working_dates:
-            status = 'available'
+            if current_date == today:
+                now_time = timezone.localtime().time()
+                has_future = Schedule.objects.filter(
+                    doctor=doctor, specific_date=today, start_time__gt=now_time
+                ).exists()
+                status = 'available' if has_future else 'unavailable'
+            else:
+                status = 'available'
         else:
             status = 'unavailable'
         week.append({'day': day_num, 'date': current_date.isoformat(), 'status': status})
@@ -356,6 +363,10 @@ def _validate_booking_date(doctor, selected_date_str):
             error = 'Cannot book an appointment in the past.'
         elif not Schedule.objects.filter(doctor=doctor, specific_date=selected_date).exists():
             error = 'The selected doctor has no schedule on this date.'
+        elif selected_date == date.today() and not Schedule.objects.filter(
+            doctor=doctor, specific_date=selected_date, start_time__gt=timezone.localtime().time()
+        ).exists():
+            error = 'All time slots for today have already passed. Please choose another date.'
 
     return error, selected_date_str
 
@@ -627,9 +638,20 @@ def book_step3_confirm(request):
 
         details = form.cleaned_data
 
-        # No time-based conflict check here — there's no time yet. Staff
-        # checks for double-booking when they assign the actual time
-        # (see assign_appointment_time in doctor_views/secretary_views).
+        # Time-based guard for today: if all of today's slots have already
+        # started (or ended), reject the booking rather than let a stale
+        # page or direct POST sneak through.
+        if appointment_date == date.today() and not Schedule.objects.filter(
+            doctor=doctor, specific_date=appointment_date, start_time__gt=timezone.localtime().time()
+        ).exists():
+            messages.error(request, 'All time slots for today have already passed. Please choose another date.')
+            if request.htmx:
+                return render(request, 'patient/_book_step3_modal.html', {
+                    'doctor': doctor, 'appointment_date': date_str,
+                    'title': 'Time Slot Expired',
+                })
+            return redirect('patient:book_step1')
+
         with transaction.atomic():
             appointment = Appointment.objects.create(
                 patient          = request.user,

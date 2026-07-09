@@ -138,14 +138,28 @@ def assign_appointment_time(request, pk):
                 messages.error(request, f"That time is outside the doctor's working hours ({hours_display}).")
             else:
                 with transaction.atomic():
-                    conflict = Appointment.objects.select_for_update().filter(
+                    doctor_conflict = Appointment.objects.select_for_update().filter(
                         doctor=appt.doctor,
                         appointment_date=appt.appointment_date,
                         appointment_time=new_time,
                         status__in=['Scheduled', 'Rescheduled'],
                     ).exclude(pk=appt.pk).exists()
-                    if conflict:
+                    # A patient is free to have appointments with several
+                    # different doctors — that's expected and allowed.
+                    # What must never happen is the SAME patient ending up
+                    # double-booked at the same date/time, even across two
+                    # different doctors.
+                    patient_conflict = Appointment.objects.select_for_update().filter(
+                        patient=appt.patient,
+                        appointment_date=appt.appointment_date,
+                        appointment_time=new_time,
+                        status__in=['Scheduled', 'Rescheduled'],
+                    ).exclude(pk=appt.pk).exists()
+                    conflict = doctor_conflict or patient_conflict
+                    if doctor_conflict:
                         messages.error(request, 'The doctor already has another appointment at that time. Choose a different time.')
+                    elif patient_conflict:
+                        messages.error(request, 'This patient already has another appointment at that time with a different doctor. Choose a different time.')
                     else:
                         appt.appointment_time = new_time
                         appt.status = 'Scheduled'
@@ -215,14 +229,23 @@ def appointment_reschedule(request, pk):
                         messages.error(request, f"That time is outside working hours ({hours_display}).")
                     else:
                         with transaction.atomic():
-                            conflict = Appointment.objects.select_for_update().filter(
+                            doctor_conflict = Appointment.objects.select_for_update().filter(
                                 doctor=appt.doctor,
                                 appointment_date=new_date,
                                 appointment_time=new_time,
                                 status__in=['Scheduled', 'Rescheduled'],
                             ).exclude(pk=appt.pk).exists()
-                            if conflict:
+                            patient_conflict = Appointment.objects.select_for_update().filter(
+                                patient=appt.patient,
+                                appointment_date=new_date,
+                                appointment_time=new_time,
+                                status__in=['Scheduled', 'Rescheduled'],
+                            ).exclude(pk=appt.pk).exists()
+                            conflict = doctor_conflict or patient_conflict
+                            if doctor_conflict:
                                 messages.error(request, 'Doctor already has an appointment at that time.')
+                            elif patient_conflict:
+                                messages.error(request, 'This patient already has another appointment at that time with a different doctor.')
                             else:
                                 appt.appointment_date = new_date
                                 appt.appointment_time = new_time

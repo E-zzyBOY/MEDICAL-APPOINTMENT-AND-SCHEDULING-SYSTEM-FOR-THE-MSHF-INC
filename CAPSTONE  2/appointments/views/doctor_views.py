@@ -5,7 +5,6 @@ from django.contrib import messages
 from django.db import transaction
 from django.db.models import Count
 from django.http import JsonResponse, HttpResponse
-from django.utils import timezone
 from datetime import date, datetime, timedelta
 import calendar as calendar_module
 from accounts.decorators import role_required
@@ -394,30 +393,22 @@ def schedule_add(request):
             start_time   = form.cleaned_data['start_time']
             end_time     = form.cleaned_data['end_time']
 
-            # Defense-in-depth: reject if today is selected and the start
-            # time has already passed (form-level validation is primary,
-            # but this catches any edge case where it might be bypassed).
-            now_time = timezone.localtime().time()
-            if any(d == date.today() for d in target_dates) and start_time <= now_time:
-                form.add_error(None, 'The start time has already passed today. Please choose a future time.')
-                messages.error(request, 'The start time has already passed today.')
-            else:
-                saved_dates  = []
-                skipped      = []  # list of (date, reason) tuples
-                with transaction.atomic():
-                    for d in target_dates:
-                        overlap = Schedule.objects.filter(
-                            doctor=request.user, specific_date=d,
-                            start_time__lt=end_time, end_time__gt=start_time,
-                        ).exists()
-                        if overlap:
-                            skipped.append((d, 'overlaps with an existing slot on that date'))
-                            continue
-                        Schedule.objects.create(
-                            doctor=request.user, specific_date=d,
-                            start_time=start_time, end_time=end_time,
-                        )
-                        saved_dates.append(d)
+            saved_dates  = []
+            skipped      = []  # list of (date, reason) tuples
+            with transaction.atomic():
+                for d in target_dates:
+                    overlap = Schedule.objects.filter(
+                        doctor=request.user, specific_date=d,
+                        start_time__lt=end_time, end_time__gt=start_time,
+                    ).exists()
+                    if overlap:
+                        skipped.append((d, 'overlaps with an existing slot on that date'))
+                        continue
+                    Schedule.objects.create(
+                        doctor=request.user, specific_date=d,
+                        start_time=start_time, end_time=end_time,
+                    )
+                    saved_dates.append(d)
 
             if saved_dates:
                 dates_display = ', '.join(d.strftime('%b %d') for d in saved_dates)
@@ -693,14 +684,26 @@ def assign_appointment_time(request, pk):
                 messages.error(request, f"That time is outside your working hours ({hours_display}).")
             else:
                 with transaction.atomic():
-                    conflict = Appointment.objects.select_for_update().filter(
+                    doctor_conflict = Appointment.objects.select_for_update().filter(
                         doctor=appt.doctor,
                         appointment_date=appt.appointment_date,
                         appointment_time=new_time,
                         status__in=['Scheduled', 'Rescheduled'],
                     ).exclude(pk=appt.pk).exists()
-                    if conflict:
+                    # The patient is allowed to have appointments with
+                    # several different doctors — only block them from
+                    # ending up double-booked at the exact same date/time.
+                    patient_conflict = Appointment.objects.select_for_update().filter(
+                        patient=appt.patient,
+                        appointment_date=appt.appointment_date,
+                        appointment_time=new_time,
+                        status__in=['Scheduled', 'Rescheduled'],
+                    ).exclude(pk=appt.pk).exists()
+                    conflict = doctor_conflict or patient_conflict
+                    if doctor_conflict:
                         messages.error(request, 'You already have another appointment at that time. Choose a different time.')
+                    elif patient_conflict:
+                        messages.error(request, 'This patient already has another appointment at that time with a different doctor. Choose a different time.')
                     else:
                         appt.appointment_time = new_time
                         appt.status = 'Scheduled'

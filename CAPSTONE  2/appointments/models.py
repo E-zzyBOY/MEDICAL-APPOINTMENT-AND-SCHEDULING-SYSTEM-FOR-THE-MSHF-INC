@@ -1,5 +1,6 @@
 from django.db import models
 from django.conf import settings
+from django.utils import timezone
 
 
 class Schedule(models.Model):
@@ -14,6 +15,11 @@ class Schedule(models.Model):
     class Meta:
         unique_together = ('doctor', 'specific_date', 'start_time')
         ordering = ['specific_date', 'start_time']
+
+    @property
+    def is_expired(self):
+        now = timezone.localtime()
+        return self.specific_date == now.date() and self.end_time <= now.time()
 
     def __str__(self):
         return f"Dr. {self.doctor.get_full_name()} — {self.specific_date.strftime('%b %d, %Y')} {self.start_time.strftime('%I:%M %p')}–{self.end_time.strftime('%I:%M %p')}"

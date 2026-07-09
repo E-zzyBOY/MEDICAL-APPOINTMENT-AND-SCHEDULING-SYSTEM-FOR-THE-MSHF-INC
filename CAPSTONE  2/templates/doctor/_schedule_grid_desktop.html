@@ -77,8 +77,8 @@ below it, untouched (see schedule_list.html).
           {% if cell.slots %}
           <div class="mt-1 space-y-1">
             {% for s in cell.slots %}
-            <div class="bg-white border border-green-200 rounded-md px-1.5 py-0.5">
-              <p class="text-[11px] font-medium text-green-700 leading-tight truncate">{{ s.start_time|time:"g:iA" }}&ndash;{{ s.end_time|time:"g:iA" }}</p>
+            <div class="rounded-md px-1.5 py-0.5 {% if s.is_expired %}bg-gray-50 border border-gray-200{% else %}bg-white border border-green-200{% endif %}">
+              <p class="text-[11px] font-medium leading-tight truncate {% if s.is_expired %}text-gray-400{% else %}text-green-700{% endif %}">{{ s.start_time|time:"g:iA" }}&ndash;{{ s.end_time|time:"g:iA" }}</p>
             </div>
             {% endfor %}
             {% if cell.more_count > 0 %}

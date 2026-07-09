@@ -34,7 +34,7 @@ def login_view(request):
             login(request, user)
             return _role_redirect(user)
         messages.error(request, 'Invalid username or password.')
-    return render(request, 'accounts/login.html', {
+    return render(request, 'accounts/register.html', {
         'register_form': PatientRegistrationForm(),
         'active_panel': 'login',
     })

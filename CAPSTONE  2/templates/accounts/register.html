@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% load static %}
-{% block title %}Register — MSHFI{% endblock %}
+{% block title %}{% if active_panel == 'register' %}Register{% else %}Sign In{% endif %} — MSHFI{% endblock %}
 
 {% block extra_head %}
 <style>

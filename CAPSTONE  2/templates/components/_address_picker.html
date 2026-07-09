@@ -1,15 +1,19 @@
 {% comment %}
-Shopee/TikTok-style address picker locked to Lanao del Sur.
-Tapping the location row opens a bottom sheet:
-  "Select Municipality" (Lanao del Sur | Municipality tabs)
-    -> "Select Barangay" (Lanao del Sur | <Municipality> | Barangay tabs)
-Users can ONLY tap from the official PSGC lists — no free typing for the
-municipality/barangay. Only the street/purok line is typed.
-Submits: hidden "address" (combined) + addr_municipality / addr_barangay
-for server-side validation. Safe on pages and inside htmx modals.
+Shopee/TikTok-style address picker: Province -> Municipality -> Barangay,
+in that order. Tapping the location row opens a bottom sheet with three
+steps, each with its own searchable, tap-to-select list:
+  "Select Province"      (only real PSGC provinces)
+  -> "Select Municipality" (that province's municipalities)
+    -> "Select Barangay"   (that municipality's barangays)
+Users can ONLY tap from the official PSGC lists — no free typing for
+province/municipality/barangay. Only the street/purok line is typed.
+Submits: hidden "address" (combined) + addr_province / addr_municipality
+/ addr_barangay for server-side validation. Safe on pages and inside
+htmx modals.
 {% endcomment %}
 <div data-address-picker class="space-y-2">
   <input type="hidden" name="address" value="{{ initial|default:'' }}" data-ap-address>
+  <input type="hidden" name="addr_province" value="" data-ap-prov-hidden>
   <input type="hidden" name="addr_municipality" value="" data-ap-mun-hidden>
   <input type="hidden" name="addr_barangay" value="" data-ap-brgy-hidden>
 
@@ -18,7 +22,7 @@ for server-side validation. Safe on pages and inside htmx modals.
           class="w-full flex items-center justify-between gap-3 bg-[#F5F7FA] rounded-xl px-4 py-3.5 text-sm text-left focus:outline-none focus:ring-2 focus:ring-brand-500/20">
     <span class="min-w-0">
       <span class="block text-[10px] font-semibold uppercase tracking-wide text-gray-400">Location</span>
-      <span data-ap-label class="block truncate text-[#6B7280]">Lanao del Sur &rsaquo; Select Municipality &rsaquo; Barangay</span>
+      <span data-ap-label class="block truncate text-[#6B7280]">Select Province &rsaquo; Municipality &rsaquo; Barangay</span>
     </span>
     <svg class="w-4 h-4 text-gray-400 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
   </button>
@@ -40,18 +44,18 @@ for server-side validation. Safe on pages and inside htmx modals.
         <button type="button" data-ap-back class="hidden p-1 -ml-1 text-gray-500 hover:text-gray-800">
           <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
         </button>
-        <h3 data-ap-title class="flex-1 text-center font-semibold text-[#1F2937]">Select Municipality</h3>
+        <h3 data-ap-title class="flex-1 text-center font-semibold text-[#1F2937]">Select Province</h3>
         <button type="button" data-ap-close class="p-1 -mr-1 text-gray-500 hover:text-gray-800">
           <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
         </button>
       </div>
-      <!-- Breadcrumb tabs -->
+      <!-- Breadcrumb tabs: Province -> Municipality -> Barangay -->
       <div class="flex items-center gap-5 px-4 pt-3 text-sm overflow-x-auto whitespace-nowrap">
-        <span class="pb-2 border-b-2 border-transparent text-gray-400">Lanao del Sur</span>
-        <span data-ap-tab-mun class="pb-2 border-b-2 border-[#1F4D11] font-semibold text-[#1F2937]">Municipality</span>
+        <span data-ap-tab-prov class="pb-2 border-b-2 border-[#1F4D11] font-semibold text-[#1F2937]">Province</span>
+        <span data-ap-tab-mun class="hidden pb-2 border-b-2 border-transparent text-gray-400">Municipality</span>
         <span data-ap-tab-brgy class="hidden pb-2 border-b-2 border-transparent text-gray-400">Barangay</span>
       </div>
-      <!-- Search (filters the list — still tap-to-select only) -->
+      <!-- Search (filters the current step's list — still tap-to-select only) -->
       <div class="px-4 py-2.5">
         <input type="text" data-ap-search autocomplete="off" placeholder="Search..."
                class="w-full bg-[#F5F7FA] border-0 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20" />
@@ -65,6 +69,11 @@ for server-side validation. Safe on pages and inside htmx modals.
 <script>
 (function () {
   'use strict';
+  // Only one province is served today, but this is a list (not a single
+  // constant) so more can be added later without changing the picker's
+  // logic — keep in sync with PROVINCES in accounts/psgc.py.
+  var PROVINCES = ['Lanao del Sur'];
+
   if (!window.__ldsData) {
     window.__ldsData = fetch('/static/data/lanao_del_sur.json').then(function (r) { return r.json(); });
   }
@@ -74,30 +83,32 @@ for server-side validation. Safe on pages and inside htmx modals.
     root.dataset.apBound = '1';
 
     var q = function (sel) { return root.querySelector(sel); };
-    var hidden = q('[data-ap-address]'), munH = q('[data-ap-mun-hidden]'), brgyH = q('[data-ap-brgy-hidden]');
+    var hidden = q('[data-ap-address]'), provH = q('[data-ap-prov-hidden]'), munH = q('[data-ap-mun-hidden]'), brgyH = q('[data-ap-brgy-hidden]');
     var openBtn = q('[data-ap-open]'), label = q('[data-ap-label]'), street = q('[data-ap-street]');
     var sheet = q('[data-ap-sheet]'), backdrop = q('[data-ap-backdrop]');
     var backBtn = q('[data-ap-back]'), closeBtn = q('[data-ap-close]'), title = q('[data-ap-title]');
-    var tabMun = q('[data-ap-tab-mun]'), tabBrgy = q('[data-ap-tab-brgy]');
+    var tabProv = q('[data-ap-tab-prov]'), tabMun = q('[data-ap-tab-mun]'), tabBrgy = q('[data-ap-tab-brgy]');
     var search = q('[data-ap-search]'), list = q('[data-ap-list]'), errEl = q('[data-ap-error]');
-    var data = null, view = 'mun';
+    var data = null, view = 'prov';
 
     function compose() {
       var parts = [];
       if (street.value.trim()) parts.push(street.value.trim());
       if (brgyH.value) parts.push('Brgy. ' + brgyH.value);
       if (munH.value) parts.push(munH.value);
-      parts.push('Lanao del Sur');
-      hidden.value = (munH.value && brgyH.value) ? parts.join(', ') : '';
+      if (provH.value) parts.push(provH.value);
+      hidden.value = (provH.value && munH.value && brgyH.value) ? parts.join(', ') : '';
     }
     function updateLabel() {
-      if (munH.value && brgyH.value) {
-        label.textContent = 'Lanao del Sur \u203A ' + munH.value + ' \u203A Brgy. ' + brgyH.value;
+      if (provH.value && munH.value && brgyH.value) {
+        label.textContent = provH.value + ' \u203A ' + munH.value + ' \u203A Brgy. ' + brgyH.value;
         label.classList.remove('text-[#6B7280]'); label.classList.add('text-[#1F2937]');
-      } else if (munH.value) {
-        label.textContent = 'Lanao del Sur \u203A ' + munH.value + ' \u203A Select Barangay';
+      } else if (provH.value && munH.value) {
+        label.textContent = provH.value + ' \u203A ' + munH.value + ' \u203A Select Barangay';
+      } else if (provH.value) {
+        label.textContent = provH.value + ' \u203A Select Municipality \u203A Barangay';
       } else {
-        label.textContent = 'Lanao del Sur \u203A Select Municipality \u203A Barangay';
+        label.textContent = 'Select Province \u203A Municipality \u203A Barangay';
       }
     }
 
@@ -132,10 +143,27 @@ for server-side validation. Safe on pages and inside htmx modals.
       });
     }
 
+    function showProvView() {
+      view = 'prov';
+      title.textContent = 'Select Province';
+      backBtn.classList.add('hidden');
+      tabProv.classList.remove('hidden');
+      tabProv.textContent = 'Province';
+      tabProv.className = 'pb-2 border-b-2 border-[#1F4D11] font-semibold text-[#1F2937]';
+      tabMun.classList.add('hidden');
+      tabBrgy.classList.add('hidden');
+      search.value = ''; search.placeholder = 'Search province...';
+      renderList(PROVINCES, pickProv);
+      list.scrollTop = 0;
+    }
     function showMunView() {
       view = 'mun';
       title.textContent = 'Select Municipality';
-      backBtn.classList.add('hidden');
+      backBtn.classList.remove('hidden');
+      tabProv.classList.remove('hidden');
+      tabProv.textContent = provH.value || 'Province';
+      tabProv.className = 'pb-2 border-b-2 border-transparent text-gray-400 cursor-pointer';
+      tabMun.classList.remove('hidden');
       tabMun.textContent = 'Municipality';
       tabMun.className = 'pb-2 border-b-2 border-[#1F4D11] font-semibold text-[#1F2937]';
       tabBrgy.classList.add('hidden');
@@ -147,6 +175,9 @@ for server-side validation. Safe on pages and inside htmx modals.
       view = 'brgy';
       title.textContent = 'Select Barangay';
       backBtn.classList.remove('hidden');
+      tabProv.classList.remove('hidden');
+      tabProv.className = 'pb-2 border-b-2 border-transparent text-gray-400 cursor-pointer';
+      tabMun.classList.remove('hidden');
       tabMun.textContent = munH.value;
       tabMun.className = 'pb-2 border-b-2 border-transparent text-gray-400 cursor-pointer';
       tabBrgy.classList.remove('hidden');
@@ -154,6 +185,11 @@ for server-side validation. Safe on pages and inside htmx modals.
       search.value = ''; search.placeholder = 'Search barangay...';
       renderList(data[munH.value] || [], pickBrgy);
       list.scrollTop = 0;
+    }
+    function pickProv(name) {
+      provH.value = name; munH.value = ''; brgyH.value = '';
+      compose(); updateLabel();
+      showMunView();                        // auto-advance, Shopee-style
     }
     function pickMun(name) {
       munH.value = name; brgyH.value = '';
@@ -170,7 +206,9 @@ for server-side validation. Safe on pages and inside htmx modals.
     function openSheet() {
       sheet.classList.remove('hidden');
       document.body.style.overflow = 'hidden';
-      if (munH.value && !brgyH.value) showBrgyView(); else showMunView();
+      if (provH.value && munH.value && !brgyH.value) showBrgyView();
+      else if (provH.value && !munH.value) showMunView();
+      else showProvView();
     }
     function closeSheet() {
       sheet.classList.add('hidden');
@@ -182,22 +220,28 @@ for server-side validation. Safe on pages and inside htmx modals.
       openBtn.addEventListener('click', openSheet);
       closeBtn.addEventListener('click', closeSheet);
       backdrop.addEventListener('click', closeSheet);
-      backBtn.addEventListener('click', showMunView);
+      backBtn.addEventListener('click', function () {
+        if (view === 'brgy') showMunView();
+        else if (view === 'mun') showProvView();
+      });
+      tabProv.addEventListener('click', function () { if (view !== 'prov') showProvView(); });
       tabMun.addEventListener('click', function () { if (view === 'brgy') showMunView(); });
       search.addEventListener('input', function () {
-        if (view === 'mun') renderList(Object.keys(data), pickMun);
+        if (view === 'prov') renderList(PROVINCES, pickProv);
+        else if (view === 'mun') renderList(Object.keys(data), pickMun);
         else renderList(data[munH.value] || [], pickBrgy);
       });
       street.addEventListener('input', compose);
 
-      // Prefill "street, Brgy. X, Municipality, Lanao del Sur" or legacy text
+      // Prefill "street, Brgy. X, Municipality, Province" or legacy text
       var init = hidden.value.trim();
       if (init) {
-        var m = init.match(/^(?:(.*),\s*)?Brgy\.\s*(.+?),\s*(.+?),\s*Lanao del Sur$/i);
-        var muns = Object.keys(d);
+        var m = init.match(/^(?:(.*),\s*)?Brgy\.\s*(.+?),\s*(.+?),\s*(.+)$/i);
         if (m) {
-          var mun = muns.find(function (n) { return n.toLowerCase() === m[3].trim().toLowerCase(); });
-          if (mun) {
+          var prov = PROVINCES.find(function (p) { return p.toLowerCase() === m[4].trim().toLowerCase(); });
+          var mun = prov ? Object.keys(d).find(function (n) { return n.toLowerCase() === m[3].trim().toLowerCase(); }) : null;
+          if (prov && mun) {
+            provH.value = prov;
             munH.value = mun;
             var b = (d[mun] || []).find(function (n) { return n.toLowerCase() === m[2].trim().toLowerCase(); });
             if (b) brgyH.value = b;
@@ -217,9 +261,9 @@ for server-side validation. Safe on pages and inside htmx modals.
     if (form && !form.dataset.apSubmitBound) {
       form.dataset.apSubmitBound = '1';
       form.addEventListener('submit', function (e) {
-        if (!munH.value || !brgyH.value) {
+        if (!provH.value || !munH.value || !brgyH.value) {
           e.preventDefault();
-          errEl.textContent = 'Please select your municipality and barangay.';
+          errEl.textContent = 'Please select your province, municipality, and barangay.';
           errEl.classList.remove('hidden');
           openSheet();
         } else {

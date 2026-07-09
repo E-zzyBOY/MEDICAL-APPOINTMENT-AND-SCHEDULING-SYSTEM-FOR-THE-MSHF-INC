@@ -504,6 +504,35 @@ def schedule_edit(request, pk):
     form = ScheduleForm(request.POST or None, instance=schedule, initial={'specific_date': selected_date_str})
     if request.method == 'POST' and form.is_valid():
         updated = form.save(commit=False)
+        # A doctor may only edit an existing slot, never use Edit to
+        # plant a slot on a day he never scheduled at all — the target
+        # date must already have at least one Schedule row (this one,
+        # or another). A day with zero rows is not "his" to edit.
+        already_scheduled = Schedule.objects.filter(
+            doctor=request.user, specific_date=updated.specific_date,
+        ).exists()
+        if not already_scheduled:
+            form.add_error(None, "You don't have a schedule on that date — Edit can only change a slot you already added. Use Add Slot to create a new day.")
+            messages.error(request, 'That date has no existing schedule for you to edit.')
+            if request.htmx:
+                return render(request, 'doctor/_schedule_modal.html', {
+                    'form': form, 'action': 'Edit', 'schedule': schedule,
+                    'selected_date': selected_date_str,
+                    'selected_date_display': _format_date_str(selected_date_str),
+                    'calendar_weeks': calendar_weeks,
+                    'calendar_year': year, 'calendar_month': month,
+                    'calendar_month_name': calendar_module.month_name[month],
+                    'today_iso': date.today().isoformat(),
+                })
+            return render(request, 'doctor/schedule_form.html', {
+                'form': form, 'action': 'Edit', 'schedule': schedule,
+                'selected_date': selected_date_str,
+                'selected_date_display': _format_date_str(selected_date_str),
+                'calendar_weeks': calendar_weeks,
+                'calendar_year': year, 'calendar_month': month,
+                'calendar_month_name': calendar_module.month_name[month],
+                'today_iso': date.today().isoformat(),
+            })
         overlap = Schedule.objects.filter(
             doctor=request.user,
             specific_date=updated.specific_date,

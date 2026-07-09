@@ -8,8 +8,11 @@ is colored:
   gray (faded)   = a past date, not selectable
 
 Two distinct click behaviors depending on mode:
-  EDIT (schedule is set): clicking re-fetches the whole modal via hx-get,
-    same as before — only one date can ever be "the" date being edited.
+  EDIT (schedule is set): clicking re-fetches the whole modal via hx-get —
+    but ONLY for days that already have a slot (status == 'has_slots').
+    Open days (no slot at all) are locked/non-clickable, so Edit can
+    never be used to plant a slot on a day the doctor never scheduled;
+    that's what Add Slot is for.
   ADD (schedule is not set): clicking is a pure client-side JS toggle —
     no server round-trip, so picking 10 days doesn't fire 10 requests or
     re-render the modal and lose the in-progress time fields. A second,
@@ -64,17 +67,25 @@ it survives the round trip.
         <span class="aspect-square rounded-full text-sm flex items-center justify-center text-[#D1D5DB] cursor-not-allowed" title="Past date">
           {{ cell.day }}
         </span>
-        {% elif schedule %}
-        <!-- Edit mode: single-select, full modal re-fetch on click, unchanged from before -->
+        {% elif schedule and cell.status == 'has_slots' %}
+        <!-- Edit mode: single-select, full modal re-fetch on click.
+             Only days the doctor already has a slot on are clickable —
+             editing must never be usable to plant a slot on a day he
+             never scheduled (that's what Add Slot is for). -->
         <button type="button"
                 hx-get="{% url 'doctor:schedule_edit' pk=schedule.pk %}?date={{ cell.date }}"
                 hx-target="#modal-root" hx-swap="innerHTML"
                 class="schedule-calendar-day aspect-square rounded-full text-sm font-medium flex items-center justify-center transition cursor-pointer
                   {% if cell.date == selected_date %}bg-brand-500 text-white
-                  {% elif cell.status == 'has_slots' %}bg-[#DCFCE7] text-[#16A34A] hover:bg-[#BBF7D0]
-                  {% else %}bg-white text-[#1F2937] hover:bg-[#E5E7EB]{% endif %}">
+                  {% else %}bg-[#DCFCE7] text-[#16A34A] hover:bg-[#BBF7D0]{% endif %}">
           {{ cell.day }}
         </button>
+        {% elif schedule %}
+        <!-- Edit mode, no slot on this day: locked. Not this doctor's
+             scheduled day, so it can't be selected from the Edit view. -->
+        <span class="aspect-square rounded-full text-sm flex items-center justify-center text-[#D1D5DB] cursor-not-allowed" title="No schedule on this date — use Add Slot to create one.">
+          {{ cell.day }}
+        </span>
         {% else %}
         <!-- Add mode: multi-select, pure client-side toggle + a small fetch for that day's existing-slots panel -->
         <button type="button"

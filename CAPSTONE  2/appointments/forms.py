@@ -1,4 +1,5 @@
 from django import forms
+from django.utils import timezone
 from accounts.psgc import validate_picker_data
 from datetime import date, datetime
 from .models import Schedule, Appointment, AppointmentPatientDetails
@@ -125,8 +126,13 @@ class MultiDateScheduleForm(forms.Form):
         cleaned = super().clean()
         start = cleaned.get('start_time')
         end   = cleaned.get('end_time')
+        dates = cleaned.get('dates', [])
         if start and end and end <= start:
             raise forms.ValidationError('End time must be after start time.')
+        if start and any(d == date.today() for d in dates):
+            now_time = timezone.localtime().time()
+            if start <= now_time:
+                raise forms.ValidationError('The start time has already passed today. Please choose a future time.')
         return cleaned
 
 
@@ -149,6 +155,9 @@ class ScheduleForm(forms.ModelForm):
             raise forms.ValidationError('End time must be after start time.')
         if specific_date and specific_date < date.today():
             raise forms.ValidationError('Cannot add a schedule slot for a past date.')
+        if specific_date and start and specific_date == date.today():
+            if start <= timezone.localtime().time():
+                raise forms.ValidationError('The start time has already passed today. Please choose a future time.')
         return cleaned
 
 

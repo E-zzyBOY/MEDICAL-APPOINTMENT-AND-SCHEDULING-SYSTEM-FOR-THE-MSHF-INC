@@ -5,6 +5,7 @@ from django.contrib import messages
 from django.db import transaction
 from django.db.models import Count
 from django.http import JsonResponse, HttpResponse
+from django.utils import timezone
 from datetime import date, datetime, timedelta
 import calendar as calendar_module
 from accounts.decorators import role_required
@@ -393,22 +394,30 @@ def schedule_add(request):
             start_time   = form.cleaned_data['start_time']
             end_time     = form.cleaned_data['end_time']
 
-            saved_dates  = []
-            skipped      = []  # list of (date, reason) tuples
-            with transaction.atomic():
-                for d in target_dates:
-                    overlap = Schedule.objects.filter(
-                        doctor=request.user, specific_date=d,
-                        start_time__lt=end_time, end_time__gt=start_time,
-                    ).exists()
-                    if overlap:
-                        skipped.append((d, 'overlaps with an existing slot on that date'))
-                        continue
-                    Schedule.objects.create(
-                        doctor=request.user, specific_date=d,
-                        start_time=start_time, end_time=end_time,
-                    )
-                    saved_dates.append(d)
+            # Defense-in-depth: reject if today is selected and the start
+            # time has already passed (form-level validation is primary,
+            # but this catches any edge case where it might be bypassed).
+            now_time = timezone.localtime().time()
+            if any(d == date.today() for d in target_dates) and start_time <= now_time:
+                form.add_error(None, 'The start time has already passed today. Please choose a future time.')
+                messages.error(request, 'The start time has already passed today.')
+            else:
+                saved_dates  = []
+                skipped      = []  # list of (date, reason) tuples
+                with transaction.atomic():
+                    for d in target_dates:
+                        overlap = Schedule.objects.filter(
+                            doctor=request.user, specific_date=d,
+                            start_time__lt=end_time, end_time__gt=start_time,
+                        ).exists()
+                        if overlap:
+                            skipped.append((d, 'overlaps with an existing slot on that date'))
+                            continue
+                        Schedule.objects.create(
+                            doctor=request.user, specific_date=d,
+                            start_time=start_time, end_time=end_time,
+                        )
+                        saved_dates.append(d)
 
             if saved_dates:
                 dates_display = ', '.join(d.strftime('%b %d') for d in saved_dates)

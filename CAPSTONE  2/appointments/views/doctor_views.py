@@ -142,6 +142,7 @@ def _compute_schedule_month_with_slots(doctor, year, month):
         week.append({
             'day': day, 'date': d.isoformat(), 'status': status,
             'slots': day_slots[:PREVIEW_LIMIT],
+            'all_slots': day_slots,
             'more_count': max(0, len(day_slots) - PREVIEW_LIMIT),
         })
         if len(week) == 7:

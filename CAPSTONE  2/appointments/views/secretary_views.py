@@ -426,7 +426,9 @@ def appointment_reschedule_reject(request, pk):
 
 @role_required('secretary')
 def vitals_add(request, patient_id):
-    patient = get_object_or_404(CustomUser, pk=patient_id, role='patient')
+    patient = _get_accessible_patient_or_deny(request, patient_id)
+    if patient is None:
+        return redirect('secretary:patient_list')
     from records.forms import VitalSignForm
     from records.models import VitalSign
     form = VitalSignForm(request.POST or None, initial={'date_taken': date.today()})
@@ -485,10 +487,29 @@ def schedule_grid_partial(request):
     return render(request, 'secretary/_schedule_grid_readonly.html', context)
 
 
+def _accessible_patient_ids(secretary):
+    """Patients the secretary may see: only those who have (or had) an
+    appointment with the secretary's assigned doctor."""
+    doctor = _assigned_doctor(secretary)
+    if not doctor:
+        return Appointment.objects.none().values_list('patient_id', flat=True)
+    return Appointment.objects.filter(doctor=doctor).values_list('patient_id', flat=True).distinct()
+
+
+def _get_accessible_patient_or_deny(request, patient_id):
+    """Fetch a patient only if they belong to the secretary's assigned
+    doctor; otherwise return None (caller redirects with an error)."""
+    patient = get_object_or_404(CustomUser, pk=patient_id, role='patient')
+    if patient.pk not in set(_accessible_patient_ids(request.user)):
+        messages.error(request, 'You do not have access to this patient.')
+        return None
+    return patient
+
+
 @role_required('secretary')
 def secretary_patient_list(request):
     search = request.GET.get('q', '')
-    patients = CustomUser.objects.filter(role='patient')
+    patients = CustomUser.objects.filter(role='patient', pk__in=_accessible_patient_ids(request.user))
     if search:
         patients = patients.filter(
             Q(first_name__icontains=search) | Q(last_name__icontains=search)
@@ -500,7 +521,9 @@ def secretary_patient_list(request):
 
 @role_required('secretary')
 def patient_quickview(request, patient_id):
-    patient = get_object_or_404(CustomUser, pk=patient_id, role='patient')
+    patient = _get_accessible_patient_or_deny(request, patient_id)
+    if patient is None:
+        return redirect('secretary:patient_list')
     profile = getattr(patient, 'patient_profile', None)
     last_visit = Appointment.objects.filter(patient=patient).order_by('-appointment_date').first()
     return render(request, 'secretary/_patient_quickview_modal.html', {
@@ -510,7 +533,9 @@ def patient_quickview(request, patient_id):
 
 @role_required('secretary')
 def secretary_patient_records(request, patient_id):
-    patient = get_object_or_404(CustomUser, pk=patient_id, role='patient')
+    patient = _get_accessible_patient_or_deny(request, patient_id)
+    if patient is None:
+        return redirect('secretary:patient_list')
     from records.models import MedicalRecords, VitalSign
     records = MedicalRecords.objects.filter(patient=patient).select_related('results', 'doctor')
     vitals  = VitalSign.objects.filter(patient=patient).order_by('-date_taken')

@@ -49,7 +49,10 @@ Prev / Next re-render this widget via htmx.
           <span class="text-sm text-gray-300">{{ cell.day }}</span>
         </div>
         {% else %}
-        <div class="border-r border-b last:border-r-0 min-h-[64px] md:min-h-[90px] p-1.5 md:p-2 pt-1.5
+        <div data-day-cell
+             data-day-label="{{ cell.date }}"
+             data-day-slots="{% for s in cell.all_slots %}{{ s.start_time|time:'g:i A' }} &ndash; {{ s.end_time|time:'g:i A' }}{% if not forloop.last %}|{% endif %}{% endfor %}"
+             class="cursor-pointer hover:bg-brand-50/60 transition border-r border-b last:border-r-0 min-h-[64px] md:min-h-[90px] p-1.5 md:p-2 pt-1.5
               {% if cell.date == today_iso %}border-brand-300 bg-brand-50/50 ring-1 ring-inset ring-brand-200
               {% elif cell.status == 'has_slots' %}border-gray-100 bg-green-50/40
               {% else %}border-gray-100{% endif %}">

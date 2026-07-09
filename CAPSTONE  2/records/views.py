@@ -15,11 +15,24 @@ def records_redirect(request):
 @role_required('patient', 'doctor', 'secretary', 'admin')
 def patient_records_view(request, patient_id):
     patient = get_object_or_404(CustomUser, pk=patient_id, role='patient')
+    from django.contrib import messages
     if request.user.role == 'patient' and request.user.pk != patient_id:
-        from django.shortcuts import redirect
-        from django.contrib import messages
         messages.error(request, 'Access denied.')
         return redirect('landing')
+    if request.user.role == 'doctor':
+        # Doctors may only view patients they have (or had) appointments with
+        from appointments.models import Appointment
+        if not Appointment.objects.filter(doctor=request.user, patient=patient).exists():
+            messages.error(request, 'You do not have access to this patient.')
+            return redirect('doctor:patient_list')
+    if request.user.role == 'secretary':
+        # Secretaries may only view patients of their assigned doctor
+        from appointments.models import Appointment
+        profile = getattr(request.user, 'secretary_profile', None)
+        doctor = profile.assigned_doctor if profile else None
+        if not doctor or not Appointment.objects.filter(doctor=doctor, patient=patient).exists():
+            messages.error(request, 'You do not have access to this patient.')
+            return redirect('secretary:patient_list')
     records = MedicalRecords.objects.filter(patient=patient).select_related('results', 'doctor')
     vitals  = VitalSign.objects.filter(patient=patient).order_by('-date_taken')
     return render(request, 'patient/medical_records.html', {

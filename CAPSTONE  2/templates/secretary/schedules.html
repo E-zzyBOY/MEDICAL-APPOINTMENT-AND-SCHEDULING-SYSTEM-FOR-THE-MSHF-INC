@@ -7,21 +7,112 @@
   You are not currently assigned to a doctor. Please contact the administrator.
 </div>
 {% else %}
-<div class="bg-white rounded-2xl shadow-soft p-6 mb-6">
-  <div class="flex items-center gap-4">
-    {% if doctor.profile_picture %}
-      <img src="{{ doctor.profile_picture.url }}" class="size-16 rounded-full object-cover" alt="">
-    {% else %}
-      <img src="{% static 'img/default-avatar.svg' %}" class="size-16 rounded-full object-cover" alt="">
-    {% endif %}
-    <div>
-      <p class="font-semibold text-gray-800 text-lg">Dr. {{ doctor.get_full_name }}</p>
-      <p class="text-sm text-gray-500">{{ doctor.doctor_profile.specialization|default:"General Medicine" }}</p>
-      <p class="text-sm text-gray-400">{{ doctor.email }}</p>
+<style>
+  /* Mobile / narrowed-window default: stack profile -> calendar -> details */
+  .doctor-schedule-layout {
+    display: grid;
+    gap: 1.5rem;
+    align-items: start;
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      "profile"
+      "calendar"
+      "details";
+  }
+  /* Wide screens: two columns, profile+details stacked on the left,
+     calendar as the big box on the right */
+  @media (min-width: 1024px) {
+    .doctor-schedule-layout {
+      grid-template-columns: 320px 1fr;
+      /* "auto" lets row 1 hug the profile card's own height instead of
+         being inflated by the tall calendar; "1fr" makes row 2 absorb
+         all the leftover height so the details card can stretch down
+         to meet the calendar's bottom edge. */
+      grid-template-rows: auto 1fr;
+      grid-template-areas:
+        "profile calendar"
+        "details calendar";
+    }
+    .area-details  { align-self: stretch; }
+    .area-calendar { align-self: stretch; }
+  }
+  .area-profile  { grid-area: profile; }
+  .area-calendar { grid-area: calendar; min-width: 0; }
+  .area-details  { grid-area: details; }
+</style>
+
+<div class="doctor-schedule-layout">
+
+  <!-- Doctor profile card -->
+  <div class="area-profile bg-white rounded-2xl shadow-soft p-6">
+    <div class="flex flex-col items-center text-center gap-3">
+      {% if doctor.profile_picture %}
+        <img src="{{ doctor.profile_picture.url }}" class="size-24 rounded-full object-cover ring-4 ring-brand-50" alt="">
+      {% else %}
+        <img src="{% static 'img/default-avatar.svg' %}" class="size-24 rounded-full object-cover ring-4 ring-brand-50" alt="">
+      {% endif %}
+      <div>
+        <p class="font-semibold text-gray-800 text-lg leading-tight">Dr. {{ doctor.get_full_name }}</p>
+        <p class="text-sm text-brand-600 font-medium mt-0.5">{{ doctor.doctor_profile.specialization|default:"General Medicine" }}</p>
+        <p class="text-sm text-gray-400 mt-1 break-all">{{ doctor.email }}</p>
+      </div>
     </div>
   </div>
+
+  <!-- Big calendar -->
+  <div class="area-calendar">
+    {% include "secretary/_schedule_grid_readonly.html" %}
+  </div>
+
+  <!-- Selected day details -->
+  <div id="day-details" class="area-details bg-white rounded-2xl shadow-soft p-6">
+    <p class="font-semibold text-ink text-base mb-1">Selected Day</p>
+    <p id="day-details-date" class="text-sm text-gray-500 mb-4">Click a day on the calendar to view its availability.</p>
+    <div id="day-details-slots" class="space-y-2"></div>
+  </div>
+
 </div>
 
-{% include "secretary/_schedule_grid_readonly.html" %}
+<script>
+(function () {
+  // Delegated so it keeps working after htmx swaps the calendar (Prev/Next).
+  document.addEventListener('click', function (e) {
+    var cell = e.target.closest('[data-day-cell]');
+    if (!cell) return;
+
+    var dateLabel = cell.getAttribute('data-day-label') || '';
+    try {
+      var d = new Date(dateLabel + 'T00:00:00');
+      dateLabel = d.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+    } catch (err) {}
+    var slotsRaw  = cell.getAttribute('data-day-slots') || '';
+    var dateEl    = document.getElementById('day-details-date');
+    var slotsEl   = document.getElementById('day-details-slots');
+    if (!dateEl || !slotsEl) return;
+
+    // highlight the selected cell
+    document.querySelectorAll('[data-day-cell].ring-2').forEach(function (el) {
+      el.classList.remove('ring-2', 'ring-brand-400');
+    });
+    cell.classList.add('ring-2', 'ring-brand-400');
+
+    dateEl.textContent = dateLabel;
+    slotsEl.innerHTML = '';
+
+    if (!slotsRaw) {
+      slotsEl.innerHTML = '<p class="text-sm text-gray-400 italic">No availability set for this day.</p>';
+      return;
+    }
+    slotsRaw.split('|').forEach(function (slot) {
+      var div = document.createElement('div');
+      div.className = 'flex items-center gap-2 bg-green-50 border border-green-200 rounded-lg px-3 py-2';
+      div.innerHTML = '<span class="size-2 rounded-full bg-green-500 shrink-0"></span>' +
+                      '<span class="text-sm font-medium text-green-800"></span>';
+      div.querySelector('span:last-child').textContent = slot;
+      slotsEl.appendChild(div);
+    });
+  });
+})();
+</script>
 {% endif %}
 {% endblock %}

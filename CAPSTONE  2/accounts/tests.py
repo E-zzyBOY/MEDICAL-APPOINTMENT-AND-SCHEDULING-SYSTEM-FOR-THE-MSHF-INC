@@ -1,25 +1,11 @@
-import sys
 from unittest.mock import patch
 
 from django.test import Client, TestCase, override_settings
 from django.urls import reverse
 
-# Django 4.2's BaseContext.__copy__ relies on copy(super()), which Python
-# 3.13+ removed support for (Django 4.2 predates those Pythons and never got
-# the fix backported). The test client copies the template context on every
-# rendered response, so without this shim ANY test that renders a template
-# crashes with "AttributeError: 'super' object has no attribute 'dicts'".
-# This replicates the fix Django 5.x shipped; it's a no-op on Python <= 3.12.
-if sys.version_info >= (3, 13):
-    from django.template.context import BaseContext
-
-    def _base_context_copy(self):
-        duplicate = self.__class__.__new__(self.__class__)
-        duplicate.__dict__ = self.__dict__.copy()
-        duplicate.dicts = self.dicts[:]
-        return duplicate
-
-    BaseContext.__copy__ = _base_context_copy
+# Note: rendering templates on Python 3.13+ (test client AND real pages like
+# the Django admin changelist) depends on the compatibility patch applied in
+# accounts.apps.AccountsConfig.ready() — see the comment there.
 
 from .models import CustomUser, PatientProfile, SocialAccount
 from .social_views import STATE_SESSION_KEY
@@ -225,6 +211,19 @@ class SocialCallbackTests(SocialLoginTestBase):
         response = self._callback(state='afterdeactivation')
         self.assertRedirects(response, reverse('accounts:login'))
         self.assertIsNone(self._logged_in_user())
+
+
+class DjangoAdminSmokeTests(TestCase):
+    """The Django admin user changelist crashed in production on Python 3.14
+    (Django 4.2's BaseContext.__copy__ incompatibility, patched in
+    accounts/apps.py). Keep a request against that exact page so a regression
+    shows up in CI instead of on the deployed site."""
+
+    def test_customuser_changelist_renders(self):
+        CustomUser.objects.create_superuser(username='boss', password='x', email='boss@example.com')
+        self.client.login(username='boss', password='x')
+        response = self.client.get('/django-admin/accounts/customuser/')
+        self.assertEqual(response.status_code, 200)
 
 
 @override_settings(**GOOGLE_CONFIGURED)

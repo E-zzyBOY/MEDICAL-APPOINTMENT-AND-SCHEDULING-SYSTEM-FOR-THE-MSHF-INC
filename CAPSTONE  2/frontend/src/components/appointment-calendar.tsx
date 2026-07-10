@@ -91,7 +91,7 @@ export function AppointmentCalendar({
           <>
             {/* Day-of-week header */}
             <div
-              className="grid gap-1 mb-1 text-center"
+              className="grid gap-2 mb-1.5 text-center"
               style={{ gridTemplateColumns: `repeat(${Math.min(chartDays.length, 7)}, 1fr)` }}
             >
               {chartDays.slice(0, Math.min(chartDays.length, 7)).map((item) => {
@@ -99,7 +99,7 @@ export function AppointmentCalendar({
                 return (
                   <span
                     key={item.date}
-                    className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide"
+                    className="text-[10px] font-semibold text-muted-foreground/60 uppercase tracking-wider"
                   >
                     {d.toLocaleDateString("en-US", { weekday: "short" })}
                   </span>
@@ -108,7 +108,7 @@ export function AppointmentCalendar({
             </div>
             {/* Day grid */}
             <div
-              className="grid gap-1"
+              className="grid gap-2"
               style={{ gridTemplateColumns: `repeat(${Math.min(chartDays.length, 7)}, 1fr)` }}
             >
               {chartDays.map((item) => {
@@ -119,27 +119,39 @@ export function AppointmentCalendar({
                     key={item.date}
                     href={`${appointmentsHref}?date=${item.date}`}
                     className={`
-                      flex flex-col items-center justify-center gap-0.5 rounded-xl px-1.5 py-2.5
-                      transition cursor-pointer select-none
+                      flex flex-col items-center justify-center gap-1 rounded-xl px-2 py-3
+                      transition-all cursor-pointer select-none border
                       ${isToday
-                        ? "bg-[#1F4D11] text-white shadow-sm"
+                        ? "bg-[#1F4D11] text-white shadow-sm border-[#1F4D11]"
                         : hasAppts
-                          ? "bg-brand-50/60 hover:bg-brand-100 text-ink"
-                          : "bg-transparent hover:bg-softgray/60 text-muted-foreground"
+                          ? "bg-card text-card-foreground border-border/50 shadow-[0_1px_3px_rgba(15,23,42,0.07)] hover:shadow-[0_4px_16px_rgba(31,77,17,0.28)] hover:-translate-y-0.5 hover:border-brand-200"
+                          : "bg-transparent text-muted-foreground/40 border-transparent hover:bg-softgray/60"
                       }
                     `}
                   >
-                    <span className="text-[11px] font-semibold leading-none">
+                    <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide leading-none">
+                      {parseIsoCalendarDate(item.date).toLocaleDateString("en-US", { weekday: "short" })}
+                    </span>
+                    <span className={`
+                      text-[11px] leading-none
+                      ${isToday ? "text-white/80" : hasAppts ? "text-muted-foreground" : "text-muted-foreground/50"}
+                    `}>
                       {parseIsoCalendarDate(item.date).getDate()}
                     </span>
-                    {hasAppts && (
-                      <span
-                        className={`
-                          text-[10px] font-bold leading-none mt-0.5
-                          ${isToday ? "text-white" : "text-brand-700"}
-                        `}
-                      >
-                        {item.value}
+                    <span className={`
+                      text-xl font-bold leading-none tabular-nums mt-0.5
+                      ${isToday
+                        ? "text-white"
+                        : hasAppts
+                          ? "text-[#081803]"
+                          : "text-muted-foreground/40"
+                      }
+                    `}>
+                      {item.value}
+                    </span>
+                    {isToday && (
+                      <span className="mt-0.5 text-[9px] font-semibold uppercase tracking-wider bg-white/20 text-white rounded-full px-1.5 py-[1px] leading-none">
+                        Today
                       </span>
                     )}
                   </a>

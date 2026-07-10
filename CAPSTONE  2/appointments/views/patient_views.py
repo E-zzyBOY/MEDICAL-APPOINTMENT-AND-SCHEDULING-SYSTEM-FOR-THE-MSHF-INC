@@ -288,11 +288,11 @@ def _profile_incomplete_redirect(request):
     gets enforced: returns a redirect to the profile-edit page when either
     field is missing, or None when the profile is complete."""
     profile = getattr(request.user, 'patient_profile', None)
-    if profile and profile.address.strip() and profile.place_of_birth.strip():
+    if profile and profile.address.strip():
         return None
     messages.warning(
         request,
-        'Please complete your profile (address and place of birth) before booking an appointment.'
+        'Please complete your profile (address) before booking an appointment.'
     )
     return redirect('accounts:profile_edit')
 

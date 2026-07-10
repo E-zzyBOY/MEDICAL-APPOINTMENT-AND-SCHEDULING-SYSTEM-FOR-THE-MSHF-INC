@@ -291,8 +291,15 @@
               <div class="{% if field.name == 'address' %}sm:col-span-2{% endif %}">
                 {% if field.name == 'address' %}
                   {% include "components/_address_picker.html" with initial=field.value errors=field.errors %}
-                {% elif field.name == 'place_of_birth' %}
-                  {% include "components/_place_of_birth_picker.html" with initial=field.value errors=field.errors %}
+                {% elif field.name == 'date_of_birth' %}
+                  <div>
+                    <span class="block text-[10px] font-semibold uppercase tracking-wide text-gray-400 mb-1">Date of Birth</span>
+                    <input type="date" name="{{ field.html_name }}" id="{{ field.auto_id }}"
+                           {% if field.value %}value="{{ field.value|date:'Y-m-d' }}"{% endif %}
+                           {% if field.field.required %}required{% endif %}
+                           max="{{ field.field.widget.attrs.max }}"
+                           class="w-full bg-[#F5F7FA] border-0 rounded-xl px-4 py-3.5 text-sm text-[#1F2937] focus:outline-none focus:ring-2 focus:ring-brand-500/20" />
+                  </div>
                 {% elif field.field.widget.input_type == 'select' or field.name == 'gender' %}
                   {{ field }}
                 {% else %}

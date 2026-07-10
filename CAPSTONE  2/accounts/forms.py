@@ -4,7 +4,7 @@ from django.contrib.auth.forms import UserCreationForm
 import re
 from .models import CustomUser, PatientProfile, DoctorProfile, SecretaryProfile
 from .validators import validate_ph_mobile_number, normalize_ph_mobile_number
-from .psgc import validate_picker_data, validate_place_of_birth_data
+from .psgc import validate_picker_data
 
 # Sanity floor for SecretaryCreationForm.date_assigned — generous on purpose
 # (a staff assignment date can legitimately be backdated), just enough to
@@ -122,7 +122,6 @@ class PatientRegistrationForm(UserCreationForm):
     contact_number = forms.CharField(max_length=20, required=False, label='Contact Number')
     gender         = forms.ChoiceField(choices=[('', '-- Select --')] + PatientProfile.GENDER_CHOICES, required=False)
     date_of_birth  = forms.DateField(required=False, widget=forms.DateInput(attrs={'type': 'date'}))
-    place_of_birth = forms.CharField(max_length=150, required=True)
     address        = forms.CharField(widget=forms.Textarea(attrs={'rows': 3}), required=True, label='Address')
     guardian       = forms.CharField(max_length=150, required=False, label='Guardian (optional)')
 
@@ -136,9 +135,6 @@ class PatientRegistrationForm(UserCreationForm):
         err = validate_picker_data(self.data, forms, required=True)
         if err:
             self.add_error('address', err)
-        pob_err = validate_place_of_birth_data(self.data, required=True)
-        if pob_err:
-            self.add_error('place_of_birth', pob_err)
         return cleaned
 
     def __init__(self, *args, **kwargs):

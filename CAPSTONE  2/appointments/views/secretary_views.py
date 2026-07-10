@@ -41,7 +41,8 @@ def _build_secretary_dashboard_data(request):
             doctor=doctor,
             appointment_date__gte=trend_start,
             appointment_date__lte=date.today(),
-            status__in=['Scheduled', 'Confirmed', 'Rescheduled']
+        ).exclude(
+            status='Pending Assignment'
         ).values('appointment_date').annotate(c=Count('id'))
     } if doctor else {}
     trend = [

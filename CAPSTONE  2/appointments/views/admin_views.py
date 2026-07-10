@@ -27,7 +27,8 @@ def _build_admin_dashboard_data(request):
         row['appointment_date']: row['c']
         for row in Appointment.objects.filter(
             appointment_date__gte=trend_start, appointment_date__lte=date.today(),
-            status__in=['Scheduled', 'Confirmed', 'Rescheduled']
+        ).exclude(
+            status='Pending Assignment'
         ).values('appointment_date').annotate(c=Count('id'))
     }
     trend = [

@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { parseIsoCalendarDate } from "@/components/formater";
 import {
   Card,
@@ -35,17 +36,44 @@ export function AppointmentCalendar({
   appointmentsHref: string;
 }) {
   const [periodDays, setPeriodDays] = useState<PeriodDays>(7);
+  const [weekOffset, setWeekOffset] = useState(0);
+
+  const todayStr = useMemo(() => todayISO(), []);
 
   const chartDays = useMemo(() => {
     if (data.length === 0) return [];
-    const lastDate = parseIsoCalendarDate(data[data.length - 1].date);
-    const startDate = new Date(lastDate);
-    startDate.setDate(startDate.getDate() - periodDays + 1);
+    const todayDate = parseIsoCalendarDate(todayStr);
+    const dateEnd = new Date(todayDate);
+    dateEnd.setDate(dateEnd.getDate() + weekOffset * periodDays);
+    const dateStart = new Date(dateEnd);
+    dateStart.setDate(dateStart.getDate() - periodDays + 1);
     return data.filter((item) => {
       const d = parseIsoCalendarDate(item.date);
-      return d >= startDate && d <= lastDate;
+      return d >= dateStart && d <= dateEnd;
     });
-  }, [data, periodDays]);
+  }, [data, periodDays, weekOffset, todayStr]);
+
+  const canGoBack = useMemo(() => {
+    if (data.length === 0) return false;
+    const todayDate = parseIsoCalendarDate(todayStr);
+    const dateEnd = new Date(todayDate);
+    dateEnd.setDate(dateEnd.getDate() + (weekOffset - 1) * periodDays);
+    const dateStart = new Date(dateEnd);
+    dateStart.setDate(dateStart.getDate() - periodDays + 1);
+    const minDate = parseIsoCalendarDate(data[0].date);
+    return dateStart >= minDate;
+  }, [data, periodDays, weekOffset, todayStr]);
+
+  const dateRangeLabel = useMemo(() => {
+    if (chartDays.length === 0) return "";
+    const first = chartDays[0].date;
+    const last = chartDays[chartDays.length - 1].date;
+    const fmt = (iso: string) => {
+      const d = parseIsoCalendarDate(iso);
+      return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+    };
+    return `${fmt(first)} – ${fmt(last)}`;
+  }, [chartDays]);
 
   const today = todayISO();
 
@@ -56,36 +84,57 @@ export function AppointmentCalendar({
           <div className="min-w-0 space-y-2">
             <CardTitle className="text-base">{label}</CardTitle>
             <CardDescription>
-              Daily count by day, last {periodDays} days.
+              {dateRangeLabel || `Daily count by day, last ${periodDays} days.`}
             </CardDescription>
           </div>
-          <Select
-            onValueChange={(v) => {
-              const n = Number(v);
-              if (n === 7 || n === 30) {
-                setPeriodDays(n);
-              }
-            }}
-            value={String(periodDays)}
-          >
-            <SelectTrigger
-              aria-label="Calendar range"
-              className="w-full min-w-36 sm:w-fit"
-              size="sm"
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setWeekOffset((w) => w - 1)}
+              disabled={!canGoBack}
+              aria-label="Previous period"
+              className="flex size-8 items-center justify-center rounded-lg border border-border/60 bg-card text-muted-foreground hover:bg-accent hover:text-accent-foreground transition disabled:opacity-30 disabled:pointer-events-none"
             >
-              <SelectValue placeholder="Range" />
-            </SelectTrigger>
-            <SelectContent align="end">
-              <SelectItem value="7">Last 7 days</SelectItem>
-              <SelectItem value="30">Last 30 days</SelectItem>
-            </SelectContent>
-          </Select>
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+            <button
+              type="button"
+              onClick={() => setWeekOffset((w) => Math.min(w + 1, 0))}
+              disabled={weekOffset === 0}
+              aria-label="Next period"
+              className="flex size-8 items-center justify-center rounded-lg border border-border/60 bg-card text-muted-foreground hover:bg-accent hover:text-accent-foreground transition disabled:opacity-30 disabled:pointer-events-none"
+            >
+              <ChevronRight className="w-4 h-4" />
+            </button>
+            <Select
+              onValueChange={(v) => {
+                const n = Number(v);
+                if (n === 7 || n === 30) {
+                  setPeriodDays(n);
+                  setWeekOffset(0);
+                }
+              }}
+              value={String(periodDays)}
+            >
+              <SelectTrigger
+                aria-label="Calendar range"
+                className="w-full min-w-36 sm:w-fit"
+                size="sm"
+              >
+                <SelectValue placeholder="Range" />
+              </SelectTrigger>
+              <SelectContent align="end">
+                <SelectItem value="7">Last 7 days</SelectItem>
+                <SelectItem value="30">Last 30 days</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
       </CardHeader>
       <CardContent>
         {chartDays.length === 0 ? (
           <p className="text-sm text-muted-foreground text-center py-8">
-            No appointment data available.
+            No appointment data available for this period.
           </p>
         ) : (
           <div

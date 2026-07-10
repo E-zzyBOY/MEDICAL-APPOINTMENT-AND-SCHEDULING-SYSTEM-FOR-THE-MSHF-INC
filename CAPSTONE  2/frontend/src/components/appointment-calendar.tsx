@@ -88,77 +88,72 @@ export function AppointmentCalendar({
             No appointment data available.
           </p>
         ) : (
-          <>
-            {/* Day-of-week header */}
-            <div
-              className="grid gap-2 mb-1.5 text-center"
-              style={{ gridTemplateColumns: `repeat(${Math.min(chartDays.length, 7)}, 1fr)` }}
-            >
-              {chartDays.slice(0, Math.min(chartDays.length, 7)).map((item) => {
-                const d = parseIsoCalendarDate(item.date);
-                return (
-                  <span
-                    key={item.date}
-                    className="text-[10px] font-semibold text-muted-foreground/60 uppercase tracking-wider"
-                  >
-                    {d.toLocaleDateString("en-US", { weekday: "short" })}
-                  </span>
-                );
-              })}
-            </div>
-            {/* Day grid */}
-            <div
-              className="grid gap-2"
-              style={{ gridTemplateColumns: `repeat(${Math.min(chartDays.length, 7)}, 1fr)` }}
-            >
-              {chartDays.map((item) => {
+          <div
+            className="grid gap-3"
+            style={{ gridTemplateColumns: `repeat(${Math.min(chartDays.length, 7)}, 1fr)` }}
+          >
+            {(() => {
+              const maxCount = Math.max(...chartDays.map((d) => d.value), 1);
+              return chartDays.map((item) => {
                 const isToday = item.date === today;
                 const hasAppts = item.value > 0;
+                const pct = Math.round((item.value / maxCount) * 100);
+                const d = parseIsoCalendarDate(item.date);
                 return (
                   <a
                     key={item.date}
                     href={`${appointmentsHref}?date=${item.date}`}
                     className={`
-                      flex flex-col items-center justify-center gap-1 rounded-xl px-2 py-3
-                      transition-all cursor-pointer select-none border
+                      flex flex-col gap-1.5 p-4 rounded-xl
+                      transition-all cursor-pointer select-none
                       ${isToday
-                        ? "bg-[#1F4D11] text-white shadow-sm border-[#1F4D11]"
+                        ? "border-2 border-[#0D9488] shadow-sm hover:shadow-md"
                         : hasAppts
-                          ? "bg-card text-card-foreground border-border/50 shadow-[0_1px_3px_rgba(15,23,42,0.07)] hover:shadow-[0_4px_16px_rgba(31,77,17,0.28)] hover:-translate-y-0.5 hover:border-brand-200"
-                          : "bg-transparent text-muted-foreground/40 border-transparent hover:bg-softgray/60"
+                          ? "bg-[#EFFAF9] border-l-[3px] border-l-[#0D9488] border border-y border-r-[#E2E8F0] hover:shadow-md hover:brightness-[0.98]"
+                          : "bg-white border border-[#E2E8F0] hover:bg-[#F8FAFC]"
                       }
                     `}
                   >
-                    <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide leading-none">
-                      {parseIsoCalendarDate(item.date).toLocaleDateString("en-US", { weekday: "short" })}
-                    </span>
+                    {/* Top row: day name left, Today pill right */}
+                    <div className="flex items-center justify-between min-h-[18px]">
+                      <span className={`
+                        text-[10px] font-semibold uppercase tracking-wider leading-none
+                        ${isToday ? "text-[#0D9488]" : "text-[#94A3B8]"}
+                      `}>
+                        {d.toLocaleDateString("en-US", { weekday: "short" })}
+                      </span>
+                      {isToday && (
+                        <span className="text-[9px] font-semibold uppercase tracking-wider bg-[#0D9488] text-white rounded-full px-2 py-[2px] leading-none">
+                          Today
+                        </span>
+                      )}
+                    </div>
+                    {/* Date number */}
                     <span className={`
-                      text-[11px] leading-none
-                      ${isToday ? "text-white/80" : hasAppts ? "text-muted-foreground" : "text-muted-foreground/50"}
+                      text-[13px] leading-none
+                      ${hasAppts ? "text-[#334155]" : "text-[#94A3B8]"}
                     `}>
-                      {parseIsoCalendarDate(item.date).getDate()}
+                      {d.getDate()}
                     </span>
+                    {/* Count */}
                     <span className={`
-                      text-xl font-bold leading-none tabular-nums mt-0.5
-                      ${isToday
-                        ? "text-white"
-                        : hasAppts
-                          ? "text-[#081803]"
-                          : "text-muted-foreground/40"
-                      }
+                      text-[22px] font-bold leading-none tabular-nums
+                      ${hasAppts ? "text-[#0D9488]" : "text-[#94A3B8]"}
                     `}>
                       {item.value}
                     </span>
-                    {isToday && (
-                      <span className="mt-0.5 text-[9px] font-semibold uppercase tracking-wider bg-white/20 text-white rounded-full px-1.5 py-[1px] leading-none">
-                        Today
-                      </span>
-                    )}
+                    {/* Load bar */}
+                    <div className="w-full bg-[#E2E8F0] h-1.5 rounded-full overflow-hidden mt-0.5">
+                      <div
+                        className="h-full bg-[#0D9488] rounded-full transition-all"
+                        style={{ width: `${hasAppts ? pct : 0}%` }}
+                      />
+                    </div>
                   </a>
                 );
-              })}
-            </div>
-          </>
+              });
+            })()}
+          </div>
         )}
       </CardContent>
     </Card>

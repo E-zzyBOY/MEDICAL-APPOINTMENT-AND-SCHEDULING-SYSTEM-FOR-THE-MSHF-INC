@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { parseIsoCalendarDate } from "@/components/formater";
+import { useIsMobile } from "@/hooks/use-mobile";
 import {
   Card,
   CardContent,
@@ -75,6 +76,9 @@ export function AppointmentCalendar({
     return `${fmt(first)} – ${fmt(last)}`;
   }, [chartDays]);
 
+  const isMobile = useIsMobile();
+  const displayDays = isMobile && chartDays.length > 7 ? chartDays.slice(-7) : chartDays;
+
   const today = todayISO();
 
   return (
@@ -137,13 +141,67 @@ export function AppointmentCalendar({
             No appointment data available for this period.
           </p>
         ) : (
+          <>
+          <div className="flex gap-2 overflow-x-auto snap-x snap-mandatory -mx-1 px-1 pb-1 md:hidden">
+            {(() => {
+              const maxCount = Math.max(...displayDays.map((d) => d.value), 1);
+              return displayDays.map((item) => {
+                const isToday = item.date === today;
+                const hasAppts = item.value > 0;
+                const pct = Math.round((item.value / maxCount) * 100);
+                const d = parseIsoCalendarDate(item.date);
+                return (
+                  <a
+                    key={item.date}
+                    href={`${appointmentsHref}?date=${item.date}`}
+                    className={`
+                      snap-start shrink-0 w-[130px] flex flex-col gap-1.5 p-2 rounded-xl
+                      transition-all cursor-pointer select-none
+                      ${isToday
+                        ? "border-2 border-[#0D9488] shadow-sm"
+                        : hasAppts
+                          ? "bg-[#EFFAF9] border-l-[3px] border-l-[#0D9488] border border-y border-r-[#E2E8F0]"
+                          : "bg-white border border-[#E2E8F0]"
+                      }
+                    `}
+                  >
+                    <div className="flex items-center justify-between min-h-[18px]">
+                      <span className={`
+                        text-[10px] font-semibold uppercase tracking-wider leading-none
+                        ${isToday ? "text-[#0D9488]" : "text-[#94A3B8]"}
+                      `}>
+                        {d.toLocaleDateString("en-US", { weekday: "short" })}
+                      </span>
+                      {isToday && (
+                        <span className="text-[9px] font-semibold uppercase tracking-wider bg-[#0D9488] text-white rounded-full px-2 py-[2px] leading-none">
+                          Today
+                        </span>
+                      )}
+                    </div>
+                    <span className={`
+                      text-[13px] leading-none
+                      ${hasAppts ? "text-[#334155]" : "text-[#94A3B8]"}
+                    `}>
+                      {d.getDate()}
+                    </span>
+                    <span className={`
+                      text-[22px] font-bold leading-none tabular-nums
+                      ${hasAppts ? "text-[#0D9488]" : "text-[#94A3B8]"}
+                    `}>
+                      {item.value}
+                    </span>
+                  </a>
+                );
+              });
+            })()}
+          </div>
           <div
-            className="grid gap-3"
-            style={{ gridTemplateColumns: `repeat(${Math.min(chartDays.length, 7)}, 1fr)` }}
+            className="hidden md:grid gap-3"
+            style={{ gridTemplateColumns: `repeat(${Math.min(displayDays.length, 7)}, 1fr)` }}
           >
             {(() => {
-              const maxCount = Math.max(...chartDays.map((d) => d.value), 1);
-              return chartDays.map((item) => {
+              const maxCount = Math.max(...displayDays.map((d) => d.value), 1);
+              return displayDays.map((item) => {
                 const isToday = item.date === today;
                 const hasAppts = item.value > 0;
                 const pct = Math.round((item.value / maxCount) * 100);
@@ -163,7 +221,6 @@ export function AppointmentCalendar({
                       }
                     `}
                   >
-                    {/* Top row: day name left, Today pill right */}
                     <div className="flex items-center justify-between min-h-[18px]">
                       <span className={`
                         text-[10px] font-semibold uppercase tracking-wider leading-none
@@ -177,21 +234,19 @@ export function AppointmentCalendar({
                         </span>
                       )}
                     </div>
-                    {/* Date number */}
                     <span className={`
                       text-[13px] leading-none
                       ${hasAppts ? "text-[#334155]" : "text-[#94A3B8]"}
                     `}>
                       {d.getDate()}
                     </span>
-                    {/* Count */}
                     <span className={`
                       text-[22px] font-bold leading-none tabular-nums
                       ${hasAppts ? "text-[#0D9488]" : "text-[#94A3B8]"}
                     `}>
                       {item.value}
                     </span>
-                    {/* Load bar */}
+                    {/* Load bar (desktop only) */}
                     <div className="w-full bg-[#E2E8F0] h-1.5 rounded-full overflow-hidden mt-0.5">
                       <div
                         className="h-full bg-[#0D9488] rounded-full transition-all"
@@ -203,6 +258,7 @@ export function AppointmentCalendar({
               });
             })()}
           </div>
+          </>
         )}
       </CardContent>
     </Card>

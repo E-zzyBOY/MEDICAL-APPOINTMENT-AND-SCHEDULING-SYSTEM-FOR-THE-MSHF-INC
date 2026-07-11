@@ -230,6 +230,15 @@ class SocialCallbackTests(SocialLoginTestBase):
         user = CustomUser.objects.get(username='google-juan-delacruz')
         self.assertFalse(user.profile_picture)
 
+    @override_settings(EMAIL_VERIFICATION_REQUIRED=False)
+    def test_kill_switch_skips_gate_for_google_signup(self):
+        from django.core import mail
+        response = self._callback()
+        self.assertEqual(response['Location'], reverse('accounts:complete_profile'))
+        user = CustomUser.objects.get(username='google-juan-delacruz')
+        self.assertTrue(user.email_verified)
+        self.assertEqual(len(mail.outbox), 0)
+
     def test_avatar_downloader_rejects_untrusted_hosts(self):
         # Host allowlist is checked before any network I/O, so these calls
         # are fully offline. Only the provider's own image CDN is allowed.
@@ -394,6 +403,27 @@ class EmailVerificationTests(TestCase):
         self.assertNotEqual(
             response.headers.get('Location'), reverse('accounts:verify_email_pending'),
         )
+
+    @override_settings(EMAIL_VERIFICATION_REQUIRED=False)
+    def test_kill_switch_skips_gate_for_password_signup(self):
+        from django.core import mail
+        response = self._register()
+        self.assertRedirects(response, reverse('accounts:complete_profile'))
+        user = CustomUser.objects.get(username='newpatient')
+        # Created verified, so re-enabling the gate later can't lock them out.
+        self.assertTrue(user.email_verified)
+        self.assertEqual(len(mail.outbox), 0)
+        response = self.client.get('/patient/')
+        self.assertEqual(response.status_code, 200)
+
+    @override_settings(EMAIL_VERIFICATION_REQUIRED=False)
+    def test_kill_switch_unblocks_existing_unverified_users(self):
+        CustomUser.objects.create_user(
+            username='stuck-user', password='x', role='patient', email_verified=False,
+        )
+        self.client.login(username='stuck-user', password='x')
+        response = self.client.get('/patient/')
+        self.assertEqual(response.status_code, 200)
 
     def test_superuser_never_gated(self):
         CustomUser.objects.create_superuser(username='root', password='x', email='root@example.com')

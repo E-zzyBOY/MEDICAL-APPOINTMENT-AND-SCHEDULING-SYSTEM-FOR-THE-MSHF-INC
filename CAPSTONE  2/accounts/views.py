@@ -1,5 +1,6 @@
 import time
 
+from django.conf import settings
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import authenticate, login, logout
 from django.contrib import messages
@@ -69,11 +70,20 @@ def register_view(request):
     form = PatientRegistrationForm(request.POST or None)
     if request.method == 'POST' and form.is_valid():
         user = form.save()
+        if not settings.EMAIL_VERIFICATION_REQUIRED:
+            # Gate disabled (e.g. while email delivery is down): the account
+            # counts as verified so re-enabling the gate later can't lock
+            # out people who registered during the outage.
+            user.email_verified = True
+            user.save(update_fields=['email_verified'])
         login(request, user)
         _notify_admins(f"New patient account created: {user.get_full_name() or user.username} ({user.username}).")
-        send_verification_email(user, request)
-        messages.success(request, 'Account created! Please confirm your email to continue.')
-        return redirect('accounts:verify_email_pending')
+        if settings.EMAIL_VERIFICATION_REQUIRED:
+            send_verification_email(user, request)
+            messages.success(request, 'Account created! Please confirm your email to continue.')
+            return redirect('accounts:verify_email_pending')
+        messages.success(request, 'Account created! Welcome to MSHFI.')
+        return redirect('accounts:complete_profile')
     return render(request, 'accounts/register.html', {
         'register_form': form,
         'active_panel': 'register',

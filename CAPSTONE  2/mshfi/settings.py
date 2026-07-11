@@ -171,4 +171,19 @@ EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', '')
 # killed (Render free tier drops outbound SMTP packets, which otherwise
 # turns every registration into a 30s hang followed by a 500).
 EMAIL_TIMEOUT = int(os.environ.get('EMAIL_TIMEOUT', 10))
+
+# Kill-switch for the sign-up email-confirmation gate. Set to False (e.g.
+# on Render while email delivery is broken) to let new patients go straight
+# to account setup: accounts are created already-verified and no
+# confirmation email is sent. Flip back to True once delivery works.
+EMAIL_VERIFICATION_REQUIRED = os.environ.get('EMAIL_VERIFICATION_REQUIRED', 'True') == 'True'
+
+# Brevo HTTP-API email (via django-anymail). Render's free tier blocks the
+# SMTP ports, so production delivers over HTTPS instead: when a key is
+# present it takes precedence over the SMTP settings above.
+BREVO_API_KEY = os.environ.get('BREVO_API_KEY', '')
+if BREVO_API_KEY:
+    INSTALLED_APPS.append('anymail')
+    ANYMAIL = {'BREVO_API_KEY': BREVO_API_KEY}
+    EMAIL_BACKEND = 'anymail.backends.brevo.EmailBackend'
 DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'noreply@mshfi.com')

@@ -9,6 +9,7 @@ PATIENT accounts. Doctor/secretary/admin accounts are created by admins and
 must keep using username/password — even a perfect verified-email match on a
 staff account is refused rather than linked.
 """
+from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import login
 from django.db import transaction
@@ -142,6 +143,9 @@ def social_callback(request, provider):
             last_name=profile['last_name'],
             email=email,
             role='patient',
+            # When the confirmation gate is switched off, accounts start
+            # verified so re-enabling it later can't lock these users out.
+            email_verified=not settings.EMAIL_VERIFICATION_REQUIRED,
         )
         # They authenticate through the provider — leaving no local password
         # means there's nothing to phish or forget.
@@ -158,11 +162,14 @@ def social_callback(request, provider):
     if avatar:
         user.profile_picture.save(f'{provider}-{user.pk}.jpg', ContentFile(avatar), save=True)
     _notify_admins(f"New patient account created: {user.get_full_name() or user.username} ({user.username}).")
-    # Same confirmation gate as password sign-ups: a "was this really you?"
-    # email must be clicked before the account can be used.
-    send_verification_email(user, request)
-    messages.info(request, 'Welcome to MSHFI! Please confirm your email to continue.')
-    return _log_in(request, user, redirect_target='accounts:verify_email_pending')
+    if settings.EMAIL_VERIFICATION_REQUIRED:
+        # Same confirmation gate as password sign-ups: a "was this really
+        # you?" email must be clicked before the account can be used.
+        send_verification_email(user, request)
+        messages.info(request, 'Welcome to MSHFI! Please confirm your email to continue.')
+        return _log_in(request, user, redirect_target='accounts:verify_email_pending')
+    messages.info(request, 'Welcome to MSHFI! Let\'s finish setting up your account.')
+    return _log_in(request, user, redirect_target='accounts:complete_profile')
 
 
 def _log_in(request, user, redirect_target=None):

@@ -2,19 +2,23 @@
 {% block page_title %}Book Appointment — Patient Details{% endblock %}
 
 {% block patient_content %}
-<div class="max-w-2xl">
-  <a href="/patient/appointments/book/{{ doctor.pk }}/slots/?date={{ appointment_date }}" class="inline-flex items-center gap-1.5 text-sm text-[#6B7280] hover:text-[#1F2937] mb-4">
-    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
-    Back
-  </a>
+<div class="flex gap-6 items-start">
+  <div class="flex-1 min-w-0 max-w-2xl">
+    <a href="/patient/appointments/book/{{ doctor.pk }}/slots/?date={{ appointment_date }}" class="inline-flex items-center gap-1.5 text-sm text-[#6B7280] hover:text-[#1F2937] mb-4">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+      Back
+    </a>
 
-  <div class="bg-white rounded-2xl shadow-soft-sm p-6 sm:p-8">
-    <h2 id="patient-details-title" class="text-xl font-semibold text-[#1F2937] mb-1">Patient Details</h2>
-    <p class="text-sm text-[#6B7280] mb-6">
-      This information is saved with your appointment record and shared with Dr. {{ doctor.get_full_name }} ahead of your visit.
-    </p>
+    <div class="bg-white rounded-2xl shadow-soft-sm p-6 sm:p-8">
+      <h2 id="patient-details-title" class="text-xl font-semibold text-[#1F2937] mb-1">Patient Details</h2>
+      <p class="text-sm text-[#6B7280] mb-6">
+        This information is saved with your appointment record and shared with Dr. {{ doctor.get_full_name }} ahead of your visit.
+      </p>
 
-    {% include "patient/_patient_details_form_fields.html" %}
+      {% include "patient/_patient_details_form_fields.html" %}
+    </div>
   </div>
+
+  {% include "patient/_booking_sidebar.html" with current=4 selected_doctor=doctor appointment_date=appointment_date %}
 </div>
 {% endblock %}

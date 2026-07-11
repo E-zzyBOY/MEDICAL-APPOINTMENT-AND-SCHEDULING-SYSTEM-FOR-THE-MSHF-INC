@@ -177,29 +177,60 @@ button:focus-visible,
 }
 
 /* ── Collapsible desktop sidebar ────────────────────────────────────────────
-   The sidebar slides to 0 width on desktop when the hamburger is clicked.
-   The inner content fades out faster than the width shrinks for a polished
-   feel. Mobile (below md) is unaffected — the sidebar is already hidden.     */
-#desktop-sidebar {
-  transition: width 0.3s ease-in-out, border-color 0.3s ease, padding 0.3s ease;
-  overflow: hidden;
+   Uses CSS Grid on #page-wrapper with grid-template-columns to control
+   the sidebar width. IMPORTANT: scoped to md+ so it does NOT affect mobile.
+   Mobile is left unaffected — it uses the original Tailwind flex layout.   */
+@media (min-width: 768px) {
+  #page-wrapper {
+    display: grid !important;
+    grid-template-columns: 16rem 1fr;
+    transition: grid-template-columns 0.3s ease-in-out;
+  }
+
+  #page-wrapper.sidebar-collapsed {
+    grid-template-columns: 0 1fr;
+  }
+
+  #desktop-sidebar {
+    min-width: 0;
+    overflow: hidden;
+    transition: border-color 0.3s ease, padding 0.3s ease;
+  }
+
+  #desktop-sidebar .sidebar-inner {
+    min-width: 16rem;
+    transition: opacity 0.15s ease-in-out;
+  }
+
+  #page-wrapper.sidebar-collapsed #desktop-sidebar {
+    border-right-color: transparent;
+    padding: 0;
+  }
+
+  #page-wrapper.sidebar-collapsed #desktop-sidebar .sidebar-inner {
+    opacity: 0;
+    pointer-events: none;
+  }
 }
 
-#desktop-sidebar .sidebar-inner {
-  transition: opacity 0.15s ease-in-out;
-  min-width: 16rem;
+/* ── Contextual right sidebar (booking wizard) ────────────────────────────
+   Sticky panel on desktop; slides in as a right drawer on mobile.     */
+#booking-sidebar .sticky {
+  top: 1.5rem;
 }
 
-#desktop-sidebar.sidebar-collapsed {
-  width: 0 !important;
-  border-right-color: transparent;
-  padding: 0;
-  min-width: 0;
+/* Mobile FAB */
+#booking-sidebar-fab {
+  bottom: 5.5rem;
 }
 
-#desktop-sidebar.sidebar-collapsed .sidebar-inner {
-  opacity: 0;
-  pointer-events: none;
+/* Booking progress vertical timeline styling */
+#booking-sidebar .booking-step {
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+#booking-sidebar .booking-step-indicator {
+  transition: background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 /* Hamburger toggle button */

@@ -2,65 +2,69 @@
 {% block page_title %}Book Appointment — For Whom{% endblock %}
 
 {% block patient_content %}
-<div class="max-w-2xl">
-  <a href="{% url 'patient:book_step1' %}" class="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-white border border-gray-300 shadow-soft-sm text-sm font-medium text-gray-700 hover:bg-gray-50 hover:text-gray-900 transition mb-4">
-    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
-    Back
-  </a>
+<div class="flex gap-6 items-start">
+  <div class="flex-1 min-w-0 max-w-2xl">
+    <a href="{% url 'patient:book_step1' %}" class="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-white border border-gray-300 shadow-soft-sm text-sm font-medium text-gray-700 hover:bg-gray-50 hover:text-gray-900 transition mb-4">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+      Back
+    </a>
 
-  {% include "patient/_booking_progress.html" with current=3 doctor_id=doctor.pk appointment_date=appointment_date %}
+    {% include "patient/_booking_progress.html" with current=3 doctor_id=doctor.pk appointment_date=appointment_date %}
 
-  <h2 class="text-lg font-semibold text-[#1F2937] mb-1">Who is this appointment for?</h2>
-  <p class="text-sm text-[#6B7280] mb-6">Select whether this booking is for yourself or someone else.</p>
+    <h2 class="text-lg font-semibold text-[#1F2937] mb-1">Who is this appointment for?</h2>
+    <p class="text-sm text-[#6B7280] mb-6">Select whether this booking is for yourself or someone else.</p>
 
-  <!-- Doctor summary -->
-  <div class="bg-white rounded-3xl shadow-soft-sm p-4 mb-6 flex items-center gap-3">
-    {% if doctor.profile_picture %}
-      <img src="{{ doctor.profile_picture.url }}" class="size-12 rounded-2xl object-cover" alt="">
-    {% else %}
-      <div class="size-12 bg-[#E0EED5] rounded-2xl flex items-center justify-center">
-        <span class="text-[#1F4D11] font-semibold">{{ doctor.first_name.0 }}{{ doctor.last_name.0 }}</span>
+    <!-- Doctor summary -->
+    <div class="bg-white rounded-3xl shadow-soft-sm p-4 mb-6 flex items-center gap-3">
+      {% if doctor.profile_picture %}
+        <img src="{{ doctor.profile_picture.url }}" class="size-12 rounded-2xl object-cover" alt="">
+      {% else %}
+        <div class="size-12 bg-[#E0EED5] rounded-2xl flex items-center justify-center">
+          <span class="text-[#1F4D11] font-semibold">{{ doctor.first_name.0 }}{{ doctor.last_name.0 }}</span>
+        </div>
+      {% endif %}
+      <div class="min-w-0">
+        <p class="font-semibold text-[#1F2937]">Dr. {{ doctor.get_full_name }}</p>
+        <p class="text-sm text-[#6B7280]">{{ appointment_date|date:"M j, Y" }} &middot; Time to be confirmed</p>
       </div>
-    {% endif %}
-    <div class="min-w-0">
-      <p class="font-semibold text-[#1F2937]">Dr. {{ doctor.get_full_name }}</p>
-      <p class="text-sm text-[#6B7280]">{{ appointment_date|date:"M j, Y" }} &middot; Time to be confirmed</p>
     </div>
+
+    <form method="post">
+      {% csrf_token %}
+      <input type="hidden" name="appointment_date" value="{{ appointment_date }}" />
+
+      <div class="space-y-4">
+        <!-- Book for Myself -->
+        <button type="submit" name="for_whom" value="self"
+                class="w-full text-left bg-white rounded-2xl border-2 border-[#E5E7EB] hover:border-brand-500 p-5 transition cursor-pointer group">
+          <div class="flex items-start gap-4">
+            <span class="flex size-12 shrink-0 items-center justify-center rounded-xl bg-[#E0EED5] group-hover:bg-brand-100 transition-colors">
+              <svg class="w-6 h-6 text-brand-700" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+            </span>
+            <div>
+              <p class="font-semibold text-[#1F2937] group-hover:text-brand-700 transition-colors">Book for Myself</p>
+              <p class="text-sm text-[#6B7280] mt-0.5">I'm booking this appointment for myself. My account information will be pre-filled.</p>
+            </div>
+          </div>
+        </button>
+
+        <!-- Book for Someone Else -->
+        <button type="submit" name="for_whom" value="other"
+                class="w-full text-left bg-white rounded-2xl border-2 border-[#E5E7EB] hover:border-amber-400 p-5 transition cursor-pointer group">
+          <div class="flex items-start gap-4">
+            <span class="flex size-12 shrink-0 items-center justify-center rounded-xl bg-[#FEF3C7] group-hover:bg-amber-100 transition-colors">
+              <svg class="w-6 h-6 text-amber-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+            </span>
+            <div>
+              <p class="font-semibold text-[#1F2937] group-hover:text-amber-700 transition-colors">Book for Someone Else</p>
+              <p class="text-sm text-[#6B7280] mt-0.5">I'm booking this appointment for a family member or dependent. I'll enter their details separately.</p>
+            </div>
+          </div>
+        </button>
+      </div>
+    </form>
   </div>
 
-  <form method="post">
-    {% csrf_token %}
-    <input type="hidden" name="appointment_date" value="{{ appointment_date }}" />
-
-    <div class="space-y-4">
-      <!-- Book for Myself -->
-      <button type="submit" name="for_whom" value="self"
-              class="w-full text-left bg-white rounded-2xl border-2 border-[#E5E7EB] hover:border-brand-500 p-5 transition cursor-pointer group">
-        <div class="flex items-start gap-4">
-          <span class="flex size-12 shrink-0 items-center justify-center rounded-xl bg-[#E0EED5] group-hover:bg-brand-100 transition-colors">
-            <svg class="w-6 h-6 text-brand-700" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
-          </span>
-          <div>
-            <p class="font-semibold text-[#1F2937] group-hover:text-brand-700 transition-colors">Book for Myself</p>
-            <p class="text-sm text-[#6B7280] mt-0.5">I'm booking this appointment for myself. My account information will be pre-filled.</p>
-          </div>
-        </div>
-      </button>
-
-      <!-- Book for Someone Else -->
-      <button type="submit" name="for_whom" value="other"
-              class="w-full text-left bg-white rounded-2xl border-2 border-[#E5E7EB] hover:border-amber-400 p-5 transition cursor-pointer group">
-        <div class="flex items-start gap-4">
-          <span class="flex size-12 shrink-0 items-center justify-center rounded-xl bg-[#FEF3C7] group-hover:bg-amber-100 transition-colors">
-            <svg class="w-6 h-6 text-amber-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
-          </span>
-          <div>
-            <p class="font-semibold text-[#1F2937] group-hover:text-amber-700 transition-colors">Book for Someone Else</p>
-            <p class="text-sm text-[#6B7280] mt-0.5">I'm booking this appointment for a family member or dependent. I'll enter their details separately.</p>
-          </div>
-        </div>
-      </button>
-    </div>
-  </form>
+  {% include "patient/_booking_sidebar.html" with current=3 selected_doctor=doctor appointment_date=appointment_date %}
 </div>
 {% endblock %}

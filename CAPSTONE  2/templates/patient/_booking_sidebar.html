@@ -1,0 +1,194 @@
+{% load static %}
+{% if user.role == 'patient' %}
+{# ── Patient: Booking Progress Summary ── #}
+<aside id="booking-sidebar" class="hidden lg:block w-80 shrink-0" role="complementary" aria-label="Booking progress">
+  <div class="sticky top-6 space-y-4">
+    {% include "patient/_booking_progress.html" with current=current sidebar=True %}
+
+    {% if selected_doctor %}
+    <div class="bg-white rounded-2xl shadow-soft-sm p-5 space-y-3">
+      <h3 class="text-xs font-semibold text-gray-400 tracking-widest">SELECTED DOCTOR</h3>
+      <div class="flex items-center gap-3">
+        {% if selected_doctor.profile_picture %}
+        <img src="{{ selected_doctor.profile_picture.url }}" class="size-12 rounded-xl object-cover object-top ring-2 ring-brand-100" alt="">
+        {% else %}
+        <span class="size-12 rounded-xl bg-[#E0EED5] flex items-center justify-center text-[#1F4D11] font-bold text-lg ring-2 ring-brand-100">{{ selected_doctor.first_name.0 }}{{ selected_doctor.last_name.0 }}</span>
+{% endif %}
+
+<!-- Mobile booking sidebar FAB -->
+<button type="button" id="booking-sidebar-fab" onclick="toggleBookingSidebar()" aria-label="Show booking progress" class="lg:!hidden fixed bottom-22 right-4 z-40 flex size-12 items-center justify-center rounded-full bg-gradient-to-r from-[#5E9A3C] to-[#183E0C] text-white shadow-soft-lg hover:brightness-105 transition-all">
+  <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+</button>
+
+<!-- Mobile right drawer for booking sidebar -->
+<div id="booking-sidebar-drawer" class="lg:!hidden fixed inset-0 z-50 pointer-events-none" aria-hidden="true">
+  <div id="booking-sidebar-backdrop" class="absolute inset-0 bg-brand-900/40 backdrop-blur-sm opacity-0 transition-opacity" style="transition-duration: 300ms;" onclick="closeBookingSidebar()"></div>
+  <div id="booking-sidebar-panel" class="absolute inset-y-0 right-0 w-80 max-w-[90%] bg-white shadow-soft-lg rounded-l-3xl flex flex-col translate-x-full transition-transform" style="transition-duration: 300ms;" role="dialog" aria-modal="true" aria-label="Booking sidebar">
+    <div class="flex items-center justify-between px-5 py-5 border-b border-gray-100 flex-shrink-0">
+      <p class="font-semibold text-ink">{% if user.role == 'patient' %}Appointment Progress{% elif user.role == 'secretary' %}Quick Actions{% elif user.role == 'admin' %}System Overview{% else %}Schedule{% endif %}</p>
+      <button type="button" onclick="closeBookingSidebar()" aria-label="Close" class="flex size-8 shrink-0 items-center justify-center rounded-full text-gray-400 hover:text-brand-700 hover:bg-brand-50 transition-colors">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="flex-1 overflow-y-auto p-5 space-y-4">
+      {% if user.role == 'patient' %}
+        {% include "patient/_booking_progress.html" with current=current %}
+        {% if current == 1 %}
+        <div class="bg-brand-50 rounded-2xl p-4">
+          <p class="text-xs font-semibold text-brand-600 uppercase tracking-widest mb-2">TIPS</p>
+          <ul class="space-y-2 text-sm text-ink-soft">
+            <li class="flex items-start gap-2"><svg class="w-4 h-4 text-brand-500 mt-0.5 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg><span>Search by name or specialty.</span></li>
+            <li class="flex items-start gap-2"><svg class="w-4 h-4 text-brand-500 mt-0.5 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg><span>Click a doctor to view their profile.</span></li>
+            <li class="flex items-start gap-2"><svg class="w-4 h-4 text-brand-500 mt-0.5 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg><span>Filter by specialty to narrow choices.</span></li>
+          </ul>
+        </div>
+        {% endif %}
+      {% elif user.role == 'secretary' %}
+        <a href="/secretary/appointments/" class="flex items-center gap-3 w-full rounded-xl bg-gradient-to-r from-[#5E9A3C] to-[#183E0C] hover:brightness-105 px-4 py-3 text-sm font-medium text-white transition shadow-soft-sm">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+          Create Walk-in Appointment
+        </a>
+      {% elif user.role == 'admin' %}
+        <div class="grid grid-cols-2 gap-3">
+          <div class="rounded-xl bg-[#F1F7EC] p-3 text-center"><p class="text-2xl font-bold text-brand-600">{{ today_appointments|default:"—" }}</p><p class="text-[11px] text-ink-soft mt-0.5">Today</p></div>
+          <div class="rounded-xl bg-[#F1F7EC] p-3 text-center"><p class="text-2xl font-bold text-brand-600">{{ active_doctors|default:"—" }}</p><p class="text-[11px] text-ink-soft mt-0.5">Doctors</p></div>
+        </div>
+      {% elif user.role == 'doctor' %}
+        <a href="/doctor/schedule/" class="block w-full text-center rounded-xl bg-gradient-to-r from-[#5E9A3C] to-[#183E0C] hover:brightness-105 px-4 py-2.5 text-sm font-medium text-white transition shadow-soft-sm">View Full Schedule</a>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<script>
+  function toggleBookingSidebar() {
+    const drawer = document.getElementById('booking-sidebar-drawer');
+    const backdrop = document.getElementById('booking-sidebar-backdrop');
+    const panel = document.getElementById('booking-sidebar-panel');
+    if (!drawer || !backdrop || !panel) return;
+    const isOpen = !panel.classList.contains('translate-x-full');
+    if (isOpen) { closeBookingSidebar(); return; }
+    drawer.classList.remove('pointer-events-none');
+    drawer.setAttribute('aria-hidden', 'false');
+    backdrop.classList.add('opacity-100');
+    panel.classList.remove('translate-x-full');
+    document.body.classList.add('overflow-hidden');
+  }
+  function closeBookingSidebar() {
+    const drawer = document.getElementById('booking-sidebar-drawer');
+    const backdrop = document.getElementById('booking-sidebar-backdrop');
+    const panel = document.getElementById('booking-sidebar-panel');
+    if (!drawer || !backdrop || !panel) return;
+    backdrop.classList.remove('opacity-100');
+    panel.classList.add('translate-x-full');
+    document.body.classList.remove('overflow-hidden');
+    setTimeout(() => {
+      drawer.classList.add('pointer-events-none');
+      drawer.setAttribute('aria-hidden', 'true');
+    }, 300);
+  }
+  document.addEventListener('keydown', function(event) {
+    if (event.key === 'Escape') {
+      const panel = document.getElementById('booking-sidebar-panel');
+      if (panel && !panel.classList.contains('translate-x-full')) closeBookingSidebar();
+    }
+  });
+</script>
+
+        <div class="min-w-0">
+          <p class="font-semibold text-ink text-sm truncate">Dr. {{ selected_doctor.get_full_name }}</p>
+          <p class="text-xs text-ink-soft truncate">{{ selected_doctor.doctor_profile.specialization|default:"General Medicine" }}</p>
+        </div>
+      </div>
+      {% if appointment_date %}
+      <div class="flex items-center gap-2 text-sm text-ink-soft">
+        <svg class="w-4 h-4 text-brand-500 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+        <span>{{ appointment_date|date:"l, F j, Y" }}</span>
+      </div>
+      {% endif %}
+      {% if next_step_url %}
+      <a href="{{ next_step_url }}" class="block w-full text-center rounded-xl bg-gradient-to-r from-[#5E9A3C] to-[#183E0C] hover:brightness-105 px-4 py-2.5 text-sm font-medium text-white transition shadow-soft-sm">
+        {% if current == 5 %}Confirm Booking{% else %}Continue →{% endif %}
+      </a>
+      {% endif %}
+    </div>
+    {% endif %}
+
+    {% if current == 1 %}
+    <div class="bg-white rounded-2xl shadow-soft-sm p-5 space-y-3">
+      <h3 class="text-xs font-semibold text-gray-400 tracking-widest">TIPS</h3>
+      <ul class="space-y-2 text-sm text-ink-soft">
+        <li class="flex items-start gap-2">
+          <svg class="w-4 h-4 text-brand-500 mt-0.5 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          <span>Use the search bar to find doctors by name or specialty.</span>
+        </li>
+        <li class="flex items-start gap-2">
+          <svg class="w-4 h-4 text-brand-500 mt-0.5 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          <span>Click a doctor's photo to view their full profile.</span>
+        </li>
+        <li class="flex items-start gap-2">
+          <svg class="w-4 h-4 text-brand-500 mt-0.5 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          <span>Filter by specialty to narrow down your options.</span>
+        </li>
+      </ul>
+    </div>
+    {% endif %}
+  </div>
+</aside>
+
+{% elif user.role == 'secretary' %}
+{# ── Secretary: Quick Actions & Queue ── #}
+<aside id="booking-sidebar" class="hidden lg:block w-80 shrink-0" role="complementary" aria-label="Quick actions">
+  <div class="sticky top-6 space-y-4">
+    <div class="bg-white rounded-2xl shadow-soft-sm p-5 space-y-3">
+      <h3 class="text-xs font-semibold text-gray-400 tracking-widest">QUICK ACTIONS</h3>
+      <a href="/secretary/appointments/" class="flex items-center gap-3 w-full rounded-xl bg-gradient-to-r from-[#5E9A3C] to-[#183E0C] hover:brightness-105 px-4 py-3 text-sm font-medium text-white transition shadow-soft-sm">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+        <span>Create Walk-in Appointment</span>
+      </a>
+      <a href="/secretary/appointments/?status=pending" class="flex items-center gap-3 w-full rounded-xl bg-softgray hover:bg-brand-50 px-4 py-3 text-sm font-medium text-ink transition">
+        <svg class="w-5 h-5 text-brand-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
+        <span>Pending Confirmations</span>
+      </a>
+    </div>
+  </div>
+</aside>
+
+{% elif user.role == 'admin' %}
+{# ── Admin: System Overview ── #}
+<aside id="booking-sidebar" class="hidden lg:block w-80 shrink-0" role="complementary" aria-label="System overview">
+  <div class="sticky top-6 space-y-4">
+    <div class="bg-white rounded-2xl shadow-soft-sm p-5 space-y-4">
+      <h3 class="text-xs font-semibold text-gray-400 tracking-widest">SYSTEM OVERVIEW</h3>
+      <div class="grid grid-cols-2 gap-3">
+        <div class="rounded-xl bg-[#F1F7EC] p-3 text-center">
+          <p class="text-2xl font-bold text-brand-600">{{ today_appointments|default:"—" }}</p>
+          <p class="text-[11px] text-ink-soft mt-0.5">Appointments Today</p>
+        </div>
+        <div class="rounded-xl bg-[#F1F7EC] p-3 text-center">
+          <p class="text-2xl font-bold text-brand-600">{{ active_doctors|default:"—" }}</p>
+          <p class="text-[11px] text-ink-soft mt-0.5">Active Doctors</p>
+        </div>
+      </div>
+      <a href="/admin-panel/" class="block w-full text-center rounded-xl bg-gradient-to-r from-[#5E9A3C] to-[#183E0C] hover:brightness-105 px-4 py-2.5 text-sm font-medium text-white transition shadow-soft-sm">
+        View Full Dashboard
+      </a>
+    </div>
+  </div>
+</aside>
+
+{% elif user.role == 'doctor' %}
+{# ── Doctor: My Schedule ── #}
+<aside id="booking-sidebar" class="hidden lg:block w-80 shrink-0" role="complementary" aria-label="My schedule">
+  <div class="sticky top-6 space-y-4">
+    <div class="bg-white rounded-2xl shadow-soft-sm p-5 space-y-3">
+      <h3 class="text-xs font-semibold text-gray-400 tracking-widest">MY SCHEDULE</h3>
+      <p class="text-sm text-ink-soft">View your upcoming appointments and manage your schedule.</p>
+      <a href="/doctor/schedule/" class="block w-full text-center rounded-xl bg-gradient-to-r from-[#5E9A3C] to-[#183E0C] hover:brightness-105 px-4 py-2.5 text-sm font-medium text-white transition shadow-soft-sm">
+        View Full Schedule
+      </a>
+    </div>
+  </div>
+</aside>
+{% endif %}
+

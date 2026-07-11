@@ -10,6 +10,7 @@
     <a href="?status=" class="pb-3 text-sm font-medium border-b-2 -mb-px transition-colors shrink-0 {% if not status_filter %}border-brand-600 text-brand-600 font-semibold{% else %}border-transparent text-gray-400 hover:text-gray-600{% endif %}">All</a>
     <a href="?status=Scheduled" class="pb-3 text-sm font-medium border-b-2 -mb-px transition-colors shrink-0 {% if status_filter == 'Scheduled' %}border-brand-600 text-brand-600 font-semibold{% else %}border-transparent text-gray-400 hover:text-gray-600{% endif %}">Scheduled</a>
     <a href="?status=Completed" class="pb-3 text-sm font-medium border-b-2 -mb-px transition-colors shrink-0 {% if status_filter == 'Completed' %}border-brand-600 text-brand-600 font-semibold{% else %}border-transparent text-gray-400 hover:text-gray-600{% endif %}">Completed</a>
+    <a href="?status=No-Show" class="pb-3 text-sm font-medium border-b-2 -mb-px transition-colors shrink-0 {% if status_filter == 'No-Show' %}border-brand-600 text-brand-600 font-semibold{% else %}border-transparent text-gray-400 hover:text-gray-600{% endif %}">No-Show</a>
   </div>
 
   {% if appointments %}

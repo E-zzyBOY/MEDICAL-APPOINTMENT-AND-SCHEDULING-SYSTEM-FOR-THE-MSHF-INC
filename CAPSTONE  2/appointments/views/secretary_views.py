@@ -103,7 +103,7 @@ def secretary_appointment_list(request):
     return render(request, 'secretary/appointment_list.html', {
         'appointments': qs.order_by('appointment_date', TIME_NULLS_FIRST),
         'status_filter': status_filter, 'date_filter': date_filter,
-        'assigned_doctor': doctor,
+        'assigned_doctor': doctor, 'today': date.today(),
     })
 
 

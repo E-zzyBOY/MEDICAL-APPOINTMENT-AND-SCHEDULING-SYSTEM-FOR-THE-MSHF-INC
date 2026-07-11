@@ -457,5 +457,44 @@
     }, { passive: true });
   })();
   </script>
+
+  <!-- Desktop sidebar collapse toggle -->
+  <script>
+    function toggleSidebar() {
+      const sidebar = document.getElementById('desktop-sidebar');
+      if (!sidebar) return;
+      const isCollapsed = sidebar.classList.toggle('sidebar-collapsed');
+      try { sessionStorage.setItem('sidebar_collapsed', isCollapsed ? 'true' : 'false'); } catch (e) {}
+      const btn = document.querySelector('.sidebar-toggle-btn');
+      if (btn) {
+        btn.setAttribute('aria-expanded', String(!isCollapsed));
+        btn.setAttribute('aria-label', isCollapsed ? 'Expand sidebar' : 'Collapse sidebar');
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+      const sidebar = document.getElementById('desktop-sidebar');
+      if (!sidebar) return;
+      try {
+        const saved = sessionStorage.getItem('sidebar_collapsed');
+        if (saved === 'true') {
+          sidebar.classList.add('sidebar-collapsed');
+          const btn = document.querySelector('.sidebar-toggle-btn');
+          if (btn) {
+            btn.setAttribute('aria-expanded', 'false');
+            btn.setAttribute('aria-label', 'Expand sidebar');
+          }
+        }
+      } catch (e) {}
+    });
+
+    document.addEventListener('keydown', function (event) {
+      if ((event.ctrlKey || event.metaKey) && event.key === 'b') {
+        event.preventDefault();
+        const sidebar = document.getElementById('desktop-sidebar');
+        if (sidebar) toggleSidebar();
+      }
+    });
+  </script>
 </body>
 </html>

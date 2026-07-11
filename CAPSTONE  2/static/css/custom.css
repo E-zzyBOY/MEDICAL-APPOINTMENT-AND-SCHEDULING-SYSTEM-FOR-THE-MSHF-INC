@@ -176,13 +176,54 @@ button:focus-visible,
   100% { transform: translateX(100%); }
 }
 
-/* Respect users who prefer reduced motion. */
-@media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-  }
+/* ── Collapsible desktop sidebar ────────────────────────────────────────────
+   The sidebar slides to 0 width on desktop when the hamburger is clicked.
+   The inner content fades out faster than the width shrinks for a polished
+   feel. Mobile (below md) is unaffected — the sidebar is already hidden.     */
+#desktop-sidebar {
+  transition: width 0.3s ease-in-out, border-color 0.3s ease, padding 0.3s ease;
+  overflow: hidden;
 }
+
+#desktop-sidebar .sidebar-inner {
+  transition: opacity 0.15s ease-in-out;
+  min-width: 16rem;
+}
+
+#desktop-sidebar.sidebar-collapsed {
+  width: 0 !important;
+  border-right-color: transparent;
+  padding: 0;
+  min-width: 0;
+}
+
+#desktop-sidebar.sidebar-collapsed .sidebar-inner {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Hamburger toggle button */
+.sidebar-toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 0.75rem;
+  color: #6B7280;
+  background: transparent;
+  transition: background-color 0.15s ease, color 0.15s ease;
+  flex-shrink: 0;
+}
+
+.sidebar-toggle-btn:hover {
+  background-color: #F7F8F8;
+  color: #1F4D11;
+}
+
+.sidebar-toggle-btn:focus-visible {
+  outline: 2px solid #1F4D11;
+  outline-offset: 2px;
+}
+
+

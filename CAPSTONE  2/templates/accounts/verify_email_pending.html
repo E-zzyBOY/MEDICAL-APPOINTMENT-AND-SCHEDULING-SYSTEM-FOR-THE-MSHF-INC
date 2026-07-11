@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Confirm Your Email — MSHFI{% endblock %}
+
+{% block extra_head %}
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  .cp-shell, .cp-shell button { font-family: "Montserrat", ui-sans-serif, system-ui, sans-serif; }
+  .cp-card-enter { animation: cpCardEnter 0.5s cubic-bezier(0.22, 1, 0.36, 1) both; }
+  @keyframes cpCardEnter {
+    0%   { opacity: 0; translate: 0 14px; scale: 0.985; }
+    100% { opacity: 1; translate: 0 0; scale: 1; }
+  }
+  .ve-spinner {
+    width: 44px; height: 44px; border-radius: 9999px;
+    border: 4px solid #E5EDE2; border-top-color: #1F4D11;
+    animation: veSpin 0.9s linear infinite;
+  }
+  @keyframes veSpin { to { transform: rotate(360deg); } }
+  @media (prefers-reduced-motion: reduce) {
+    .cp-card-enter, .ve-spinner { animation: none !important; }
+  }
+</style>
+{% endblock %}
+
+{% block body %}
+<div class="relative min-h-screen flex items-center justify-center px-4 py-10 bg-cover bg-center"
+     style="background: linear-gradient(rgba(255,255,255,0.35), rgba(240,247,244,0.4)), url('/static/img/login-bg.png') center/cover; background-color:#F1F7EC;">
+
+  <div class="w-full max-w-lg cp-card-enter">
+    <div class="cp-shell bg-white rounded-[30px] shadow-[0_10px_25px_rgba(0,0,0,0.22),0_30px_70px_rgba(31,77,17,0.28)] px-8 py-9 sm:px-10 sm:py-10">
+
+      <div class="flex flex-col items-center text-center">
+        <img src="{% static 'img/mshfi-logo.jpg' %}" alt="MSHFI seal" class="w-14 h-14 rounded-full object-cover shrink-0 mb-4 shadow-soft-sm" />
+        <h1 class="text-2xl font-semibold text-ink">Confirm Your Email</h1>
+        <p class="text-ink-soft text-sm mt-1.5 max-w-sm">
+          We sent a confirmation link to
+          <span class="font-semibold text-[#1F4D11]">{{ user.email }}</span>.
+          Open it from your inbox — this page will continue automatically.
+        </p>
+
+        {% if messages %}
+        <div class="w-full mt-4 space-y-2">
+          {% for message in messages %}
+          <div class="rounded-xl p-3 text-sm {% if message.tags == 'error' %}bg-[#FEF2F2] text-[#DC2626]{% else %}bg-[#F0F7EC] text-[#1F4D11]{% endif %}">
+            {{ message }}
+          </div>
+          {% endfor %}
+        </div>
+        {% endif %}
+
+        {# Polls every 3s; the server answers 204 until the link is clicked #}
+        {# (on any device), then sends HX-Redirect to continue account setup. #}
+        <div class="mt-7 mb-2 flex flex-col items-center"
+             hx-get="{% url 'accounts:verify_email_status' %}"
+             hx-trigger="every 3s"
+             hx-swap="none">
+          <div class="ve-spinner" role="status" aria-label="Waiting for email confirmation"></div>
+          <p class="text-xs text-[#6B7280] mt-3">Waiting for you to click the link…</p>
+        </div>
+
+        <form method="post" action="{% url 'accounts:resend_verification' %}" class="w-full mt-5">
+          {% csrf_token %}
+          <button type="submit"
+                  class="w-full bg-[#1F4D11] hover:bg-[#183E0C] text-white font-bold uppercase tracking-wide py-3.5 px-4 rounded-xl text-sm transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5">
+            Resend Email
+          </button>
+        </form>
+
+        <p class="text-sm text-[#6B7280] mt-4">
+          Didn't get it? Check your spam folder first.
+        </p>
+        <form method="post" action="{% url 'accounts:logout' %}" class="mt-1">
+          {% csrf_token %}
+          <button type="submit" class="text-sm text-[#6B7280] hover:underline">
+            Use a different account
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -22,6 +22,7 @@ from .social_auth import (
     generate_state, provider_is_configured,
 )
 from .views import _notify_admins, _role_redirect
+from notifications.email_utils import send_verification_email
 
 STATE_SESSION_KEY = 'social_auth_state'
 
@@ -150,8 +151,11 @@ def social_callback(request, provider):
             provider_user_id=profile['provider_user_id'], email_at_link=email,
         )
     _notify_admins(f"New patient account created: {user.get_full_name() or user.username} ({user.username}).")
-    messages.info(request, 'Welcome to MSHFI! Let\'s finish setting up your account.')
-    return _log_in(request, user, redirect_target='accounts:complete_profile')
+    # Same confirmation gate as password sign-ups: a "was this really you?"
+    # email must be clicked before the account can be used.
+    send_verification_email(user, request)
+    messages.info(request, 'Welcome to MSHFI! Please confirm your email to continue.')
+    return _log_in(request, user, redirect_target='accounts:verify_email_pending')
 
 
 def _log_in(request, user, redirect_target=None):

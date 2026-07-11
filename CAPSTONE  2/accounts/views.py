@@ -1,6 +1,10 @@
+import time
+
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import authenticate, login, logout
 from django.contrib import messages
+from django.contrib.auth.decorators import login_required
+from django.http import HttpResponse
 from .forms import (
     PatientRegistrationForm, PatientOnboardingForm, PatientProfileEditForm, DoctorProfileEditForm,
     SecretaryProfileEditForm, ProfilePictureForm, EmailNotificationSettingsForm,
@@ -8,6 +12,8 @@ from .forms import (
 from .models import CustomUser, PatientProfile, DoctorProfile, SecretaryProfile
 from .decorators import role_required
 from .social_auth import provider_is_configured
+from .tokens import read_email_verify_token
+from notifications.email_utils import send_verification_email
 from notifications.models import Notification
 
 
@@ -65,13 +71,76 @@ def register_view(request):
         user = form.save()
         login(request, user)
         _notify_admins(f"New patient account created: {user.get_full_name() or user.username} ({user.username}).")
-        messages.success(request, 'Account created! Welcome to MSHFI.')
-        return redirect('accounts:complete_profile')
+        send_verification_email(user, request)
+        messages.success(request, 'Account created! Please confirm your email to continue.')
+        return redirect('accounts:verify_email_pending')
     return render(request, 'accounts/register.html', {
         'register_form': form,
         'active_panel': 'register',
         'social_providers': _social_providers(),
     })
+
+
+RESEND_SESSION_KEY = 'verify_email_last_sent'
+RESEND_COOLDOWN_SECONDS = 60
+
+
+@login_required(login_url='/accounts/login/')
+def verify_email_pending_view(request):
+    """The 'Check your email' waiting page. Polls verify_email_status via
+    htmx and auto-advances the moment the link is clicked anywhere."""
+    if request.user.email_verified:
+        return redirect('accounts:complete_profile')
+    return render(request, 'accounts/verify_email_pending.html')
+
+
+@login_required(login_url='/accounts/login/')
+def verify_email_status_view(request):
+    """htmx polling target for the waiting page. 204 = keep waiting;
+    once verified, an HX-Redirect moves the original tab onward."""
+    if request.user.email_verified:
+        response = HttpResponse()
+        response['HX-Redirect'] = '/accounts/complete-profile/'
+        return response
+    return HttpResponse(status=204)
+
+
+def verify_email_view(request, token):
+    """Target of the link in the confirmation email. Public on purpose —
+    the link is often opened on a phone or another browser with no session;
+    the signed token itself proves control of the inbox."""
+    user = read_email_verify_token(token)
+    if user is None:
+        messages.error(request, 'This confirmation link is invalid or has expired. Please request a new one.')
+        if request.user.is_authenticated and not request.user.email_verified:
+            return redirect('accounts:verify_email_pending')
+        return redirect('accounts:login')
+
+    if not user.email_verified:
+        user.email_verified = True
+        user.save(update_fields=['email_verified'])
+
+    if request.user.is_authenticated and request.user.pk == user.pk:
+        messages.success(request, 'Email confirmed! Let\'s finish setting up your account.')
+        return redirect('accounts:complete_profile')
+    messages.success(request, 'Email confirmed! You can continue on the tab where you signed up, or log in here.')
+    return redirect('accounts:login')
+
+
+@login_required(login_url='/accounts/login/')
+def resend_verification_view(request):
+    if request.method != 'POST':
+        return redirect('accounts:verify_email_pending')
+    if request.user.email_verified:
+        return redirect('accounts:complete_profile')
+    last_sent = request.session.get(RESEND_SESSION_KEY, 0)
+    if time.time() - last_sent < RESEND_COOLDOWN_SECONDS:
+        messages.info(request, 'A confirmation email was just sent. Please wait a minute before trying again.')
+    else:
+        send_verification_email(request.user, request)
+        request.session[RESEND_SESSION_KEY] = time.time()
+        messages.success(request, f'Confirmation email sent to {request.user.email}.')
+    return redirect('accounts:verify_email_pending')
 
 
 PROFILE_VIEW_TEMPLATES = {

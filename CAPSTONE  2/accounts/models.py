@@ -19,10 +19,10 @@ class CustomUser(AbstractUser):
     role = models.CharField(max_length=20, choices=ROLE_CHOICES, default='patient')
     profile_picture = models.ImageField(upload_to='profile_pics/', blank=True, null=True)
     email_notifications_enabled = models.BooleanField(default=True)
-    # Patients who self-register with a password must click the link emailed
-    # to them before using the app (see EmailVerificationRequiredMiddleware).
-    # Google sign-ups are created with this already True — the provider has
-    # vouched for the address. Staff accounts are never gated on it.
+    # Self-registered patients (password OR Google sign-up) must click the
+    # link emailed to them before using the app (see
+    # EmailVerificationRequiredMiddleware). Staff accounts and walk-in
+    # patients registered by staff are never gated on it.
     email_verified = models.BooleanField(default=False)
 
     def is_patient(self):    return self.role == 'patient'

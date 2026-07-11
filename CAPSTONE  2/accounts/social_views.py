@@ -22,6 +22,7 @@ from .social_auth import (
     generate_state, provider_is_configured,
 )
 from .views import _notify_admins, _role_redirect
+from notifications.email_utils import send_verification_email
 
 STATE_SESSION_KEY = 'social_auth_state'
 
@@ -129,11 +130,6 @@ def social_callback(request, provider):
             user=user, provider=provider,
             provider_user_id=profile['provider_user_id'], email_at_link=email,
         )
-        if not user.email_verified:
-            # The provider just vouched for this exact email — that's a
-            # stronger proof than our own confirmation link.
-            user.email_verified = True
-            user.save(update_fields=['email_verified'])
         return _log_in(request, user)
 
     # Case C — first visit: create a fresh patient account.
@@ -144,9 +140,6 @@ def social_callback(request, provider):
             last_name=profile['last_name'],
             email=email,
             role='patient',
-            # Google verified this address before handing it to us, so the
-            # email-confirmation gate is skipped for social sign-ups.
-            email_verified=True,
         )
         # They authenticate through the provider — leaving no local password
         # means there's nothing to phish or forget.
@@ -158,8 +151,11 @@ def social_callback(request, provider):
             provider_user_id=profile['provider_user_id'], email_at_link=email,
         )
     _notify_admins(f"New patient account created: {user.get_full_name() or user.username} ({user.username}).")
-    messages.info(request, 'Welcome to MSHFI! Let\'s finish setting up your account.')
-    return _log_in(request, user, redirect_target='accounts:complete_profile')
+    # Same confirmation gate as password sign-ups: a "was this really you?"
+    # email must be clicked before the account can be used.
+    send_verification_email(user, request)
+    messages.info(request, 'Welcome to MSHFI! Please confirm your email to continue.')
+    return _log_in(request, user, redirect_target='accounts:verify_email_pending')
 
 
 def _log_in(request, user, redirect_target=None):

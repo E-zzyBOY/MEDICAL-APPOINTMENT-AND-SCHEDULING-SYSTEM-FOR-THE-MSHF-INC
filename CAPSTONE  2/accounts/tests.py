@@ -125,17 +125,21 @@ class SocialCallbackTests(SocialLoginTestBase):
         self.assertIsNone(self._logged_in_user())
 
     def test_new_user_created_as_patient(self):
+        from django.core import mail
         admin = CustomUser.objects.create_user(username='admin1', password='x', role='admin')
         response = self._callback()
         self.assertEqual(response.status_code, 302)
-        # Brand-new social accounts go straight to onboarding — Google
-        # already verified the email, so no confirmation gate on the way.
-        self.assertEqual(response['Location'], reverse('accounts:complete_profile'))
+        # Brand-new social accounts get the same "was this really you?"
+        # confirmation email as password sign-ups and start on the
+        # waiting page.
+        self.assertEqual(response['Location'], reverse('accounts:verify_email_pending'))
 
         user = CustomUser.objects.get(username='google-juan-delacruz')
         self.assertEqual(user.role, 'patient')
         self.assertEqual(user.email, GOOGLE_PROFILE['email'])
-        self.assertTrue(user.email_verified)
+        self.assertFalse(user.email_verified)
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertEqual(mail.outbox[0].to, [GOOGLE_PROFILE['email']])
         self.assertFalse(user.has_usable_password())
         self.assertEqual(self._logged_in_user(), user)
 
@@ -180,6 +184,7 @@ class SocialCallbackTests(SocialLoginTestBase):
     def test_existing_patient_email_match_auto_linked(self):
         patient = CustomUser.objects.create_user(
             username='juan', password='x', role='patient', email=GOOGLE_PROFILE['email'].upper(),
+            email_verified=True,  # realistic: existing accounts predate the gate
         )
         PatientProfile.objects.create(user=patient)
         response = self._callback()
@@ -189,10 +194,6 @@ class SocialCallbackTests(SocialLoginTestBase):
         self.assertEqual(link.provider_user_id, GOOGLE_PROFILE['provider_user_id'])
         # Linked, not duplicated.
         self.assertEqual(CustomUser.objects.count(), 1)
-        # Google vouched for this exact email, so the account counts as
-        # verified even if it never clicked our confirmation link.
-        patient.refresh_from_db()
-        self.assertTrue(patient.email_verified)
 
     def test_unverified_email_refused_toward_manual_register(self):
         profile = dict(GOOGLE_PROFILE, email_verified=False)
@@ -233,9 +234,9 @@ class DjangoAdminSmokeTests(TestCase):
 
 
 class EmailVerificationTests(TestCase):
-    """Password sign-ups are gated until the emailed confirmation link is
-    clicked; the waiting page polls and auto-advances. Google sign-ups and
-    staff never see the gate (covered in the social tests above)."""
+    """Self sign-ups (password here; Google covered in the social tests
+    above) are gated until the emailed confirmation link is clicked; the
+    waiting page polls and auto-advances. Staff never see the gate."""
 
     REGISTER_DATA = {
         'username': 'newpatient',
@@ -340,6 +341,10 @@ class BookingProfileGateTests(SocialLoginTestBase):
         super().setUp()
         self._callback()  # logs in a freshly created social patient
         self.user = self._logged_in_user()
+        # These tests target the profile-completeness gate, so get the
+        # email-confirmation gate out of the way (as if the link was clicked).
+        self.user.email_verified = True
+        self.user.save(update_fields=['email_verified'])
 
     def test_booking_first_step_blocked_until_profile_completed(self):
         response = self.client.get(reverse('patient:book_step1'))

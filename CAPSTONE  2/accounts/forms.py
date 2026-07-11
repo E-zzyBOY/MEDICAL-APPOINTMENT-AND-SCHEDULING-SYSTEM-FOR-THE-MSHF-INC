@@ -4,7 +4,7 @@ from django.contrib.auth.forms import UserCreationForm
 import re
 from .models import CustomUser, PatientProfile, DoctorProfile, SecretaryProfile
 from .validators import validate_ph_mobile_number, normalize_ph_mobile_number
-from .psgc import validate_picker_data
+from .psgc import validate_picker_data, validate_place_of_birth_data
 
 # Sanity floor for SecretaryCreationForm.date_assigned — generous on purpose
 # (a staff assignment date can legitimately be backdated), just enough to
@@ -84,6 +84,13 @@ class WalkInPatientForm(forms.Form):
             validate_ph_mobile_number(value)
             return normalize_ph_mobile_number(value)
         return value
+
+    def clean(self):
+        cleaned = super().clean()
+        pob_err = validate_place_of_birth_data(self.data)
+        if pob_err:
+            self.add_error('place_of_birth', pob_err)
+        return cleaned
 
     def save(self):
         username = _generate_walkin_username(self.cleaned_data['first_name'], self.cleaned_data['last_name'])
@@ -178,6 +185,9 @@ class PatientProfileEditForm(forms.ModelForm):
         err = validate_picker_data(self.data, forms)
         if err:
             self.add_error('address', err)
+        pob_err = validate_place_of_birth_data(self.data)
+        if pob_err:
+            self.add_error('place_of_birth', pob_err)
         return cleaned
 
     def __init__(self, *args, **kwargs):

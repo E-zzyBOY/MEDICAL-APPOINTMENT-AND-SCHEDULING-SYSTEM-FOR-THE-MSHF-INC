@@ -1,13 +1,12 @@
 {% comment %}
-Nationwide Place of Birth picker: Province -> City/Municipality.
-Unlike the Address picker (locked to Lanao del Sur, the clinic's own
-service area), this one covers the WHOLE Philippines, since a patient
-can have been born anywhere — loaded from
-static/data/ph_provinces_cities.json. No barangay/street level; a
-birthplace is just recorded as "City/Municipality, Province".
-Tap-to-select only, each step with its own search. Submits: hidden
-"place_of_birth" (combined "City, Province") + pob_province / pob_city
-for server-side validation.
+Province -> City/Municipality picker for Place of Birth, covering the
+WHOLE Philippines (unlike the address picker, which is locked to the
+clinic's own Lanao del Sur). No barangay/street level — a birthplace is
+just recorded as City/Municipality + Province. Users can ONLY tap from
+the official list, so a "place of birth" can never be saved as a number
+or random text.
+Submits: hidden "place_of_birth" (combined "City, Province" display
+string) + pob_province / pob_city for server-side validation.
 {% endcomment %}
 <div data-pob-picker class="space-y-2">
   <input type="hidden" name="place_of_birth" value="{{ initial|default:'' }}" data-pob-value>
@@ -55,8 +54,9 @@ for server-side validation.
 <script>
 (function () {
   'use strict';
-  if (!window.__phProvCitiesData) {
-    window.__phProvCitiesData = fetch('/static/data/ph_provinces_cities.json').then(function (r) { return r.json(); });
+
+  if (!window.__pobData) {
+    window.__pobData = fetch('/static/data/ph_provinces_cities.json').then(function (r) { return r.json(); });
   }
 
   document.querySelectorAll('[data-pob-picker]').forEach(function (root) {
@@ -70,17 +70,21 @@ for server-side validation.
     var backBtn = q('[data-pob-back]'), closeBtn = q('[data-pob-close]'), title = q('[data-pob-title]');
     var tabProv = q('[data-pob-tab-prov]'), tabCity = q('[data-pob-tab-city]');
     var search = q('[data-pob-search]'), list = q('[data-pob-list]'), errEl = q('[data-pob-error]');
-    var data = null, view = 'prov';
+    var data = null, provinces = [], view = 'prov';
+    var legacyValue = hidden.value.trim();  // preserved as-is unless the picker is actually used
 
     function compose() {
-      hidden.value = (provH.value && cityH.value) ? (cityH.value + ', ' + provH.value) : '';
+      hidden.value = (provH.value && cityH.value) ? (cityH.value + ', ' + provH.value) : legacyValue;
     }
     function updateLabel() {
       if (provH.value && cityH.value) {
-        label.textContent = cityH.value + ' \u203A ' + provH.value;
+        label.textContent = cityH.value + ', ' + provH.value;
         label.classList.remove('text-[#6B7280]'); label.classList.add('text-[#1F2937]');
       } else if (provH.value) {
         label.textContent = provH.value + ' \u203A Select City / Municipality';
+      } else if (legacyValue) {
+        label.textContent = legacyValue;
+        label.classList.remove('text-[#6B7280]'); label.classList.add('text-[#1F2937]');
       } else {
         label.textContent = 'Select Province \u203A City / Municipality';
       }
@@ -120,22 +124,24 @@ for server-side validation.
       view = 'prov';
       title.textContent = 'Select Province';
       backBtn.classList.add('hidden');
+      tabProv.classList.remove('hidden');
       tabProv.className = 'pb-2 border-b-2 border-[#1F4D11] font-semibold text-[#1F2937]';
       tabCity.classList.add('hidden');
       search.value = ''; search.placeholder = 'Search province...';
-      renderList(Object.keys(data), pickProv);
+      renderList(provinces, pickProv);
       list.scrollTop = 0;
     }
     function showCityView() {
       view = 'city';
       title.textContent = 'Select City / Municipality';
       backBtn.classList.remove('hidden');
+      tabProv.classList.remove('hidden');
+      tabProv.textContent = provH.value || 'Province';
       tabProv.className = 'pb-2 border-b-2 border-transparent text-gray-400 cursor-pointer';
-      tabProv.textContent = provH.value;
       tabCity.classList.remove('hidden');
       tabCity.textContent = 'City / Municipality';
       tabCity.className = 'pb-2 border-b-2 border-[#1F4D11] font-semibold text-[#1F2937]';
-      search.value = ''; search.placeholder = 'Search city/municipality...';
+      search.value = ''; search.placeholder = 'Search city / municipality...';
       renderList(data[provH.value] || [], pickCity);
       list.scrollTop = 0;
     }
@@ -161,47 +167,59 @@ for server-side validation.
       document.body.style.overflow = '';
     }
 
-    window.__phProvCitiesData.then(function (d) {
+    window.__pobData.then(function (d) {
       data = d;
+      provinces = Object.keys(d).sort();
       openBtn.addEventListener('click', openSheet);
       closeBtn.addEventListener('click', closeSheet);
       backdrop.addEventListener('click', closeSheet);
-      backBtn.addEventListener('click', function () { if (view === 'city') showProvView(); });
+      backBtn.addEventListener('click', function () {
+        if (view === 'city') showProvView();
+      });
       tabProv.addEventListener('click', function () { if (view !== 'prov') showProvView(); });
       search.addEventListener('input', function () {
-        if (view === 'prov') renderList(Object.keys(data), pickProv);
+        if (view === 'prov') renderList(provinces, pickProv);
         else renderList(data[provH.value] || [], pickCity);
       });
 
-      // Prefill "City, Province" (or legacy free text)
-      var init = hidden.value.trim();
-      if (init) {
-        var m = init.match(/^(.+?),\s*(.+)$/);
+      // Try to parse an existing "City, Province" value (from someone
+      // having already used this picker). Anything else — including old
+      // free-typed text from before this fix — is left as a preserved,
+      // read-only legacy label rather than silently discarded; it's only
+      // replaced once the doctor/secretary/patient actively picks fresh
+      // values from the list.
+      if (legacyValue) {
+        var m = legacyValue.match(/^(.+),\s*(.+)$/);
         if (m) {
           var cityGuess = m[1].trim(), provGuess = m[2].trim();
-          var prov = Object.keys(d).find(function (p) { return p.toLowerCase() === provGuess.toLowerCase(); });
+          var prov = provinces.find(function (p) { return p.toLowerCase() === provGuess.toLowerCase(); });
           var city = prov ? (d[prov] || []).find(function (c) { return c.toLowerCase() === cityGuess.toLowerCase(); }) : null;
           if (prov && city) {
             provH.value = prov;
             cityH.value = city;
+            legacyValue = '';
+            compose();
           }
         }
-        compose(); updateLabel();
       }
+      updateLabel();
     });
 
     var form = root.closest('form');
     if (form && !form.dataset.pobSubmitBound) {
       form.dataset.pobSubmitBound = '1';
       form.addEventListener('submit', function (e) {
-        if (!provH.value || !cityH.value) {
+        // Only block submission over an INCOMPLETE picker selection (one
+        // of the two chosen, not both) — a picker nobody has touched yet
+        // (still showing preserved legacy text, or genuinely empty) is
+        // allowed through, since Place of Birth is optional.
+        if ((provH.value && !cityH.value) || (!provH.value && cityH.value)) {
           e.preventDefault();
-          errEl.textContent = 'Please select your place of birth (province and city/municipality).';
+          errEl.textContent = 'Please finish selecting a province and city/municipality, or clear both.';
           errEl.classList.remove('hidden');
           openSheet();
         } else {
           errEl.classList.add('hidden');
-          compose();
         }
       });
     }

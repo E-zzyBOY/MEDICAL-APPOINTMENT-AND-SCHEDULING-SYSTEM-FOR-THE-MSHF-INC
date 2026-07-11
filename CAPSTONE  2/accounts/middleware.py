@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.shortcuts import redirect
 
 
@@ -19,6 +20,8 @@ class EmailVerificationRequiredMiddleware:
         self.get_response = get_response
 
     def __call__(self, request):
+        if not settings.EMAIL_VERIFICATION_REQUIRED:
+            return self.get_response(request)
         user = request.user
         # is_superuser is excluded because `createsuperuser` (e.g. the one
         # build.sh runs on Render) leaves role at its 'patient' default and

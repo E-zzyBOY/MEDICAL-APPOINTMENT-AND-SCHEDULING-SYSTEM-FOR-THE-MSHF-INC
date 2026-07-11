@@ -17,6 +17,29 @@ def _format_time_or_none(t):
     return t.strftime('%I:%M %p') if t else 'To be confirmed'
 
 
+def send_verification_email(user, request):
+    """Sent right after a password sign-up (and on 'Resend') with the
+    signed link that flips CustomUser.email_verified. Google sign-ups never
+    receive this — the provider already verified their address. Ignores the
+    email_notifications_enabled opt-out: this email IS the account gate,
+    not a courtesy notification."""
+    from django.urls import reverse
+    from accounts.tokens import make_email_verify_token
+
+    token = make_email_verify_token(user)
+    verify_url = request.build_absolute_uri(
+        reverse('accounts:verify_email', args=[token])
+    )
+    subject = "Confirm your email — MSHFI"
+    ctx = {
+        'patient_name': user.get_full_name() or user.username,
+        'verify_url':   verify_url,
+    }
+    message = render_to_string('notifications/email/verify_email.html', ctx)
+    send_mail(subject, message, settings.DEFAULT_FROM_EMAIL,
+              [user.email], fail_silently=True)
+
+
 def send_booking_received_email(appointment):
     """Sent right after a patient books — no time has been assigned yet,
     so this confirms the date only and explains staff will follow up with

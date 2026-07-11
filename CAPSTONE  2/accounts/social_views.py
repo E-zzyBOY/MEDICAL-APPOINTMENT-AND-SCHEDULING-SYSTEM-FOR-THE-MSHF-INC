@@ -129,6 +129,11 @@ def social_callback(request, provider):
             user=user, provider=provider,
             provider_user_id=profile['provider_user_id'], email_at_link=email,
         )
+        if not user.email_verified:
+            # The provider just vouched for this exact email — that's a
+            # stronger proof than our own confirmation link.
+            user.email_verified = True
+            user.save(update_fields=['email_verified'])
         return _log_in(request, user)
 
     # Case C — first visit: create a fresh patient account.
@@ -139,6 +144,9 @@ def social_callback(request, provider):
             last_name=profile['last_name'],
             email=email,
             role='patient',
+            # Google verified this address before handing it to us, so the
+            # email-confirmation gate is skipped for social sign-ups.
+            email_verified=True,
         )
         # They authenticate through the provider — leaving no local password
         # means there's nothing to phish or forget.

@@ -65,9 +65,8 @@ class SocialButtonVisibilityTests(SocialLoginTestBase):
     def test_google_button_links_when_configured_facebook_stays_disabled(self):
         response = self.client.get(reverse('accounts:login'))
         self.assertContains(response, self.start_url)
+        # Facebook has no button at all until Meta app review is sorted out.
         self.assertNotContains(response, reverse('accounts:social_start', args=['facebook']))
-        # Facebook (and mobile OTP) remain "Coming soon" placeholders.
-        self.assertContains(response, 'Coming soon')
 
 
 class SocialStartTests(SocialLoginTestBase):
@@ -129,11 +128,14 @@ class SocialCallbackTests(SocialLoginTestBase):
         admin = CustomUser.objects.create_user(username='admin1', password='x', role='admin')
         response = self._callback()
         self.assertEqual(response.status_code, 302)
-        self.assertEqual(response['Location'], '/patient/')
+        # Brand-new social accounts go straight to onboarding — Google
+        # already verified the email, so no confirmation gate on the way.
+        self.assertEqual(response['Location'], reverse('accounts:complete_profile'))
 
         user = CustomUser.objects.get(username='google-juan-delacruz')
         self.assertEqual(user.role, 'patient')
         self.assertEqual(user.email, GOOGLE_PROFILE['email'])
+        self.assertTrue(user.email_verified)
         self.assertFalse(user.has_usable_password())
         self.assertEqual(self._logged_in_user(), user)
 
@@ -187,6 +189,10 @@ class SocialCallbackTests(SocialLoginTestBase):
         self.assertEqual(link.provider_user_id, GOOGLE_PROFILE['provider_user_id'])
         # Linked, not duplicated.
         self.assertEqual(CustomUser.objects.count(), 1)
+        # Google vouched for this exact email, so the account counts as
+        # verified even if it never clicked our confirmation link.
+        patient.refresh_from_db()
+        self.assertTrue(patient.email_verified)
 
     def test_unverified_email_refused_toward_manual_register(self):
         profile = dict(GOOGLE_PROFILE, email_verified=False)
@@ -224,6 +230,105 @@ class DjangoAdminSmokeTests(TestCase):
         self.client.login(username='boss', password='x')
         response = self.client.get('/django-admin/accounts/customuser/')
         self.assertEqual(response.status_code, 200)
+
+
+class EmailVerificationTests(TestCase):
+    """Password sign-ups are gated until the emailed confirmation link is
+    clicked; the waiting page polls and auto-advances. Google sign-ups and
+    staff never see the gate (covered in the social tests above)."""
+
+    REGISTER_DATA = {
+        'username': 'newpatient',
+        'email': 'newpatient@example.com',
+        'password1': 'stray-hippo-42-lantern',
+        'password2': 'stray-hippo-42-lantern',
+    }
+
+    def _register(self):
+        return self.client.post(reverse('accounts:register'), self.REGISTER_DATA)
+
+    def _verify_link_from_outbox(self):
+        from django.core import mail
+        import re
+        body = mail.outbox[-1].body
+        match = re.search(r'/accounts/verify-email/[^\s/]+/', body)
+        self.assertIsNotNone(match, f'No verify link found in email body:\n{body}')
+        return match.group(0)
+
+    def test_register_sends_email_and_lands_on_waiting_page(self):
+        from django.core import mail
+        response = self._register()
+        self.assertRedirects(response, reverse('accounts:verify_email_pending'))
+        user = CustomUser.objects.get(username='newpatient')
+        self.assertFalse(user.email_verified)
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertEqual(mail.outbox[0].to, ['newpatient@example.com'])
+        self._verify_link_from_outbox()
+
+    def test_unverified_patient_fully_blocked(self):
+        self._register()
+        for url in ('/patient/', reverse('accounts:complete_profile'), reverse('accounts:profile_view')):
+            response = self.client.get(url)
+            self.assertRedirects(
+                response, reverse('accounts:verify_email_pending'),
+                msg_prefix=f'{url} should be blocked until the email is confirmed',
+            )
+
+    def test_clicking_link_verifies_and_continues_to_setup(self):
+        self._register()
+        response = self.client.get(self._verify_link_from_outbox())
+        self.assertRedirects(response, reverse('accounts:complete_profile'))
+        user = CustomUser.objects.get(username='newpatient')
+        self.assertTrue(user.email_verified)
+
+    def test_link_clicked_on_another_device_still_verifies(self):
+        self._register()
+        link = self._verify_link_from_outbox()
+        other_device = Client()
+        response = other_device.get(link)
+        self.assertRedirects(response, reverse('accounts:login'))
+        self.assertTrue(CustomUser.objects.get(username='newpatient').email_verified)
+
+    def test_garbage_token_rejected(self):
+        self._register()
+        response = self.client.get('/accounts/verify-email/not-a-real-token/')
+        self.assertRedirects(response, reverse('accounts:verify_email_pending'))
+        self.assertFalse(CustomUser.objects.get(username='newpatient').email_verified)
+
+    def test_status_endpoint_polls_then_redirects(self):
+        self._register()
+        response = self.client.get(reverse('accounts:verify_email_status'))
+        self.assertEqual(response.status_code, 204)
+        CustomUser.objects.filter(username='newpatient').update(email_verified=True)
+        response = self.client.get(reverse('accounts:verify_email_status'))
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response['HX-Redirect'], reverse('accounts:complete_profile'))
+
+    def test_resend_is_throttled(self):
+        from django.core import mail
+        self._register()
+        self.client.post(reverse('accounts:resend_verification'))
+        self.assertEqual(len(mail.outbox), 2)  # sign-up email + first resend
+        self.client.post(reverse('accounts:resend_verification'))
+        self.assertEqual(len(mail.outbox), 2)  # second resend inside cooldown: skipped
+
+    def test_staff_never_gated(self):
+        CustomUser.objects.create_user(
+            username='sec-unverified', password='x', role='secretary', email_verified=False,
+        )
+        self.client.login(username='sec-unverified', password='x')
+        response = self.client.get('/secretary/')
+        self.assertNotEqual(
+            response.headers.get('Location'), reverse('accounts:verify_email_pending'),
+        )
+
+    def test_superuser_never_gated(self):
+        CustomUser.objects.create_superuser(username='root', password='x', email='root@example.com')
+        self.client.login(username='root', password='x')
+        response = self.client.get('/django-admin/')
+        self.assertNotEqual(
+            response.headers.get('Location'), reverse('accounts:verify_email_pending'),
+        )
 
 
 @override_settings(**GOOGLE_CONFIGURED)

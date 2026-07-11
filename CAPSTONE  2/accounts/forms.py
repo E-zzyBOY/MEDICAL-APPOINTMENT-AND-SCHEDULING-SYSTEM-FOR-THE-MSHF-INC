@@ -93,6 +93,8 @@ class WalkInPatientForm(forms.Form):
             last_name=self.cleaned_data['last_name'],
             email=self.cleaned_data.get('email', ''),
             role='patient',
+            # Staff registered this patient in person — no email gate.
+            email_verified=True,
         )
         # Walk-in patients never log in with this account, so it should
         # be impossible to authenticate as them even if someone later

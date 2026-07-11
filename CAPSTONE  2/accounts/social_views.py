@@ -149,15 +149,12 @@ def social_callback(request, provider):
             user=user, provider=provider,
             provider_user_id=profile['provider_user_id'], email_at_link=email,
         )
-    _notify_admins(f"New patient account created: {user.get_full_name()} ({user.username}).")
-    messages.info(
-        request,
-        'Welcome to MSHFI! Please complete your profile (address and place of birth) before booking an appointment.'
-    )
-    return _log_in(request, user)
+    _notify_admins(f"New patient account created: {user.get_full_name() or user.username} ({user.username}).")
+    messages.info(request, 'Welcome to MSHFI! Let\'s finish setting up your account.')
+    return _log_in(request, user, redirect_target='accounts:complete_profile')
 
 
-def _log_in(request, user):
+def _log_in(request, user, redirect_target=None):
     # login() skips authenticate() here, so replicate ModelBackend's
     # is_active check — a deactivated patient must stay locked out even
     # through a valid Google link.
@@ -165,4 +162,6 @@ def _log_in(request, user):
         messages.error(request, 'This account has been deactivated. Please contact the clinic.')
         return redirect('accounts:login')
     login(request, user, backend=AUTH_BACKEND)
+    if redirect_target:
+        return redirect(redirect_target)
     return _role_redirect(user)

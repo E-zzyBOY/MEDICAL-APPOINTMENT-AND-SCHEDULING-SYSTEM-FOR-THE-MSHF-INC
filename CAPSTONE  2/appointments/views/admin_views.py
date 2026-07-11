@@ -6,7 +6,7 @@ from datetime import date, timedelta
 from accounts.decorators import role_required
 from accounts.models import CustomUser, PatientProfile, DoctorProfile, SecretaryProfile
 from accounts.forms import DoctorCreationForm, SecretaryCreationForm, UserEditForm
-from appointments.models import Appointment
+from appointments.models import Appointment, TIME_NULLS_FIRST
 from appointments.forms import AdminAppointmentEditForm
 from feedback.models import Feedback
 
@@ -193,7 +193,7 @@ def user_delete(request, pk):
 
 @role_required('admin')
 def admin_appointment_list(request):
-    qs = Appointment.objects.all().select_related('patient', 'doctor', 'secretary', 'patient_details').order_by('-appointment_date', 'appointment_time')
+    qs = Appointment.objects.all().select_related('patient', 'doctor', 'secretary', 'patient_details').order_by('-appointment_date', TIME_NULLS_FIRST)
     return render(request, 'admin_panel/appointment_list.html', {
         # "Scheduled" bucket covers every appointment that hasn't finished or
         # been cancelled yet (Pending Assignment, Scheduled, Confirmed,

@@ -8,7 +8,7 @@ from django.http import JsonResponse, HttpResponse
 from datetime import date, datetime, timedelta
 import calendar as calendar_module
 from accounts.decorators import role_required
-from appointments.models import Appointment, Schedule
+from appointments.models import Appointment, Schedule, TIME_NULLS_FIRST
 from appointments.forms import ScheduleForm, RescheduleForm, AssignTimeForm, MultiDateScheduleForm
 from accounts.models import CustomUser
 from notifications.email_utils import (
@@ -159,7 +159,7 @@ def _build_doctor_dashboard_data(request):
         doctor=request.user,
         appointment_date=date.today(),
         status__in=['Scheduled', 'Rescheduled', 'Pending Reschedule']
-    ).select_related('patient').order_by('appointment_time')
+    ).select_related('patient').order_by(TIME_NULLS_FIRST)
     upcoming = Appointment.objects.filter(
         doctor=request.user,
         appointment_date__gt=date.today(),

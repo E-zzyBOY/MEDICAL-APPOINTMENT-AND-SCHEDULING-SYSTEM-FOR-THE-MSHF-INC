@@ -2,8 +2,8 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import authenticate, login, logout
 from django.contrib import messages
 from .forms import (
-    PatientRegistrationForm, PatientProfileEditForm, DoctorProfileEditForm, SecretaryProfileEditForm,
-    ProfilePictureForm, EmailNotificationSettingsForm,
+    PatientRegistrationForm, PatientOnboardingForm, PatientProfileEditForm, DoctorProfileEditForm,
+    SecretaryProfileEditForm, ProfilePictureForm, EmailNotificationSettingsForm,
 )
 from .models import CustomUser, PatientProfile, DoctorProfile, SecretaryProfile
 from .decorators import role_required
@@ -64,9 +64,9 @@ def register_view(request):
     if request.method == 'POST' and form.is_valid():
         user = form.save()
         login(request, user)
-        _notify_admins(f"New patient account created: {user.get_full_name()} ({user.username}).")
+        _notify_admins(f"New patient account created: {user.get_full_name() or user.username} ({user.username}).")
         messages.success(request, 'Account created! Welcome to MSHFI.')
-        return redirect('patient:dashboard')
+        return redirect('accounts:complete_profile')
     return render(request, 'accounts/register.html', {
         'register_form': form,
         'active_panel': 'register',
@@ -136,6 +136,37 @@ def profile_edit_view(request):
     if request.htmx:
         return render(request, modal_template, {'form': form, 'pic_form': pic_form, 'title': 'Edit Profile'})
     return render(request, template, {'form': form, 'pic_form': pic_form})
+
+
+@role_required('patient')
+def complete_profile_view(request):
+    """Shown right after a brand-new patient account is created (regular
+    sign-up or first-time Google sign-in) to collect Name and Address —
+    the info that used to be gathered at sign-up time, now collected right
+    after instead so the sign-up form itself can stay to just Username /
+    Email / Password."""
+    profile = _get_profile(request.user)
+    if profile is None:
+        return redirect('patient:dashboard')
+
+    # Already filled in (e.g. someone revisits this URL after finishing it,
+    # or hits Back) — nothing more to collect, send them on their way.
+    if request.method == 'GET' and profile.address:
+        return redirect('patient:dashboard')
+
+    form = PatientOnboardingForm(request.POST or None, instance=profile)
+    if request.method == 'POST' and form.is_valid():
+        first = request.POST.get('first_name', '').strip()
+        last  = request.POST.get('last_name', '').strip()
+        if first:
+            request.user.first_name = first
+        if last:
+            request.user.last_name = last
+        request.user.save()
+        form.save()
+        messages.success(request, 'Thanks! Your profile is all set.')
+        return redirect('patient:dashboard')
+    return render(request, 'accounts/complete_profile.html', {'form': form})
 
 
 SETTINGS_TEMPLATES = {

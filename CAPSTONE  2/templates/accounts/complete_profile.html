@@ -1,0 +1,133 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Complete Your Profile — MSHFI{% endblock %}
+
+{% block extra_head %}
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  .cp-shell, .cp-shell input, .cp-shell select, .cp-shell button {
+    font-family: "Montserrat", ui-sans-serif, system-ui, sans-serif;
+  }
+  .hp-field input,
+  .hp-field select {
+    background-color: #F3F4F8 !important;
+    border: none !important;
+    border-radius: 10px !important;
+    padding: 0.75rem 1rem !important;
+    font-size: 0.8125rem !important;
+    color: #1F2937 !important;
+  }
+  .hp-field input:focus,
+  .hp-field select:focus {
+    box-shadow: 0 0 0 3px rgba(43, 19, 105, 0.18) !important;
+  }
+  .hp-field input::placeholder {
+    color: #6B7280 !important;
+  }
+  .cp-card-enter { animation: cpCardEnter 0.5s cubic-bezier(0.22, 1, 0.36, 1) both; }
+  @keyframes cpCardEnter {
+    0%   { opacity: 0; translate: 0 14px; scale: 0.985; }
+    100% { opacity: 1; translate: 0 0; scale: 1; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .cp-card-enter { animation: none !important; }
+  }
+</style>
+{% endblock %}
+
+{% block body %}
+<div class="relative min-h-screen flex items-center justify-center px-4 py-10 bg-cover bg-center"
+     style="background-image: linear-gradient(rgba(10,20,60,0.78), rgba(10,20,60,0.78)), url('/static/img/login-bg.png'); background-color:#0d1b3e;">
+
+  <div class="w-full max-w-lg cp-card-enter">
+    <div class="cp-shell bg-white rounded-[30px] shadow-[0_10px_25px_rgba(0,0,0,0.35),0_30px_70px_rgba(13,27,62,0.35)] px-8 py-9 sm:px-10 sm:py-10">
+
+      <div class="flex flex-col items-center mb-6 text-center">
+        <div class="flex size-11 items-center justify-center rounded-xl bg-[#2b1369] text-white shadow-soft-sm shrink-0 mb-4">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+        </div>
+        <h1 class="text-2xl font-semibold text-ink">Complete Your Profile</h1>
+        <p class="text-ink-soft text-sm mt-1.5 max-w-sm">You're in! Just a few more details so we can find your records and reach you when needed.</p>
+      </div>
+
+      <form method="post" class="space-y-3 hp-field" novalidate>
+        {% csrf_token %}
+        {% if form.non_field_errors %}
+        <div class="bg-[#FEF2F2] text-[#DC2626] rounded-xl p-3 text-sm">
+          {% for error in form.non_field_errors %}{{ error }}{% endfor %}
+        </div>
+        {% endif %}
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <input type="text" name="first_name" required
+                   value="{{ form.first_name.value|default:'' }}"
+                   class="w-full bg-[#F3F4F8] border-0 rounded-xl px-4 py-3.5 text-sm text-[#1F2937] placeholder-[#6B7280] focus:outline-none focus:ring-2 focus:ring-[#2b1369]/20"
+                   placeholder="First Name" />
+            {% if form.first_name.errors %}<p class="text-[#DC2626] text-xs mt-1 ml-1">{{ form.first_name.errors.0 }}</p>{% endif %}
+          </div>
+          <div>
+            <input type="text" name="last_name" required
+                   value="{{ form.last_name.value|default:'' }}"
+                   class="w-full bg-[#F3F4F8] border-0 rounded-xl px-4 py-3.5 text-sm text-[#1F2937] placeholder-[#6B7280] focus:outline-none focus:ring-2 focus:ring-[#2b1369]/20"
+                   placeholder="Last Name" />
+            {% if form.last_name.errors %}<p class="text-[#DC2626] text-xs mt-1 ml-1">{{ form.last_name.errors.0 }}</p>{% endif %}
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <input type="text" name="contact_number"
+                   value="{{ form.contact_number.value|default:'' }}"
+                   class="w-full bg-[#F3F4F8] border-0 rounded-xl px-4 py-3.5 text-sm text-[#1F2937] placeholder-[#6B7280] focus:outline-none focus:ring-2 focus:ring-[#2b1369]/20"
+                   placeholder="Contact Number" />
+            {% if form.contact_number.errors %}<p class="text-[#DC2626] text-xs mt-1 ml-1">{{ form.contact_number.errors.0 }}</p>{% endif %}
+          </div>
+          <div>
+            <select name="gender"
+                    class="w-full bg-[#F3F4F8] border-0 rounded-xl px-4 py-3.5 text-sm text-[#1F2937] focus:outline-none focus:ring-2 focus:ring-[#2b1369]/20">
+              <option value="" {% if not form.gender.value %}selected{% endif %}>Gender — Select</option>
+              <option value="M" {% if form.gender.value == 'M' %}selected{% endif %}>Male</option>
+              <option value="F" {% if form.gender.value == 'F' %}selected{% endif %}>Female</option>
+              <option value="O" {% if form.gender.value == 'O' %}selected{% endif %}>Other</option>
+            </select>
+            {% if form.gender.errors %}<p class="text-[#DC2626] text-xs mt-1 ml-1">{{ form.gender.errors.0 }}</p>{% endif %}
+          </div>
+        </div>
+
+        <div>
+          <span class="block text-[10px] font-semibold uppercase tracking-wide text-gray-400 mb-1 ml-1">Date of Birth</span>
+          <input type="date" name="date_of_birth"
+                 max="{{ form.date_of_birth.field.widget.attrs.max }}"
+                 value="{{ form.date_of_birth.value|date:'Y-m-d'|default:'' }}"
+                 class="w-full bg-[#F3F4F8] border-0 rounded-xl px-4 py-3.5 text-sm text-[#1F2937] focus:outline-none focus:ring-2 focus:ring-[#2b1369]/20" />
+          {% if form.date_of_birth.errors %}<p class="text-[#DC2626] text-xs mt-1 ml-1">{{ form.date_of_birth.errors.0 }}</p>{% endif %}
+        </div>
+
+        <div>
+          {% include "components/_address_picker.html" with initial=form.address.value errors=form.address.errors %}
+        </div>
+
+        <div>
+          <input type="text" name="guardian"
+                 value="{{ form.guardian.value|default:'' }}"
+                 class="w-full bg-[#F3F4F8] border-0 rounded-xl px-4 py-3.5 text-sm text-[#1F2937] placeholder-[#6B7280] focus:outline-none focus:ring-2 focus:ring-[#2b1369]/20"
+                 placeholder="Guardian (optional)" />
+          {% if form.guardian.errors %}<p class="text-[#DC2626] text-xs mt-1 ml-1">{{ form.guardian.errors.0 }}</p>{% endif %}
+        </div>
+
+        <button type="submit" data-loading-text="Saving…"
+                class="w-full bg-[#2b1369] hover:bg-[#3d1d92] text-white font-bold uppercase tracking-wide py-3.5 px-4 rounded-xl text-sm transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5 mt-5 disabled:opacity-60 disabled:cursor-not-allowed">
+          Save and Continue
+        </button>
+      </form>
+
+      <p class="text-center text-sm text-[#6B7280] mt-4">
+        <a href="{% url 'patient:dashboard' %}" class="hover:underline">Skip for now</a>
+      </p>
+    </div>
+  </div>
+</div>
+{% endblock %}

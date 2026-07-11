@@ -7,7 +7,7 @@ from django.utils import timezone
 from datetime import date, datetime, timedelta
 import calendar as calendar_module
 from accounts.decorators import role_required
-from appointments.models import Appointment, Schedule, AppointmentPatientDetails
+from appointments.models import Appointment, Schedule, AppointmentPatientDetails, TIME_NULLS_FIRST
 from appointments.forms import PatientDetailsForm
 from accounts.models import CustomUser, PatientProfile, TERMS_VERSION
 from notifications.email_utils import (
@@ -105,7 +105,7 @@ def _build_patient_dashboard_data(request):
         patient=request.user,
         status__in=['Pending Assignment', 'Scheduled', 'Confirmed', 'Rescheduled', 'Pending Reschedule'],
         appointment_date__gte=date.today()
-    ).select_related('doctor').order_by('appointment_date', 'appointment_time')[:5]
+    ).select_related('doctor').order_by('appointment_date', TIME_NULLS_FIRST)[:5]
     past = Appointment.objects.filter(
         patient=request.user,
         status='Completed'
@@ -259,7 +259,7 @@ def appointment_list(request):
     upcoming = Appointment.objects.filter(
         patient=request.user,
         status__in=['Pending Assignment', 'Scheduled', 'Confirmed', 'Rescheduled', 'Pending Reschedule']
-    ).select_related('doctor', 'patient_details').order_by('appointment_date', 'appointment_time')
+    ).select_related('doctor', 'patient_details').order_by('appointment_date', TIME_NULLS_FIRST)
     completed = Appointment.objects.filter(
         patient=request.user,
         status='Completed'

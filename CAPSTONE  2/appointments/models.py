@@ -1,6 +1,12 @@
 from django.db import models
+from django.db.models import F
 from django.conf import settings
 from django.utils import timezone
+
+# SQLite sorts NULLs first in ascending order but Postgres sorts them last;
+# appointments awaiting a time assignment (appointment_time IS NULL) must stay
+# at the top of each date group on both backends.
+TIME_NULLS_FIRST = F('appointment_time').asc(nulls_first=True)
 
 
 class Schedule(models.Model):
@@ -133,7 +139,7 @@ class Appointment(models.Model):
     updated_at       = models.DateTimeField(auto_now=True)
 
     class Meta:
-        ordering = ['appointment_date', 'appointment_time']
+        ordering = ['appointment_date', TIME_NULLS_FIRST]
 
     @property
     def needs_time_assignment(self):

@@ -83,7 +83,13 @@ USE_MYSQL = os.environ.get('USE_MYSQL', 'False') == 'True'
 if os.environ.get('DATABASE_URL'):
     import dj_database_url
     DATABASES = {
-        'default': dj_database_url.config(conn_max_age=600, ssl_require=True)
+        'default': dj_database_url.config(
+            conn_max_age=600,
+            conn_health_checks=True,
+            # SSL stays on by default (Render/Neon require it); set
+            # DATABASE_SSL_REQUIRE=False only for a local Postgres without TLS.
+            ssl_require=os.environ.get('DATABASE_SSL_REQUIRE', 'True') == 'True',
+        )
     }
 elif USE_MYSQL:
     DATABASES = {

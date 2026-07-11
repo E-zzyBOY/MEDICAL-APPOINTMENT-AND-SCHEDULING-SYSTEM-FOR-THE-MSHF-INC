@@ -3,111 +3,164 @@
 {% block title %}{% if active_panel == 'register' %}Register{% else %}Sign In{% endif %} — MSHFI{% endblock %}
 
 {% block extra_head %}
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
-  .hp-field input,
-  .hp-field select {
-    background-color: #F5F7FA !important;
-    border: none !important;
-    border-radius: 0.75rem !important;
-    padding: 0.875rem 1rem !important;
-    font-size: 0.875rem !important;
-    color: #1F2937 !important;
-  }
-  .hp-field input:focus,
-  .hp-field select:focus {
-    box-shadow: 0 0 0 3px rgba(31, 77, 17, 0.18) !important;
-  }
-  .hp-field input::placeholder {
-    color: #6B7280 !important;
+  .auth-shell, .auth-shell input, .auth-shell button, .auth-shell select {
+    font-family: "Montserrat", ui-sans-serif, system-ui, sans-serif;
   }
 
-  /* ================= Auth shell: sliding sign-in / sign-up card ================= */
+  .hp-field input {
+    background-color: #fff !important;
+    border: 1px solid #E2E8F0 !important;
+    border-radius: 8px !important;
+    padding: 0.7rem 0.9rem !important;
+    font-size: 0.8125rem !important;
+    color: #1F2937 !important;
+    transition: border-color 0.2s;
+  }
+  .hp-field input:focus {
+    border-color: #1F4D11 !important;
+    box-shadow: 0 0 0 3px rgba(31, 77, 17, 0.15) !important;
+  }
+  .hp-field input::placeholder { color: #94A3B8 !important; }
+
   .auth-shell {
     position: relative;
-    width: 100%;
-    min-height: 620px;
-    border-radius: 2.5rem;
-    overflow: hidden;
     background: #fff;
-    box-shadow: 0 6px 18px rgba(31,77,17,0.22), 0 24px 60px rgba(15,23,42,0.22);
-  }
-
-  .auth-form-panel {
-    position: absolute;
-    top: 0; left: 0;
-    width: 50%;
-    height: 100%;
-    display: flex;
-    align-items: flex-start;
-    justify-content: center;
-    padding: 2.5rem 3rem;
-    overflow-y: auto;
-    transition: transform 0.6s ease-in-out, opacity 0.6s ease-in-out;
-  }
-  .auth-form-inner { width: 100%; max-width: 340px; }
-
-  .sign-in-panel { transform: translateX(0); opacity: 1; z-index: 5; }
-  .sign-up-panel { transform: translateX(0); opacity: 0; z-index: 1; }
-
-  .auth-shell[data-active="register"] .sign-in-panel { transform: translateX(100%); opacity: 0; z-index: 1; }
-  .auth-shell[data-active="register"] .sign-up-panel { transform: translateX(100%); opacity: 1; z-index: 5; }
-
-  .auth-overlay-container {
-    position: absolute;
-    top: 0; left: 50%;
-    width: 50%; height: 100%;
+    border-radius: 18px;
+    box-shadow: 0 25px 60px rgba(31, 77, 17, 0.28);
     overflow: hidden;
-    transition: transform 0.6s ease-in-out;
-    z-index: 10;
-  }
-  .auth-shell[data-active="register"] .auth-overlay-container { transform: translateX(-100%); }
-
-  .auth-overlay {
-    position: relative;
-    left: -100%;
-    width: 200%; height: 100%;
-    background: linear-gradient(140deg, #2F6318 0%, #1F4D11 45%, #12300A 100%);
-    background-size: 220% 220%;
-    animation: authGradientShift 10s ease-in-out infinite;
-    color: #fff;
-    transform: translateX(0);
-    transition: transform 0.6s ease-in-out;
-  }
-  .auth-shell[data-active="register"] .auth-overlay { transform: translateX(50%); }
-
-  @keyframes authGradientShift {
-    0%   { background-position: 0% 30%; }
-    50%  { background-position: 100% 70%; }
-    100% { background-position: 0% 30%; }
+    display: flex;
+    min-height: 640px;
   }
 
-  .auth-overlay-panel {
-    position: absolute;
-    top: 0; width: 50%; height: 100%;
+  /* Left: form column */
+  .auth-left {
+    flex: 1 1 52%;
     display: flex;
     flex-direction: column;
+    padding: 2.25rem 3rem 1.75rem;
+    min-width: 0;
+  }
+  .auth-forms {
+    flex: 1;
+    display: flex;
     align-items: center;
     justify-content: center;
-    text-align: center;
-    padding: 2.5rem 2rem;
-    transition: transform 0.6s ease-in-out;
   }
-  .overlay-left  { left: 0;  transform: translateX(-20%); }
-  .overlay-right { right: 0; transform: translateX(0); }
-  .auth-shell[data-active="register"] .overlay-left  { transform: translateX(0); }
-  .auth-shell[data-active="register"] .overlay-right { transform: translateX(20%); }
+  .auth-form-inner { width: 100%; max-width: 330px; }
 
-  .auth-blob {
+  .auth-panel { display: none; }
+  .auth-shell[data-active="login"]    .panel-login    { display: block; }
+  .auth-shell[data-active="register"] .panel-register { display: block; animation: authSlideIn 0.55s cubic-bezier(0.22, 1, 0.36, 1) both; }
+  @keyframes authSlideIn {
+    0%   { opacity: 0; transform: translateX(56px); }
+    100% { opacity: 1; transform: translateX(0); }
+  }
+
+  /* Right: photo panel */
+  .auth-right {
+    flex: 1 1 48%;
+    padding: 1.1rem;
+    display: flex;
+    min-width: 0;
+  }
+  .auth-photo {
+    position: relative;
+    flex: 1;
+    border-radius: 14px;
+    overflow: hidden;
+    background: linear-gradient(160deg, #5E9A3C 0%, #1F4D11 60%, #12300A 100%);
+    display: flex;
+    flex-direction: column;
+  }
+  .auth-photo::before, .auth-photo::after {
+    content: '';
     position: absolute;
     border-radius: 9999px;
-    filter: blur(1px);
+    border: 26px solid rgba(255,255,255,0.10);
     pointer-events: none;
-    animation: authBlobFloat 7s ease-in-out infinite;
   }
-  @keyframes authBlobFloat {
-    0%, 100% { transform: translate(0, 0) scale(1); }
-    50%      { transform: translate(0, -16px) scale(1.06); }
+  .auth-photo::before { width: 420px; height: 420px; left: -140px; top: 32%; }
+  .auth-photo::after  { width: 620px; height: 620px; left: -220px; top: 18%; border-width: 34px; }
+
+  .auth-photo-headline {
+    position: relative;
+    z-index: 2;
+    padding: 2.4rem 2.4rem 0;
   }
+  .auth-photo-headline h2 {
+    color: #fff;
+    font-size: clamp(1.35rem, 2vw, 1.75rem);
+    font-weight: 700;
+    line-height: 1.35;
+    max-width: 18ch;
+    text-shadow: 0 2px 10px rgba(15, 35, 8, 0.35);
+  }
+  .auth-shell[data-active="register"] .auth-photo-headline h2 { animation: authHeadlineSlideL 0.6s cubic-bezier(0.22, 1, 0.36, 1) both; }
+  .auth-shell[data-active="login"]    .auth-photo-headline h2 { animation: authHeadlineSlideR 0.6s cubic-bezier(0.22, 1, 0.36, 1) both; }
+  @keyframes authHeadlineSlideL {
+    0%   { opacity: 0; transform: translateX(18px); }
+    100% { opacity: 1; transform: translateX(0); }
+  }
+  @keyframes authHeadlineSlideR {
+    0%   { opacity: 0; transform: translateX(-18px); }
+    100% { opacity: 1; transform: translateX(0); }
+  }
+  .auth-photo-img {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    overflow: hidden;
+  }
+  .auth-photo-img img {
+    position: absolute;
+    right: 0; bottom: 0;
+    width: 100%; height: 72%;
+    object-fit: cover;
+    object-position: 80% top;
+    -webkit-mask-image: linear-gradient(to top, black 82%, transparent 100%);
+            mask-image: linear-gradient(to top, black 82%, transparent 100%);
+  }
+  .auth-shell[data-active="register"] .auth-photo-img img { animation: authPhotoPanL 0.65s cubic-bezier(0.22, 1, 0.36, 1) both; }
+  .auth-shell[data-active="login"]    .auth-photo-img img { animation: authPhotoPanR 0.65s cubic-bezier(0.22, 1, 0.36, 1) both; }
+  @keyframes authPhotoPanL {
+    0%   { transform: scale(1.06) translateX(0); }
+    100% { transform: scale(1.06) translateX(-3.5%); }
+  }
+  @keyframes authPhotoPanR {
+    0%   { transform: scale(1.06) translateX(-3.5%); }
+    100% { transform: scale(1.06) translateX(0); }
+  }
+  .auth-photo-dots {
+    position: absolute;
+    z-index: 2;
+    left: 2.4rem; bottom: 1.6rem;
+    display: flex; gap: 6px; align-items: center;
+  }
+  .auth-photo-dots span { width: 8px; height: 8px; border-radius: 9999px; background: rgba(255,255,255,0.55); transition: width 0.4s ease, background 0.4s ease; }
+  .auth-shell[data-active="login"]    .auth-photo-dots span:nth-child(1) { width: 26px; background: #fff; }
+  .auth-shell[data-active="register"] .auth-photo-dots span:nth-child(2) { width: 26px; background: #fff; }
+
+  .auth-brand { color: #1F4D11; font-weight: 700; font-size: 1.25rem; letter-spacing: 0.2px; }
+  .auth-footer { color: #94A3B8; font-size: 11px; }
+
+  .google-btn {
+    display: flex; align-items: center; justify-content: center; gap: 10px;
+    width: 100%;
+    border: 1px solid #E2E8F0;
+    border-radius: 8px;
+    background: #fff;
+    padding: 0.7rem 1rem;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: #334155;
+    transition: background 0.2s, border-color 0.2s;
+  }
+  .google-btn:hover:not(:disabled) { background: #F8FAFC; border-color: #CBD5E1; }
+  .google-btn:disabled { opacity: 0.55; cursor: not-allowed; }
 
   .auth-card-enter { animation: authCardEnter 0.5s cubic-bezier(0.22, 1, 0.36, 1) both; }
   @keyframes authCardEnter {
@@ -115,248 +168,182 @@
     100% { opacity: 1; translate: 0 0; scale: 1; }
   }
 
-  @media (max-width: 767.98px) {
-    .auth-shell { min-height: 0; overflow: visible; }
-    .auth-form-panel {
-      position: static;
-      width: 100%;
-      padding: 2rem 1.5rem;
-      display: none !important;
-      opacity: 1 !important;
-      transform: none !important;
-      max-height: 80vh;
-      align-items: flex-start;
-      overflow-y: auto;
-    }
-    .auth-shell[data-active="login"] .sign-in-panel { display: flex !important; }
-    .auth-shell[data-active="register"] .sign-up-panel { display: flex !important; }
-    .auth-overlay-container { display: none; }
+  @media (max-width: 900px) {
+    .auth-right { display: none; }
+    .auth-left { padding: 2rem 1.5rem 1.5rem; }
+    .auth-shell { min-height: 0; }
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .auth-overlay, .auth-blob, .auth-card-enter { animation: none !important; }
-    .auth-form-panel, .auth-overlay-container, .auth-overlay, .auth-overlay-panel { transition: none !important; }
+    .auth-card-enter, .auth-panel, .auth-photo-img img, .auth-photo-headline h2 { animation: none !important; }
   }
 </style>
 {% endblock %}
 
 {% block body %}
-<div class="relative min-h-screen flex items-center justify-center px-4 py-10 bg-cover bg-center"
-     style="background-image: linear-gradient(to bottom, rgba(255,255,255,0.35), rgba(240,247,244,0.4)), url('/static/img/login-bg.png');">
+<div class="relative min-h-screen flex items-center justify-center px-4 py-10"
+     style="background: linear-gradient(rgba(255,255,255,0.35), rgba(240,247,244,0.4)), url('/static/img/login-bg.png') center/cover; background-color:#F1F7EC;">
 
-  <div class="w-full max-w-4xl auth-card-enter">
+  <div class="w-full max-w-5xl auth-card-enter">
     <div class="auth-shell" id="authShell" data-active="{{ active_panel|default:'login' }}">
 
-      <!-- Sign in panel -->
-      <div class="auth-form-panel sign-in-panel">
-        <div class="auth-form-inner">
-          <div class="flex flex-col items-center mb-5">
-            <div class="flex items-center gap-2.5 mb-5">
-              <div class="flex size-11 items-center justify-center rounded-xl bg-brand-500 text-white shadow-soft-sm shrink-0">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M11 3a1 1 0 00-1 1v5a1 1 0 01-1 1H4a1 1 0 00-1 1v2a1 1 0 001 1h5a1 1 0 011 1v5a1 1 0 001 1h2a1 1 0 001-1v-5a1 1 0 011-1h5a1 1 0 001-1v-2a1 1 0 00-1-1h-5a1 1 0 01-1-1V4a1 1 0 00-1-1h-2z"/></svg>
-              </div>
-              <span class="text-xl font-bold tracking-tight text-ink">MSHFI</span>
-            </div>
-            <h1 class="text-2xl font-semibold text-ink">Sign In</h1>
-            <p class="text-ink-soft text-sm mt-1 text-center">Welcome back! Sign in to manage your appointments.</p>
-          </div>
-
-          <div class="flex items-center justify-center gap-3 mb-5">
-            {% if social_providers.facebook %}
-            <a href="{% url 'accounts:social_start' 'facebook' %}" title="Sign in with Facebook" aria-label="Sign in with Facebook"
-               class="flex size-10 items-center justify-center rounded-full border border-line transition hover:bg-gray-50">
-              <svg class="w-4 h-4" fill="#1877F2" viewBox="0 0 24 24"><path d="M22 12.06C22 6.51 17.52 2 12 2S2 6.51 2 12.06c0 5 3.66 9.15 8.44 9.94v-7.03H7.9v-2.91h2.54V9.85c0-2.51 1.49-3.9 3.77-3.9 1.09 0 2.24.2 2.24.2v2.46h-1.26c-1.24 0-1.63.77-1.63 1.56v1.89h2.78l-.44 2.91h-2.34V22c4.78-.79 8.44-4.94 8.44-9.94z"/></svg>
-            </a>
-            {% else %}
-            <button type="button" disabled title="Coming soon" aria-label="Sign in with Facebook"
-                    class="flex size-10 items-center justify-center rounded-full border border-line opacity-60 cursor-not-allowed">
-              <svg class="w-4 h-4" fill="#1877F2" viewBox="0 0 24 24"><path d="M22 12.06C22 6.51 17.52 2 12 2S2 6.51 2 12.06c0 5 3.66 9.15 8.44 9.94v-7.03H7.9v-2.91h2.54V9.85c0-2.51 1.49-3.9 3.77-3.9 1.09 0 2.24.2 2.24.2v2.46h-1.26c-1.24 0-1.63.77-1.63 1.56v1.89h2.78l-.44 2.91h-2.34V22c4.78-.79 8.44-4.94 8.44-9.94z"/></svg>
-            </button>
-            {% endif %}
-            {% if social_providers.google %}
-            <a href="{% url 'accounts:social_start' 'google' %}" title="Sign in with Google" aria-label="Sign in with Google"
-               class="flex size-10 items-center justify-center rounded-full border border-line transition hover:bg-gray-50">
-              <svg class="w-4 h-4" viewBox="0 0 24 24"><path fill="#4285F4" d="M23.49 12.27c0-.79-.07-1.54-.19-2.27H12v4.51h6.47c-.29 1.48-1.14 2.73-2.4 3.58v3h3.86c2.26-2.09 3.56-5.17 3.56-8.82z"/><path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.86-3c-1.08.72-2.45 1.16-4.07 1.16-3.13 0-5.78-2.11-6.73-4.96H1.29v3.09C3.26 21.3 7.31 24 12 24z"/><path fill="#FBBC05" d="M5.27 14.29c-.25-.72-.38-1.49-.38-2.29s.14-1.57.38-2.29V6.62H1.29C.47 8.24 0 10.06 0 12s.47 3.76 1.29 5.38l3.98-3.09z"/><path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.31 0 3.26 2.7 1.29 6.62l3.98 3.09c.95-2.85 3.6-4.96 6.73-4.96z"/></svg>
-            </a>
-            {% else %}
-            <button type="button" disabled title="Coming soon" aria-label="Sign in with Google"
-                    class="flex size-10 items-center justify-center rounded-full border border-line opacity-60 cursor-not-allowed">
-              <span class="text-sm font-bold" style="color:#EA4335;">G</span>
-            </button>
-            {% endif %}
-            <button type="button" disabled title="Coming soon" aria-label="Sign in with mobile OTP"
-                    class="flex size-10 items-center justify-center rounded-full border border-line opacity-60 cursor-not-allowed">
-              <svg class="w-4 h-4 text-ink-soft" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M7 4h10a1 1 0 011 1v14a1 1 0 01-1 1H7a1 1 0 01-1-1V5a1 1 0 011-1z"/><path stroke-linecap="round" d="M11 18h2"/></svg>
-            </button>
-          </div>
-          <div class="flex items-center gap-3 mb-5">
-            <span class="h-px flex-1 bg-line"></span>
-            <span class="text-[11px] text-ink-soft uppercase tracking-wide">or use your account</span>
-            <span class="h-px flex-1 bg-line"></span>
-          </div>
-
-          <form method="post" action="{% url 'accounts:login' %}" class="space-y-3 hp-field">
-            {% csrf_token %}
-            <div class="flex items-center gap-2.5 bg-softgray rounded-xl px-4 py-3.5 border border-transparent focus-within:border-brand-300 focus-within:ring-2 focus-within:ring-brand-500/15 transition">
-              <svg class="w-4 h-4 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
-              </svg>
-              <input type="text" name="username" required
-                     class="flex-1 bg-transparent border-0 p-0 text-sm text-ink placeholder-gray-400 focus:outline-none focus:ring-0"
-                     placeholder="Username" />
-            </div>
-
-            <div class="flex items-center gap-2.5 bg-softgray rounded-xl px-4 py-3.5 border border-transparent focus-within:border-brand-300 focus-within:ring-2 focus-within:ring-brand-500/15 transition">
-              <svg class="w-4 h-4 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 11c0 1.1-.9 2-2 2s-2-.9-2-2 .9-2 2-2 2 .9 2 2zm6-2V8a6 6 0 10-12 0v1m-1 0h14a1 1 0 011 1v9a2 2 0 01-2 2H6a2 2 0 01-2-2v-9a1 1 0 011-1z"/>
-              </svg>
-              <input type="password" name="password" required
-                     class="flex-1 bg-transparent border-0 p-0 text-sm text-ink placeholder-gray-400 focus:outline-none focus:ring-0"
-                     placeholder="Password" />
-            </div>
-
-            <button type="submit" data-loading-text="Signing in…"
-                    class="w-full bg-brand-500 hover:bg-brand-600 text-white font-medium py-3.5 px-4 rounded-xl text-sm transition-all duration-200 hover:shadow-soft-sm hover:-translate-y-0.5 disabled:opacity-60 disabled:cursor-not-allowed !mt-5">
-              Sign in
-            </button>
-          </form>
-
-          <p class="text-center text-sm text-ink-soft mt-5 md:hidden">
-            New patient? <a href="#" class="auth-switch-link text-brand-600 font-medium hover:underline" data-target="register">Create an account</a>
-          </p>
-          <p class="text-center mt-3">
-            <a href="/" class="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-white border border-gray-300 shadow-soft-sm text-sm font-medium text-gray-700 hover:bg-gray-50 hover:text-gray-900 transition"><svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg> Back to Home</a>
-          </p>
+      <!-- ============ Left: form column ============ -->
+      <div class="auth-left">
+        <div class="flex items-center gap-2">
+          <span class="auth-brand">MSHFI</span>
         </div>
+
+        <div class="auth-forms">
+          <div class="auth-form-inner">
+
+            <!-- ===== Sign in ===== -->
+            <div class="auth-panel panel-login">
+              <div class="flex items-center justify-between mb-5">
+                <h1 class="text-xl font-bold text-[#1E293B]">Sign In</h1>
+                <a href="#" class="auth-switch-link text-sm font-semibold text-[#1F4D11] hover:underline" data-target="register">Register</a>
+              </div>
+
+              <form method="post" action="{% url 'accounts:login' %}" class="space-y-3 hp-field">
+                {% csrf_token %}
+                <input type="text" name="username" required
+                       class="w-full" placeholder="Username" />
+                <input type="password" name="password" required
+                       class="w-full" placeholder="Password" />
+                <button type="submit" data-loading-text="Signing in…"
+                        class="w-full bg-[#1F4D11] hover:bg-[#183E0C] text-white font-bold uppercase tracking-widest py-3 px-4 rounded-lg text-xs transition-all duration-200 hover:-translate-y-0.5 disabled:opacity-60 disabled:cursor-not-allowed !mt-5">
+                  Sign In
+                </button>
+              </form>
+
+              <div class="flex items-center gap-3 my-5">
+                <span class="h-px flex-1 bg-[#E2E8F0]"></span>
+                <span class="text-[11px] text-[#94A3B8]">or sign in with</span>
+                <span class="h-px flex-1 bg-[#E2E8F0]"></span>
+              </div>
+
+              {% if social_providers.google %}
+              <a href="{% url 'accounts:social_start' 'google' %}" class="google-btn" aria-label="Sign in with Google">
+                <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24"><path fill="#4285F4" d="M23.49 12.27c0-.79-.07-1.54-.19-2.27H12v4.51h6.47c-.29 1.48-1.14 2.73-2.4 3.58v3h3.86c2.26-2.09 3.56-5.17 3.56-8.82z"/><path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.86-3c-1.08.72-2.45 1.16-4.07 1.16-3.13 0-5.78-2.11-6.73-4.96H1.29v3.09C3.26 21.3 7.31 24 12 24z"/><path fill="#FBBC05" d="M5.27 14.29c-.25-.72-.38-1.49-.38-2.29s.14-1.57.38-2.29V6.62H1.29C.47 8.24 0 10.06 0 12s.47 3.76 1.29 5.38l3.98-3.09z"/><path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.31 0 3.26 2.7 1.29 6.62l3.98 3.09c.95-2.85 3.6-4.96 6.73-4.96z"/></svg>
+                Google
+              </a>
+              {% else %}
+              <button type="button" disabled title="Coming soon" class="google-btn" aria-label="Sign in with Google">
+                <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24"><path fill="#4285F4" d="M23.49 12.27c0-.79-.07-1.54-.19-2.27H12v4.51h6.47c-.29 1.48-1.14 2.73-2.4 3.58v3h3.86c2.26-2.09 3.56-5.17 3.56-8.82z"/><path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.86-3c-1.08.72-2.45 1.16-4.07 1.16-3.13 0-5.78-2.11-6.73-4.96H1.29v3.09C3.26 21.3 7.31 24 12 24z"/><path fill="#FBBC05" d="M5.27 14.29c-.25-.72-.38-1.49-.38-2.29s.14-1.57.38-2.29V6.62H1.29C.47 8.24 0 10.06 0 12s.47 3.76 1.29 5.38l3.98-3.09z"/><path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.31 0 3.26 2.7 1.29 6.62l3.98 3.09c.95-2.85 3.6-4.96 6.73-4.96z"/></svg>
+                Google
+              </button>
+              {% endif %}
+
+              <p class="text-center mt-6">
+                <a href="/" class="inline-flex items-center gap-1.5 text-sm text-[#64748B] hover:text-[#1E293B] transition">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
+                  Back to Home
+                </a>
+              </p>
+            </div>
+
+            <!-- ===== Register ===== -->
+            <div class="auth-panel panel-register">
+              <div class="flex items-center justify-between mb-5">
+                <h1 class="text-xl font-bold text-[#1E293B]">Create Account</h1>
+                <a href="#" class="auth-switch-link text-sm font-semibold text-[#1F4D11] hover:underline" data-target="login">Sign In</a>
+              </div>
+
+              <form method="post" action="{% url 'accounts:register' %}" class="space-y-3 hp-field" novalidate>
+                {% csrf_token %}
+                {% if register_form.non_field_errors %}
+                <div class="bg-[#FEF2F2] text-[#DC2626] rounded-lg p-3 text-sm">
+                  {% for error in register_form.non_field_errors %}{{ error }}{% endfor %}
+                </div>
+                {% endif %}
+
+                <div>
+                  <input type="text"
+                         name="{{ register_form.username.html_name }}"
+                         id="{{ register_form.username.auto_id }}"
+                         {% if register_form.username.value %}value="{{ register_form.username.value }}"{% endif %}
+                         required autocomplete="off"
+                         class="w-full" placeholder="Username" />
+                  {% if register_form.username.errors %}
+                  <p class="text-[#DC2626] text-xs mt-1 ml-1">{{ register_form.username.errors.0 }}</p>
+                  {% endif %}
+                </div>
+
+                <div>
+                  <input type="email"
+                         name="{{ register_form.email.html_name }}"
+                         id="{{ register_form.email.auto_id }}"
+                         {% if register_form.email.value %}value="{{ register_form.email.value }}"{% endif %}
+                         required
+                         class="w-full" placeholder="Email Address" />
+                  {% if register_form.email.errors %}
+                  <p class="text-[#DC2626] text-xs mt-1 ml-1">{{ register_form.email.errors.0 }}</p>
+                  {% endif %}
+                </div>
+
+                <div>
+                  <input type="password"
+                         name="{{ register_form.password1.html_name }}"
+                         id="{{ register_form.password1.auto_id }}"
+                         required autocomplete="new-password"
+                         class="w-full" placeholder="Password" />
+                  {% if register_form.password1.errors %}
+                  <p class="text-[#DC2626] text-xs mt-1 ml-1">{{ register_form.password1.errors.0 }}</p>
+                  {% endif %}
+                </div>
+
+                <div>
+                  <input type="password"
+                         name="{{ register_form.password2.html_name }}"
+                         id="{{ register_form.password2.auto_id }}"
+                         required autocomplete="new-password"
+                         class="w-full" placeholder="Confirm Password" />
+                  {% if register_form.password2.errors %}
+                  <p class="text-[#DC2626] text-xs mt-1 ml-1">{{ register_form.password2.errors.0 }}</p>
+                  {% endif %}
+                </div>
+
+                <button type="submit" data-loading-text="Creating account…"
+                        class="w-full bg-[#1F4D11] hover:bg-[#183E0C] text-white font-bold uppercase tracking-widest py-3 px-4 rounded-lg text-xs transition-all duration-200 hover:-translate-y-0.5 disabled:opacity-60 disabled:cursor-not-allowed !mt-5">
+                  Register
+                </button>
+              </form>
+
+              <div class="flex items-center gap-3 my-5">
+                <span class="h-px flex-1 bg-[#E2E8F0]"></span>
+                <span class="text-[11px] text-[#94A3B8]">or register with</span>
+                <span class="h-px flex-1 bg-[#E2E8F0]"></span>
+              </div>
+
+              {% if social_providers.google %}
+              <a href="{% url 'accounts:social_start' 'google' %}" class="google-btn" aria-label="Sign up with Google">
+                <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24"><path fill="#4285F4" d="M23.49 12.27c0-.79-.07-1.54-.19-2.27H12v4.51h6.47c-.29 1.48-1.14 2.73-2.4 3.58v3h3.86c2.26-2.09 3.56-5.17 3.56-8.82z"/><path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.86-3c-1.08.72-2.45 1.16-4.07 1.16-3.13 0-5.78-2.11-6.73-4.96H1.29v3.09C3.26 21.3 7.31 24 12 24z"/><path fill="#FBBC05" d="M5.27 14.29c-.25-.72-.38-1.49-.38-2.29s.14-1.57.38-2.29V6.62H1.29C.47 8.24 0 10.06 0 12s.47 3.76 1.29 5.38l3.98-3.09z"/><path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.31 0 3.26 2.7 1.29 6.62l3.98 3.09c.95-2.85 3.6-4.96 6.73-4.96z"/></svg>
+                Google
+              </a>
+              {% else %}
+              <button type="button" disabled title="Coming soon" class="google-btn" aria-label="Sign up with Google">
+                <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24"><path fill="#4285F4" d="M23.49 12.27c0-.79-.07-1.54-.19-2.27H12v4.51h6.47c-.29 1.48-1.14 2.73-2.4 3.58v3h3.86c2.26-2.09 3.56-5.17 3.56-8.82z"/><path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.86-3c-1.08.72-2.45 1.16-4.07 1.16-3.13 0-5.78-2.11-6.73-4.96H1.29v3.09C3.26 21.3 7.31 24 12 24z"/><path fill="#FBBC05" d="M5.27 14.29c-.25-.72-.38-1.49-.38-2.29s.14-1.57.38-2.29V6.62H1.29C.47 8.24 0 10.06 0 12s.47 3.76 1.29 5.38l3.98-3.09z"/><path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.31 0 3.26 2.7 1.29 6.62l3.98 3.09c.95-2.85 3.6-4.96 6.73-4.96z"/></svg>
+                Google
+              </button>
+              {% endif %}
+            </div>
+
+          </div>
+        </div>
+
+        <p class="auth-footer">&copy; {% now "Y" %} MSHFI. All Rights Reserved</p>
       </div>
 
-      <!-- Sign up panel -->
-      <div class="auth-form-panel sign-up-panel">
-        <div class="auth-form-inner" style="max-width: 420px;">
-          <div class="flex flex-col items-center mb-4">
-            <div class="flex items-center gap-2.5 mb-4">
-              <div class="flex size-11 items-center justify-center rounded-xl bg-brand-500 text-white shadow-soft-sm shrink-0">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M11 3a1 1 0 00-1 1v5a1 1 0 01-1 1H4a1 1 0 00-1 1v2a1 1 0 001 1h5a1 1 0 011 1v5a1 1 0 001 1h2a1 1 0 001-1v-5a1 1 0 011-1h5a1 1 0 001-1v-2a1 1 0 00-1-1h-5a1 1 0 01-1-1V4a1 1 0 00-1-1h-2z"/></svg>
-              </div>
-              <span class="text-xl font-bold tracking-tight text-ink">MSHFI</span>
-            </div>
-            <h1 class="text-2xl font-semibold text-ink">Create Account</h1>
-            <p class="text-ink-soft text-sm mt-1 text-center">Join MSHFI to book appointments and manage your visits online.</p>
+      <!-- ============ Right: photo panel ============ -->
+      <div class="auth-right">
+        <div class="auth-photo">
+          <div class="auth-photo-headline">
+            <h2>Your health journey starts with one click!</h2>
           </div>
-
-          <div class="flex items-center justify-center gap-3 mb-4">
-            {% if social_providers.facebook %}
-            <a href="{% url 'accounts:social_start' 'facebook' %}" title="Sign up with Facebook" aria-label="Sign up with Facebook"
-               class="flex size-10 items-center justify-center rounded-full border border-line transition hover:bg-gray-50">
-              <svg class="w-4 h-4" fill="#1877F2" viewBox="0 0 24 24"><path d="M22 12.06C22 6.51 17.52 2 12 2S2 6.51 2 12.06c0 5 3.66 9.15 8.44 9.94v-7.03H7.9v-2.91h2.54V9.85c0-2.51 1.49-3.9 3.77-3.9 1.09 0 2.24.2 2.24.2v2.46h-1.26c-1.24 0-1.63.77-1.63 1.56v1.89h2.78l-.44 2.91h-2.34V22c4.78-.79 8.44-4.94 8.44-9.94z"/></svg>
-            </a>
-            {% else %}
-            <button type="button" disabled title="Coming soon" aria-label="Sign up with Facebook"
-                    class="flex size-10 items-center justify-center rounded-full border border-line opacity-60 cursor-not-allowed">
-              <svg class="w-4 h-4" fill="#1877F2" viewBox="0 0 24 24"><path d="M22 12.06C22 6.51 17.52 2 12 2S2 6.51 2 12.06c0 5 3.66 9.15 8.44 9.94v-7.03H7.9v-2.91h2.54V9.85c0-2.51 1.49-3.9 3.77-3.9 1.09 0 2.24.2 2.24.2v2.46h-1.26c-1.24 0-1.63.77-1.63 1.56v1.89h2.78l-.44 2.91h-2.34V22c4.78-.79 8.44-4.94 8.44-9.94z"/></svg>
-            </button>
-            {% endif %}
-            {% if social_providers.google %}
-            <a href="{% url 'accounts:social_start' 'google' %}" title="Sign up with Google" aria-label="Sign up with Google"
-               class="flex size-10 items-center justify-center rounded-full border border-line transition hover:bg-gray-50">
-              <svg class="w-4 h-4" viewBox="0 0 24 24"><path fill="#4285F4" d="M23.49 12.27c0-.79-.07-1.54-.19-2.27H12v4.51h6.47c-.29 1.48-1.14 2.73-2.4 3.58v3h3.86c2.26-2.09 3.56-5.17 3.56-8.82z"/><path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.86-3c-1.08.72-2.45 1.16-4.07 1.16-3.13 0-5.78-2.11-6.73-4.96H1.29v3.09C3.26 21.3 7.31 24 12 24z"/><path fill="#FBBC05" d="M5.27 14.29c-.25-.72-.38-1.49-.38-2.29s.14-1.57.38-2.29V6.62H1.29C.47 8.24 0 10.06 0 12s.47 3.76 1.29 5.38l3.98-3.09z"/><path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.31 0 3.26 2.7 1.29 6.62l3.98 3.09c.95-2.85 3.6-4.96 6.73-4.96z"/></svg>
-            </a>
-            {% else %}
-            <button type="button" disabled title="Coming soon" aria-label="Sign up with Google"
-                    class="flex size-10 items-center justify-center rounded-full border border-line opacity-60 cursor-not-allowed">
-              <span class="text-sm font-bold" style="color:#EA4335;">G</span>
-            </button>
-            {% endif %}
-            <button type="button" disabled title="Coming soon" aria-label="Sign up with mobile OTP"
-                    class="flex size-10 items-center justify-center rounded-full border border-line opacity-60 cursor-not-allowed">
-              <svg class="w-4 h-4 text-ink-soft" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M7 4h10a1 1 0 011 1v14a1 1 0 01-1 1H7a1 1 0 01-1-1V5a1 1 0 011-1z"/><path stroke-linecap="round" d="M11 18h2"/></svg>
-            </button>
+          <div class="auth-photo-img">
+            <img src="{% static 'img/auth-nurse.jpg' %}" alt="MSHFI nurse in hospital hallway" />
           </div>
-          <div class="flex items-center gap-3 mb-4">
-            <span class="h-px flex-1 bg-line"></span>
-            <span class="text-[11px] text-ink-soft uppercase tracking-wide">or use your email</span>
-            <span class="h-px flex-1 bg-line"></span>
-          </div>
-
-          <form method="post" action="{% url 'accounts:register' %}" class="space-y-3 hp-field" novalidate>
-            {% csrf_token %}
-            {% if register_form.non_field_errors %}
-            <div class="bg-[#FEF2F2] text-[#DC2626] rounded-xl p-3 text-sm">
-              {% for error in register_form.non_field_errors %}{{ error }}{% endfor %}
-            </div>
-            {% endif %}
-
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {% for field in register_form %}
-              <div class="{% if field.name == 'address' %}sm:col-span-2{% endif %}">
-                {% if field.name == 'address' %}
-                  {% include "components/_address_picker.html" with initial=field.value errors=field.errors %}
-                {% elif field.name == 'date_of_birth' %}
-                  <div>
-                    <span class="block text-[10px] font-semibold uppercase tracking-wide text-gray-400 mb-1">Date of Birth</span>
-                    <input type="date" name="{{ field.html_name }}" id="{{ field.auto_id }}"
-                           {% if field.value %}value="{{ field.value|date:'Y-m-d' }}"{% endif %}
-                           {% if field.field.required %}required{% endif %}
-                           max="{{ field.field.widget.attrs.max }}"
-                           class="w-full bg-[#F5F7FA] border-0 rounded-xl px-4 py-3.5 text-sm text-[#1F2937] focus:outline-none focus:ring-2 focus:ring-brand-500/20" />
-                  </div>
-                {% elif field.field.widget.input_type == 'select' or field.name == 'gender' %}
-                  {{ field }}
-                {% else %}
-                  <input type="{{ field.field.widget.input_type }}"
-                         name="{{ field.html_name }}"
-                         id="{{ field.auto_id }}"
-                         {% if field.value %}value="{{ field.value }}"{% endif %}
-                         {% if field.field.required %}required{% endif %}
-                         autocomplete="{{ field.field.widget.attrs.autocomplete|default:'' }}"
-                         class="w-full bg-[#F5F7FA] border-0 rounded-xl px-4 py-3.5 text-sm text-[#1F2937] placeholder-[#6B7280] focus:outline-none focus:ring-2 focus:ring-brand-500/20"
-                         placeholder="{{ field.label }}" />
-                {% endif %}
-                {% if field.errors %}
-                <p class="text-[#DC2626] text-xs mt-1 ml-1">{{ field.errors.0 }}</p>
-                {% endif %}
-              </div>
-              {% endfor %}
-            </div>
-
-            <button type="submit" data-loading-text="Creating account…"
-                    class="w-full bg-brand-500 hover:bg-brand-600 text-white font-medium py-3.5 px-4 rounded-xl text-sm transition-all duration-200 hover:shadow-soft-sm hover:-translate-y-0.5 mt-5 disabled:opacity-60 disabled:cursor-not-allowed">
-              Create account
-            </button>
-          </form>
-
-          <p class="text-center text-sm text-[#6B7280] mt-5 md:hidden">
-            Already have an account? <a href="#" class="auth-switch-link text-[#1F2937] font-medium hover:underline" data-target="login">Sign in</a>
-          </p>
-        </div>
-      </div>
-
-      <!-- Sliding gradient overlay (desktop only) -->
-      <div class="auth-overlay-container">
-        <div class="auth-overlay">
-          <span class="auth-blob" style="width:150px;height:150px;top:-40px;left:-30px;background:rgba(244,226,59,0.16);animation-delay:0s;"></span>
-          <span class="auth-blob" style="width:110px;height:110px;bottom:-25px;right:-15px;background:rgba(255,255,255,0.10);animation-delay:2.3s;"></span>
-
-          <div class="auth-overlay-panel overlay-left">
-            <div class="mx-auto mb-5 flex size-14 items-center justify-center rounded-2xl bg-white/15 ring-1 ring-white/25 backdrop-blur-sm">
-              <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M11 3a1 1 0 00-1 1v5a1 1 0 01-1 1H4a1 1 0 00-1 1v2a1 1 0 001 1h5a1 1 0 011 1v5a1 1 0 001 1h2a1 1 0 001-1v-5a1 1 0 011-1h5a1 1 0 001-1v-2a1 1 0 00-1-1h-5a1 1 0 01-1-1V4a1 1 0 00-1-1h-2z"/></svg>
-            </div>
-            <h2 class="text-xl font-semibold mb-3 text-white">Welcome back!</h2>
-            <p class="text-white/80 text-sm leading-relaxed mb-6 max-w-[220px]">Already have an account? Sign in to manage your appointments.</p>
-            <button type="button" class="auth-switch-link inline-block border-2 border-white/70 hover:bg-white hover:text-brand-600 text-white font-medium text-sm px-8 py-3 rounded-xl transition-all duration-300" data-target="login">
-              Sign in
-            </button>
-          </div>
-
-          <div class="auth-overlay-panel overlay-right">
-            <div class="mx-auto mb-5 flex size-14 items-center justify-center rounded-2xl bg-white/15 ring-1 ring-white/25 backdrop-blur-sm">
-              <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M11 3a1 1 0 00-1 1v5a1 1 0 01-1 1H4a1 1 0 00-1 1v2a1 1 0 001 1h5a1 1 0 011 1v5a1 1 0 001 1h2a1 1 0 001-1v-5a1 1 0 011-1h5a1 1 0 001-1v-2a1 1 0 00-1-1h-5a1 1 0 01-1-1V4a1 1 0 00-1-1h-2z"/></svg>
-            </div>
-            <h2 class="text-xl font-semibold mb-3 text-white">New here?</h2>
-            <p class="text-white/80 text-sm leading-relaxed mb-6 max-w-[220px]">Create an account to book appointments and manage your visits online.</p>
-            <button type="button" class="auth-switch-link inline-block border-2 border-white/70 hover:bg-white hover:text-brand-600 text-white font-medium text-sm px-8 py-3 rounded-xl transition-all duration-300" data-target="register">
-              Create account
-            </button>
+          <div class="auth-photo-dots">
+            <span></span><span></span><span></span>
           </div>
         </div>
       </div>

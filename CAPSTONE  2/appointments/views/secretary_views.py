@@ -6,7 +6,7 @@ from django.db import transaction
 from datetime import date, datetime, timedelta
 from django.db.models import Q, Count
 from accounts.decorators import role_required
-from appointments.models import Appointment, Schedule
+from appointments.models import Appointment, Schedule, TIME_NULLS_FIRST
 from appointments.forms import AssignTimeForm
 from accounts.models import CustomUser, PatientProfile
 from notifications.email_utils import (
@@ -30,7 +30,7 @@ def _build_secretary_dashboard_data(request):
         doctor=doctor,
         appointment_date=date.today(),
         status__in=['Pending Assignment', 'Scheduled', 'Confirmed', 'Rescheduled', 'Pending Reschedule']
-    ).select_related('patient', 'doctor').order_by('appointment_time') if doctor else Appointment.objects.none()
+    ).select_related('patient', 'doctor').order_by(TIME_NULLS_FIRST) if doctor else Appointment.objects.none()
     total_today = today_appts.count()
     pending_time_count = today_appts.filter(status='Pending Assignment').count() if doctor else 0
 
@@ -101,7 +101,7 @@ def secretary_appointment_list(request):
     if date_filter:
         qs = qs.filter(appointment_date=date_filter)
     return render(request, 'secretary/appointment_list.html', {
-        'appointments': qs.order_by('appointment_date', 'appointment_time'),
+        'appointments': qs.order_by('appointment_date', TIME_NULLS_FIRST),
         'status_filter': status_filter, 'date_filter': date_filter,
         'assigned_doctor': doctor,
     })

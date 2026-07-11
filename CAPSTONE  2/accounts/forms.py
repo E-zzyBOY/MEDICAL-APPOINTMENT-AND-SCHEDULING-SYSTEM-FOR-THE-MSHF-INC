@@ -116,35 +116,18 @@ class WalkInPatientForm(forms.Form):
 
 
 class PatientRegistrationForm(UserCreationForm):
-    first_name     = forms.CharField(max_length=150, required=True, label='First Name')
-    last_name      = forms.CharField(max_length=150, required=True, label='Last Name')
-    email          = forms.EmailField(required=True, label='Email Address')
-    contact_number = forms.CharField(max_length=20, required=False, label='Contact Number')
-    gender         = forms.ChoiceField(choices=[('', '-- Select --')] + PatientProfile.GENDER_CHOICES, required=False)
-    date_of_birth  = forms.DateField(required=False, widget=forms.DateInput(attrs={'type': 'date'}))
-    address        = forms.CharField(widget=forms.Textarea(attrs={'rows': 3}), required=True, label='Address')
-    guardian       = forms.CharField(max_length=150, required=False, label='Guardian (optional)')
+    """Minimal self-service sign-up: Username / Email / Password only.
+    Everything else patient-related (name, address, DOB, gender, etc.) is
+    optional at the database level (see PatientProfile), so it's safe to
+    collect it later from the profile page instead of at sign-up time."""
+    email = forms.EmailField(required=True, label='Email Address')
 
     class Meta:
         model  = CustomUser
-        fields = ['username', 'first_name', 'last_name', 'email', 'password1', 'password2']
-
-
-    def clean(self):
-        cleaned = super().clean()
-        err = validate_picker_data(self.data, forms, required=True)
-        if err:
-            self.add_error('address', err)
-        return cleaned
+        fields = ['username', 'email', 'password1', 'password2']
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # Browser-side guard: the date picker can't go past the newest
-        # allowed birthday (16 years old today). Server-side check below.
-        t = date.today()
-        latest = t.replace(year=t.year - 16)
-        self.fields['date_of_birth'].widget.attrs['max'] = latest.isoformat()
-
         # This is a brand-new-account form living on the SAME page as the
         # login form (sliding sign-in/sign-up card). Django's default
         # UsernameField sets autocomplete="username", which tells the
@@ -155,35 +138,13 @@ class PatientRegistrationForm(UserCreationForm):
         self.fields['password1'].widget.attrs['autocomplete'] = 'new-password'
         self.fields['password2'].widget.attrs['autocomplete'] = 'new-password'
 
-    def clean_date_of_birth(self):
-        dob = self.cleaned_data.get('date_of_birth')
-        if not dob:
-            return dob
-        if dob >= date.today():
-            raise forms.ValidationError('Date of birth must be in the past — it cannot be today or a future date.')
-        t = date.today()
-        age = t.year - dob.year - ((t.month, t.day) < (dob.month, dob.day))
-        if age < 16:
-            raise forms.ValidationError('You must be at least 16 years old to have an account.')
-        return dob
-
     def save(self, commit=True):
         user = super().save(commit=False)
-        user.role       = 'patient'
-        user.first_name = self.cleaned_data['first_name']
-        user.last_name  = self.cleaned_data['last_name']
-        user.email      = self.cleaned_data['email']
+        user.role  = 'patient'
+        user.email = self.cleaned_data['email']
         if commit:
             user.save()
-            PatientProfile.objects.create(
-                user           = user,
-                contact_number = self.cleaned_data.get('contact_number', ''),
-                gender         = self.cleaned_data.get('gender', ''),
-                date_of_birth  = self.cleaned_data.get('date_of_birth'),
-                place_of_birth = self.cleaned_data.get('place_of_birth', ''),
-                address        = self.cleaned_data.get('address', ''),
-                guardian       = self.cleaned_data.get('guardian', ''),
-            )
+            PatientProfile.objects.create(user=user)
         return user
 
 
@@ -232,6 +193,22 @@ class PatientProfileEditForm(forms.ModelForm):
         if age < 16:
             raise forms.ValidationError('You must be at least 16 years old to have an account.')
         return dob
+
+
+class PatientOnboardingForm(PatientProfileEditForm):
+    """Shown right after account creation (regular sign-up or first Google
+    sign-in) to collect the details that used to be gathered at sign-up
+    time. Same fields/validation as the general profile-edit form, but Name
+    and Address are required here since nothing has been collected for a
+    brand-new account yet."""
+    class Meta(PatientProfileEditForm.Meta):
+        fields = ['contact_number', 'gender', 'date_of_birth', 'address', 'guardian']
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['first_name'].required = True
+        self.fields['last_name'].required = True
+        self.fields['address'].required = True
 
 
 class DoctorProfileEditForm(forms.ModelForm):

@@ -1,6 +1,10 @@
+import logging
+
 from django.core.mail import send_mail
 from django.template.loader import render_to_string
 from django.conf import settings
+
+logger = logging.getLogger(__name__)
 
 
 def _should_email(patient):
@@ -36,8 +40,14 @@ def send_verification_email(user, request):
         'verify_url':   verify_url,
     }
     message = render_to_string('notifications/email/verify_email.html', ctx)
-    send_mail(subject, message, settings.DEFAULT_FROM_EMAIL,
-              [user.email], fail_silently=True)
+    try:
+        send_mail(subject, message, settings.DEFAULT_FROM_EMAIL,
+                  [user.email], fail_silently=False)
+    except Exception:
+        # Never let a mail outage break registration itself, but DO leave
+        # the real SMTP error in the server logs — a silently missing
+        # verification email is undebuggable otherwise.
+        logger.exception('Verification email to %s failed to send', user.email)
 
 
 def send_booking_received_email(appointment):

@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load static %}
 {% block title %}Welcome — MSHFI Medical Appointment System{% endblock %}
 
 {% block body %}
@@ -7,9 +8,7 @@
   <!-- Header -->
   <header class="px-6 py-5 flex items-center justify-between max-w-7xl mx-auto w-full">
     <div class="flex items-center gap-3">
-      <span class="flex size-11 items-center justify-center rounded-2xl bg-brand-500 text-white shadow-soft-sm">
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M11 3a1 1 0 00-1 1v5a1 1 0 01-1 1H4a1 1 0 00-1 1v2a1 1 0 001 1h5a1 1 0 011 1v5a1 1 0 001 1h2a1 1 0 001-1v-5a1 1 0 011-1h5a1 1 0 001-1v-2a1 1 0 00-1-1h-5a1 1 0 01-1-1V4a1 1 0 00-1-1h-2z"/></svg>
-      </span>
+      <img src="{% static 'img/mshfi-logo.jpg' %}" alt="MSHFI seal" class="size-11 rounded-full object-cover shadow-soft-sm" />
       <span class="text-ink font-semibold text-xl tracking-tight">MSHFI</span>
     </div>
     <div class="flex gap-3">
@@ -92,9 +91,7 @@
   <!-- Footer -->
   <footer class="bg-white border-t border-gray-100 text-ink-soft text-center text-sm py-8 px-6">
     <div class="flex items-center justify-center gap-2 mb-2">
-      <span class="flex size-6 items-center justify-center rounded-lg bg-brand-500 text-white">
-        <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M11 3a1 1 0 00-1 1v5a1 1 0 01-1 1H4a1 1 0 00-1 1v2a1 1 0 001 1h5a1 1 0 011 1v5a1 1 0 001 1h2a1 1 0 001-1v-5a1 1 0 011-1h5a1 1 0 001-1v-2a1 1 0 00-1-1h-5a1 1 0 01-1-1V4a1 1 0 00-1-1h-2z"/></svg>
-      </span>
+      <img src="{% static 'img/mshfi-logo.jpg' %}" alt="MSHFI seal" class="size-6 rounded-full object-cover" />
       <span class="font-medium text-ink">MSHFI</span>
     </div>
     &copy; 2025 Mindalano Specialist Hospital Foundation Inc. &mdash; All rights reserved.

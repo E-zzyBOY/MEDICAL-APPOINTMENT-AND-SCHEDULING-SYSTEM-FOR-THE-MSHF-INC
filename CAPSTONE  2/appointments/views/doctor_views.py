@@ -8,7 +8,7 @@ from django.http import JsonResponse, HttpResponse
 from datetime import date, datetime, timedelta
 import calendar as calendar_module
 from accounts.decorators import role_required
-from appointments.models import Appointment, Schedule, TIME_NULLS_FIRST
+from appointments.models import Appointment, Schedule
 from appointments.forms import ScheduleForm, RescheduleForm, AssignTimeForm, MultiDateScheduleForm
 from accounts.models import CustomUser
 from notifications.email_utils import (
@@ -159,7 +159,7 @@ def _build_doctor_dashboard_data(request):
         doctor=request.user,
         appointment_date=date.today(),
         status__in=['Scheduled', 'Rescheduled', 'Pending Reschedule']
-    ).select_related('patient').order_by(TIME_NULLS_FIRST)
+    ).select_related('patient').order_by('appointment_time')
     upcoming = Appointment.objects.filter(
         doctor=request.user,
         appointment_date__gt=date.today(),
@@ -480,6 +480,48 @@ def schedule_add_calendar_partial(request):
         'today_iso': date.today().isoformat(),
         'selected_dates_list': [s for s in selected_dates_str.split(',') if s],
         'multi_select': True,
+    })
+
+
+@role_required('doctor')
+def schedule_edit_for_date(request):
+    """Entry point for clicking a *different* day (one that already has its
+    own slot) inside the Edit Slot popup's calendar. Editing must always
+    stay scoped to one specific slot — this resolves the clicked date to
+    that date's OWN Schedule row(s) rather than continuing to act on
+    whichever slot the doctor originally opened Edit from.
+
+    - Exactly one slot on that date  -> open Edit for that slot directly.
+    - More than one slot on that date -> let the doctor pick which one
+      (a day can have several time ranges).
+    - None (shouldn't normally happen, since this link is only ever shown
+      on days with a slot) -> fall back to Add Slot for that date.
+    """
+    date_str = request.GET.get('date', '')
+    the_date = None
+    if date_str:
+        try:
+            the_date = datetime.strptime(date_str, '%Y-%m-%d').date()
+        except ValueError:
+            the_date = None
+
+    if the_date is None:
+        return schedule_add(request)
+
+    day_slots = list(
+        Schedule.objects.filter(doctor=request.user, specific_date=the_date).order_by('start_time')
+    )
+
+    if len(day_slots) == 0:
+        return schedule_add(request)
+
+    if len(day_slots) == 1:
+        return schedule_edit(request, pk=day_slots[0].pk)
+
+    return render(request, 'doctor/_schedule_day_slot_picker.html', {
+        'date_str': date_str,
+        'date_display': _format_date_str(date_str),
+        'slots': day_slots,
     })
 
 

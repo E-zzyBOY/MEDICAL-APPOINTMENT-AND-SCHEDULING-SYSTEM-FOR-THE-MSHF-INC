@@ -8,11 +8,15 @@ is colored:
   gray (faded)   = a past date, not selectable
 
 Two distinct click behaviors depending on mode:
-  EDIT (schedule is set): clicking re-fetches the whole modal via hx-get —
-    but ONLY for days that already have a slot (status == 'has_slots').
-    Open days (no slot at all) are locked/non-clickable, so Edit can
-    never be used to plant a slot on a day the doctor never scheduled;
-    that's what Add Slot is for.
+  EDIT (schedule is set): clicking goes through schedule_edit_for_date,
+    which resolves the CLICKED date to that date's own Schedule row(s) —
+    not whichever slot the doctor originally opened Edit from. Exactly
+    one slot there -> its edit form opens directly; more than one -> a
+    small picker lets the doctor choose which one. Only clickable for
+    days that already have a slot (status == 'has_slots'). Open days (no
+    slot at all) are locked/non-clickable, so Edit can never be used to
+    plant a slot on a day the doctor never scheduled; that's what Add
+    Slot is for.
   ADD (schedule is not set): clicking is a pure client-side JS toggle —
     no server round-trip, so picking 10 days doesn't fire 10 requests or
     re-render the modal and lose the in-progress time fields. A second,
@@ -71,9 +75,13 @@ it survives the round trip.
         <!-- Edit mode: single-select, full modal re-fetch on click.
              Only days the doctor already has a slot on are clickable —
              editing must never be usable to plant a slot on a day he
-             never scheduled (that's what Add Slot is for). -->
+             never scheduled (that's what Add Slot is for). Routed through
+             schedule_edit_for_date so clicking a DIFFERENT day than the
+             one currently being edited resolves to THAT day's own slot
+             (or a picker, if it has more than one) — never silently
+             carries over the originally-opened slot's identity. -->
         <button type="button"
-                hx-get="{% url 'doctor:schedule_edit' pk=schedule.pk %}?date={{ cell.date }}"
+                hx-get="{% url 'doctor:schedule_edit_for_date' %}?date={{ cell.date }}"
                 hx-target="#modal-root" hx-swap="innerHTML"
                 class="schedule-calendar-day aspect-square rounded-full text-sm font-medium flex items-center justify-center transition cursor-pointer
                   {% if cell.date == selected_date %}bg-brand-500 text-white

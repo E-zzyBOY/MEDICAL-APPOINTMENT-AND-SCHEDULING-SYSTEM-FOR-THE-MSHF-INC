@@ -209,6 +209,36 @@ class SocialCallbackTests(SocialLoginTestBase):
         self.assertIsNone(self._logged_in_user())
         self.assertFalse(CustomUser.objects.exists())
 
+    def test_new_user_gets_google_avatar(self):
+        import tempfile
+        profile = dict(GOOGLE_PROFILE, picture='https://lh3.googleusercontent.com/a/test-avatar')
+        with tempfile.TemporaryDirectory() as media_root:
+            with override_settings(MEDIA_ROOT=media_root):
+                with patch('accounts.social_views.fetch_provider_avatar',
+                           return_value=b'fake-image-bytes') as fetch_avatar:
+                    self._callback(profile=profile)
+        fetch_avatar.assert_called_once_with('google', profile['picture'])
+        user = CustomUser.objects.get(username='google-juan-delacruz')
+        self.assertTrue(user.profile_picture.name)
+        self.assertIn('profile_pics/', user.profile_picture.name)
+
+    def test_avatar_failure_does_not_break_signup(self):
+        profile = dict(GOOGLE_PROFILE, picture='https://lh3.googleusercontent.com/a/test-avatar')
+        with patch('accounts.social_views.fetch_provider_avatar', return_value=None):
+            response = self._callback(profile=profile)
+        self.assertEqual(response.status_code, 302)
+        user = CustomUser.objects.get(username='google-juan-delacruz')
+        self.assertFalse(user.profile_picture)
+
+    def test_avatar_downloader_rejects_untrusted_hosts(self):
+        # Host allowlist is checked before any network I/O, so these calls
+        # are fully offline. Only the provider's own image CDN is allowed.
+        from accounts.social_auth import fetch_provider_avatar
+        self.assertIsNone(fetch_provider_avatar('google', 'https://evil.example.com/a.png'))
+        self.assertIsNone(fetch_provider_avatar('google', 'https://googleusercontent.com.evil.example/a.png'))
+        self.assertIsNone(fetch_provider_avatar('google', 'http://lh3.googleusercontent.com/a.png'))  # not https
+        self.assertIsNone(fetch_provider_avatar('google', ''))
+
     def test_deactivated_linked_patient_cannot_log_in(self):
         self._callback()
         user = self._logged_in_user()

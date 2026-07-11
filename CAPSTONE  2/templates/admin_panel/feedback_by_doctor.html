@@ -12,8 +12,8 @@
   <!-- Doctor header -->
   <div class="bg-white rounded-2xl border border-gray-200 shadow-soft-sm p-5 mb-5">
     <div class="flex items-center gap-4">
-      {% if doctor.doctor_profile.profile_picture %}
-        <img src="{{ doctor.doctor_profile.profile_picture.url }}" class="w-16 h-16 rounded-2xl object-cover object-top flex-shrink-0" alt="">
+      {% if doctor.profile_picture %}
+        <img src="{{ doctor.profile_picture.url }}" class="w-16 h-16 rounded-2xl object-cover object-top flex-shrink-0" alt="">
       {% else %}
         <div class="w-16 h-16 rounded-2xl bg-[#E0EED5] flex items-center justify-center flex-shrink-0">
           <span class="text-[#1F4D11] font-semibold text-xl">{{ doctor.first_name.0 }}{{ doctor.last_name.0 }}</span>

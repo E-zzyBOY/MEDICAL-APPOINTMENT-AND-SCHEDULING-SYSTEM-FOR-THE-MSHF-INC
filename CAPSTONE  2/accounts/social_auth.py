@@ -121,7 +121,60 @@ def _fetch_google_profile(code, redirect_uri):
         'email_verified': bool(userinfo.get('email_verified')),
         'first_name': (userinfo.get('given_name') or '').strip(),
         'last_name': (userinfo.get('family_name') or '').strip(),
+        # Google avatar URL (lh3.googleusercontent.com/...); may be absent.
+        'picture': (userinfo.get('picture') or '').strip(),
     }
+
+
+# Avatars bigger than this are almost certainly not avatars; refuse rather
+# than store megabytes of who-knows-what against a brand-new account.
+AVATAR_MAX_BYTES = 2 * 1024 * 1024
+
+# SSRF guard: only fetch avatars from the provider's own image CDN. The URL
+# comes from the provider's authenticated userinfo response, but treating it
+# as untrusted costs nothing.
+AVATAR_ALLOWED_HOST_SUFFIXES = {
+    'google': ('googleusercontent.com',),
+}
+
+
+class _NoRedirects(urllib.request.HTTPRedirectHandler):
+    # A redirect could hop off the allowlisted host, so don't follow any.
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        return None
+
+
+def _avatar_host_allowed(provider, url):
+    host = (urllib.parse.urlsplit(url).hostname or '').rstrip('.').lower()
+    return any(
+        host == suffix or host.endswith('.' + suffix)
+        for suffix in AVATAR_ALLOWED_HOST_SUFFIXES.get(provider, ())
+    )
+
+
+def fetch_provider_avatar(provider, url):
+    """Best-effort download of the provider's avatar image. Returns the raw
+    bytes, or None on ANY failure — a missing avatar must never break or
+    slow down sign-in beyond the request timeout."""
+    if not url or not url.startswith('https://') or not _avatar_host_allowed(provider, url):
+        return None
+    try:
+        opener = urllib.request.build_opener(_NoRedirects())
+        with opener.open(url, timeout=HTTP_TIMEOUT_SECONDS) as response:
+            data = response.read(AVATAR_MAX_BYTES + 1)
+        if not data or len(data) > AVATAR_MAX_BYTES:
+            return None
+        # Confirm the bytes really are an image before they get stored and
+        # served back to browsers as one.
+        from io import BytesIO
+
+        from PIL import Image
+
+        Image.open(BytesIO(data)).verify()
+        return data
+    except Exception as exc:  # noqa: BLE001 - by design: avatar is optional
+        logger.info('Avatar download failed (%s): %s', url, exc)
+        return None
 
 
 def _http_json(provider, request):

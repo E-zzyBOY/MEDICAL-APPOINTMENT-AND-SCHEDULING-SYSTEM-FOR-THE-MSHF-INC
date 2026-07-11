@@ -17,9 +17,11 @@ from django.urls import reverse
 
 from .forms import _generate_prefixed_username
 from .models import CustomUser, PatientProfile, SocialAccount
+from django.core.files.base import ContentFile
+
 from .social_auth import (
-    PROVIDERS, SocialAuthError, build_authorization_url, fetch_user_profile,
-    generate_state, provider_is_configured,
+    PROVIDERS, SocialAuthError, build_authorization_url, fetch_provider_avatar,
+    fetch_user_profile, generate_state, provider_is_configured,
 )
 from .views import _notify_admins, _role_redirect
 from notifications.email_utils import send_verification_email
@@ -150,6 +152,11 @@ def social_callback(request, provider):
             user=user, provider=provider,
             provider_user_id=profile['provider_user_id'], email_at_link=email,
         )
+    # Outside the transaction: an avatar download must never roll back or
+    # delay the account creation itself. Best-effort only.
+    avatar = fetch_provider_avatar(provider, profile.get('picture'))
+    if avatar:
+        user.profile_picture.save(f'{provider}-{user.pk}.jpg', ContentFile(avatar), save=True)
     _notify_admins(f"New patient account created: {user.get_full_name() or user.username} ({user.username}).")
     # Same confirmation gate as password sign-ups: a "was this really you?"
     # email must be clicked before the account can be used.

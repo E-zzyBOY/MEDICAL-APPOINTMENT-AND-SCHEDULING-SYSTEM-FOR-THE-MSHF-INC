@@ -11,9 +11,11 @@
         <img src="{% static 'img/default-avatar.svg' %}" class="w-24 h-24 rounded-full object-cover" alt="">
       {% endif %}
       <a hx-get="{% url 'accounts:profile_edit' %}" hx-target="#modal-root" hx-swap="innerHTML"
-         class="absolute bottom-0 right-0 w-7 h-7 rounded-full bg-brand-500 hover:bg-brand-600 transition-colors flex items-center justify-center border-2 border-white cursor-pointer">
-        <svg class="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+         title="Change profile photo" aria-label="Change profile photo"
+         class="absolute bottom-0 right-0 w-9 h-9 rounded-full bg-brand-500 hover:bg-brand-600 active:scale-95 transition-all flex items-center justify-center border-[3px] border-white shadow-lg cursor-pointer">
+        <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h1.5l1.2-1.6A2 2 0 019.3 4.6h5.4a2 2 0 011.6.8L17.5 7H19a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/>
+          <circle cx="12" cy="13" r="3.2" stroke-width="2"/>
         </svg>
       </a>
     </div>

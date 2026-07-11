@@ -108,14 +108,6 @@
           {% include "components/_address_picker.html" with initial=form.address.value errors=form.address.errors %}
         </div>
 
-        <div>
-          <input type="text" name="guardian"
-                 value="{{ form.guardian.value|default:'' }}"
-                 class="w-full bg-[#F3F4F8] border-0 rounded-xl px-4 py-3.5 text-sm text-[#1F2937] placeholder-[#6B7280] focus:outline-none focus:ring-2 focus:ring-[#1F4D11]/20"
-                 placeholder="Guardian (optional)" />
-          {% if form.guardian.errors %}<p class="text-[#DC2626] text-xs mt-1 ml-1">{{ form.guardian.errors.0 }}</p>{% endif %}
-        </div>
-
         <button type="submit" data-loading-text="Saving…"
                 class="w-full bg-[#1F4D11] hover:bg-[#183E0C] text-white font-bold uppercase tracking-wide py-3.5 px-4 rounded-xl text-sm transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5 mt-5 disabled:opacity-60 disabled:cursor-not-allowed">
           Save and Continue

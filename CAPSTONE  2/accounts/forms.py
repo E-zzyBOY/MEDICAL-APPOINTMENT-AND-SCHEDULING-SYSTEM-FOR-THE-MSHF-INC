@@ -151,11 +151,18 @@ class PatientRegistrationForm(UserCreationForm):
 class PatientProfileEditForm(forms.ModelForm):
     first_name     = forms.CharField(max_length=150, required=False)
     last_name      = forms.CharField(max_length=150, required=False)
+    emergency_contact_number = forms.CharField(
+        max_length=20, required=False, label='Emergency Contact Number',
+        widget=forms.TextInput(attrs={
+            'type': 'tel', 'inputmode': 'numeric', 'pattern': '[0-9]{11}',
+            'placeholder': '09XXXXXXXXX', 'autocomplete': 'off',
+        }),
+    )
 
     class Meta:
         model  = PatientProfile
         fields = [
-            'contact_number', 'gender', 'date_of_birth', 'place_of_birth', 'address', 'guardian',
+            'contact_number', 'gender', 'date_of_birth', 'place_of_birth', 'address',
             'emergency_contact_name', 'emergency_contact_number', 'blood_type',
         ]
         widgets = {
@@ -194,6 +201,18 @@ class PatientProfileEditForm(forms.ModelForm):
             raise forms.ValidationError('You must be at least 16 years old to have an account.')
         return dob
 
+    def clean_emergency_contact_number(self):
+        number = self.cleaned_data.get('emergency_contact_number', '').strip()
+        if not number:
+            return number
+        # Strip common formatting (spaces, dashes) in case it's pasted in,
+        # then require exactly 11 digits starting with 0 — the standard
+        # Philippine mobile format (e.g. 09171234567).
+        digits = re.sub(r'[^0-9]', '', number)
+        if not re.fullmatch(r'0\d{10}', digits):
+            raise forms.ValidationError('Enter an 11-digit mobile number starting with 0 (e.g. 09171234567).')
+        return digits
+
 
 class PatientOnboardingForm(PatientProfileEditForm):
     """Shown right after account creation (regular sign-up or first Google
@@ -202,7 +221,7 @@ class PatientOnboardingForm(PatientProfileEditForm):
     and Address are required here since nothing has been collected for a
     brand-new account yet."""
     class Meta(PatientProfileEditForm.Meta):
-        fields = ['contact_number', 'gender', 'date_of_birth', 'address', 'guardian']
+        fields = ['contact_number', 'gender', 'date_of_birth', 'address']
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -321,6 +340,9 @@ class EmailNotificationSettingsForm(forms.ModelForm):
     class Meta:
         model  = CustomUser
         fields = ['email_notifications_enabled']
+        widgets = {
+            'email_notifications_enabled': forms.CheckboxInput(attrs={'class': 'sr-only peer'}),
+        }
 
 
 class ProfilePictureWidget(forms.ClearableFileInput):

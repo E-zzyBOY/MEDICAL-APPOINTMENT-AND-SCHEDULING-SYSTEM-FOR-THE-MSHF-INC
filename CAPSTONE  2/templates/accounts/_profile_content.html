@@ -34,7 +34,6 @@
       <div><span class="font-semibold text-gray-600">Place of Birth:</span> {{ profile.place_of_birth|default:"—" }}</div>
       <div><span class="font-semibold text-gray-600">Blood Type:</span> {{ profile.blood_type|default:"—" }}</div>
       <div class="col-span-2"><span class="font-semibold text-gray-600">Address:</span> {{ profile.address|default:"—" }}</div>
-      <div class="col-span-2"><span class="font-semibold text-gray-600">Guardian:</span> {{ profile.guardian|default:"—" }}</div>
       <div><span class="font-semibold text-gray-600">Emergency Contact:</span> {{ profile.emergency_contact_name|default:"—" }}</div>
       <div><span class="font-semibold text-gray-600">Emergency Contact #:</span> {{ profile.emergency_contact_number|default:"—" }}</div>
       {% elif request.user.role == 'doctor' %}

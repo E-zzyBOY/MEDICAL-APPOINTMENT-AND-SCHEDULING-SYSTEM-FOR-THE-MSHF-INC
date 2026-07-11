@@ -64,10 +64,22 @@
           {% else %}
           {{ field }}
           {% endif %}
+          {% if field.name == 'emergency_contact_number' %}
+          <p class="text-gray-400 text-xs mt-1">11-digit mobile number, e.g. 09171234567</p>
+          {% endif %}
           {% if field.errors %}<p class="text-red-600 text-xs mt-1">{{ field.errors.0 }}</p>{% endif %}
         </div>
         {% endfor %}
       </div>
+      <script>
+        (function () {
+          var input = document.querySelector('input[name="emergency_contact_number"]');
+          if (!input) return;
+          input.addEventListener('input', function () {
+            input.value = input.value.replace(/\D/g, '').slice(0, 11);
+          });
+        })();
+      </script>
       {% endif %}
       <div class="flex gap-3 pt-2">
         <button type="submit" class="px-6 py-2.5 bg-brand-600 text-white font-semibold rounded-xl hover:bg-brand-700 transition text-sm">

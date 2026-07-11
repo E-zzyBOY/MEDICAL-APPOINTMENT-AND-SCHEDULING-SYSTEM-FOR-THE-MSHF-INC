@@ -1,21 +1,42 @@
 <div class="max-w-2xl mx-auto">
-  <div class="bg-white rounded-2xl shadow-soft p-8">
-    <h1 class="text-2xl font-semibold text-gray-800 mb-6">Settings</h1>
+  <div class="bg-white rounded-2xl shadow-soft p-6 sm:p-8">
+    <h1 class="text-2xl font-semibold text-ink mb-1">Settings</h1>
+    <p class="text-sm text-ink-soft mb-6">Manage your account details and notification preferences.</p>
 
-    <div class="grid grid-cols-2 gap-4 text-sm mb-8">
-      <div><span class="font-semibold text-gray-600">Username:</span> {{ request.user.username }}</div>
-      <div><span class="font-semibold text-gray-600">Email:</span> {{ request.user.email }}</div>
-      <div><span class="font-semibold text-gray-600">Role:</span> <span class="capitalize">{{ request.user.role }}</span></div>
+    <p class="text-xs font-semibold uppercase tracking-wide text-gray-400 mb-2 ml-1">Account</p>
+    <div class="rounded-xl border border-gray-100 divide-y divide-gray-100 mb-8">
+      <div class="flex items-center justify-between px-5 py-3.5">
+        <span class="text-sm text-ink-soft">Username</span>
+        <span class="text-sm font-semibold text-ink">{{ request.user.username }}</span>
+      </div>
+      <div class="flex items-center justify-between px-5 py-3.5">
+        <span class="text-sm text-ink-soft">Email</span>
+        <span class="text-sm font-semibold text-ink">{{ request.user.email|default:"—" }}</span>
+      </div>
+      <div class="flex items-center justify-between px-5 py-3.5">
+        <span class="text-sm text-ink-soft">Role</span>
+        <span class="text-sm font-semibold text-ink capitalize">{{ request.user.role }}</span>
+      </div>
     </div>
 
-    <form method="post" class="space-y-4">
+    <p class="text-xs font-semibold uppercase tracking-wide text-gray-400 mb-2 ml-1">Notifications</p>
+    <form method="post" class="space-y-5">
       {% csrf_token %}
-      <label class="flex items-center gap-3">
-        {{ form.email_notifications_enabled }}
-        <span class="text-sm font-semibold text-gray-700">Email notifications</span>
-      </label>
+      <div class="flex items-center justify-between gap-4 rounded-xl border border-gray-100 px-5 py-4">
+        <div>
+          <p class="text-sm font-semibold text-ink">Email notifications</p>
+          <p class="text-xs text-ink-soft mt-0.5">Get emailed about appointment updates and reminders.</p>
+        </div>
+        <label class="relative inline-flex items-center cursor-pointer shrink-0">
+          {{ form.email_notifications_enabled }}
+          <span class="w-11 h-6 rounded-full bg-gray-200 peer-checked:bg-brand-600 transition-colors relative
+                       after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:rounded-full
+                       after:h-5 after:w-5 after:shadow-sm after:transition-transform peer-checked:after:translate-x-5
+                       peer-focus-visible:ring-2 peer-focus-visible:ring-brand-500/40 peer-focus-visible:ring-offset-2"></span>
+        </label>
+      </div>
       <button type="submit" class="px-6 py-2.5 bg-brand-600 text-white font-semibold rounded-xl hover:bg-brand-700 transition text-sm">
-        Save
+        Save Changes
       </button>
     </form>
   </div>

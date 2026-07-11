@@ -15,7 +15,7 @@
       <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35M17 10a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
       <input type="text" id="appointment-search" placeholder="Search patient name..."
              oninput="filterAppointmentsByName(this.value)"
-             class="w-full bg-white border border-gray-300 rounded-xl pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" />
+             class="w-full bg-white border border-gray-300 rounded-xl pl-12 pr-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" />
     </div>
     <form method="get" class="flex">
       <input type="hidden" name="status" value="{{ status_filter }}">
@@ -26,15 +26,15 @@
 
   <!-- Status tabs (matches the doctor's Appointments page) -->
   <div class="flex gap-6 border-b border-gray-200 mb-5 overflow-x-auto whitespace-nowrap [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" data-swipe-tabs>
-    <a href="?status={% if date_filter %}&date={{ date_filter }}{% endif %}" class="pb-3 text-sm font-medium border-b-2 -mb-px transition-colors shrink-0 {% if not status_filter %}border-brand-600 text-brand-600 font-semibold{% else %}border-transparent text-gray-400 hover:text-gray-600{% endif %}">All</a>
     <a href="?status=Pending Assignment{% if date_filter %}&date={{ date_filter }}{% endif %}" class="pb-3 text-sm font-medium border-b-2 -mb-px transition-colors shrink-0 {% if status_filter == 'Pending Assignment' %}border-brand-600 text-brand-600 font-semibold{% else %}border-transparent text-gray-400 hover:text-gray-600{% endif %}">Pending Assignment</a>
     <a href="?status=Scheduled{% if date_filter %}&date={{ date_filter }}{% endif %}" class="pb-3 text-sm font-medium border-b-2 -mb-px transition-colors shrink-0 {% if status_filter == 'Scheduled' %}border-brand-600 text-brand-600 font-semibold{% else %}border-transparent text-gray-400 hover:text-gray-600{% endif %}">Scheduled</a>
     <a href="?status=Confirmed{% if date_filter %}&date={{ date_filter }}{% endif %}" class="pb-3 text-sm font-medium border-b-2 -mb-px transition-colors shrink-0 {% if status_filter == 'Confirmed' %}border-brand-600 text-brand-600 font-semibold{% else %}border-transparent text-gray-400 hover:text-gray-600{% endif %}">Confirmed</a>
     <a href="?status=Pending Reschedule{% if date_filter %}&date={{ date_filter }}{% endif %}" class="pb-3 text-sm font-medium border-b-2 -mb-px transition-colors shrink-0 {% if status_filter == 'Pending Reschedule' %}border-brand-600 text-brand-600 font-semibold{% else %}border-transparent text-gray-400 hover:text-gray-600{% endif %}">Reschedule</a>
     <a href="?status=Completed{% if date_filter %}&date={{ date_filter }}{% endif %}" class="pb-3 text-sm font-medium border-b-2 -mb-px transition-colors shrink-0 {% if status_filter == 'Completed' %}border-brand-600 text-brand-600 font-semibold{% else %}border-transparent text-gray-400 hover:text-gray-600{% endif %}">Completed</a>
-    <a href="?status=Cancelled{% if date_filter %}&date={{ date_filter }}{% endif %}" class="pb-3 text-sm font-medium border-b-2 -mb-px transition-colors shrink-0 {% if status_filter == 'Cancelled' %}border-brand-600 text-brand-600 font-semibold{% else %}border-transparent text-gray-400 hover:text-gray-600{% endif %}">Cancelled</a>
     <a href="?status=No-Show{% if date_filter %}&date={{ date_filter }}{% endif %}" class="pb-3 text-sm font-medium border-b-2 -mb-px transition-colors shrink-0 {% if status_filter == 'No-Show' %}border-brand-600 text-brand-600 font-semibold{% else %}border-transparent text-gray-400 hover:text-gray-600{% endif %}">No-Show</a>
+    <a href="?status=Cancelled{% if date_filter %}&date={{ date_filter }}{% endif %}" class="pb-3 text-sm font-medium border-b-2 -mb-px transition-colors shrink-0 {% if status_filter == 'Cancelled' %}border-brand-600 text-brand-600 font-semibold{% else %}border-transparent text-gray-400 hover:text-gray-600{% endif %}">Cancelled</a>
     <a href="?status=Rescheduled{% if date_filter %}&date={{ date_filter }}{% endif %}" class="pb-3 text-sm font-medium border-b-2 -mb-px transition-colors shrink-0 {% if status_filter == 'Rescheduled' %}border-brand-600 text-brand-600 font-semibold{% else %}border-transparent text-gray-400 hover:text-gray-600{% endif %}">Rescheduled</a>
+    <a href="?status={% if date_filter %}&date={{ date_filter }}{% endif %}" class="pb-3 text-sm font-medium border-b-2 -mb-px transition-colors shrink-0 {% if not status_filter %}border-brand-600 text-brand-600 font-semibold{% else %}border-transparent text-gray-400 hover:text-gray-600{% endif %}">All</a>
   </div>
 
   {% if appointments %}

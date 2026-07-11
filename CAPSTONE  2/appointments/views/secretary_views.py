@@ -4,7 +4,13 @@ from django.contrib import messages
 from django.http import JsonResponse
 from django.db import transaction
 from datetime import date, datetime, timedelta
-from django.db.models import Q, Count
+from django.db.models import Q, Count, Case, When, Value, IntegerField
+from django.db.models import Func, IntegerField
+
+
+class JulianDay(Func):
+    function = 'JULIANDAY'
+    output_field = IntegerField()
 from accounts.decorators import role_required
 from appointments.models import Appointment, Schedule, TIME_NULLS_FIRST
 from appointments.forms import AssignTimeForm
@@ -93,17 +99,31 @@ def secretary_dashboard_data(request):
 @role_required('secretary')
 def secretary_appointment_list(request):
     doctor = _assigned_doctor(request.user)
-    status_filter = request.GET.get('status', '')
+    status_filter = request.GET.get('status', 'Pending Assignment')
     date_filter   = request.GET.get('date', '')
     qs = Appointment.objects.filter(doctor=doctor).select_related('patient', 'doctor', 'patient_details') if doctor else Appointment.objects.none()
     if status_filter:
         qs = qs.filter(status=status_filter)
     if date_filter:
         qs = qs.filter(appointment_date=date_filter)
+    today = date.today()
+    qs = qs.annotate(
+        sort_group=Case(
+            When(appointment_date=today, then=Value(0)),
+            When(appointment_date__gt=today, then=Value(1)),
+            default=Value(2),
+            output_field=IntegerField(),
+        ),
+        sort_date=Case(
+            When(appointment_date__lt=today, then=JulianDay('appointment_date') * -1),
+            default=JulianDay('appointment_date'),
+            output_field=IntegerField(),
+        ),
+    ).order_by('sort_group', 'sort_date', TIME_NULLS_FIRST)
     return render(request, 'secretary/appointment_list.html', {
-        'appointments': qs.order_by('appointment_date', TIME_NULLS_FIRST),
+        'appointments': qs,
         'status_filter': status_filter, 'date_filter': date_filter,
-        'assigned_doctor': doctor, 'today': date.today(),
+        'assigned_doctor': doctor, 'today': today,
     })
 
 

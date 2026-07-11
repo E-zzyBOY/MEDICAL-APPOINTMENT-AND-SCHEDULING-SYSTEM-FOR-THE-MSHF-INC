@@ -167,4 +167,8 @@ EMAIL_PORT = int(os.environ.get('EMAIL_PORT', 587))
 EMAIL_USE_TLS = True
 EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER', '')
 EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', '')
+# Never let a slow/blocked SMTP server hang a request until the worker is
+# killed (Render free tier drops outbound SMTP packets, which otherwise
+# turns every registration into a 30s hang followed by a 500).
+EMAIL_TIMEOUT = int(os.environ.get('EMAIL_TIMEOUT', 10))
 DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'noreply@mshfi.com')

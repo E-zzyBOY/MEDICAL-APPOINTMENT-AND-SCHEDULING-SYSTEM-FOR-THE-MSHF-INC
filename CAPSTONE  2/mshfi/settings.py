@@ -176,7 +176,11 @@ EMAIL_TIMEOUT = int(os.environ.get('EMAIL_TIMEOUT', 10))
 # on Render while email delivery is broken) to let new patients go straight
 # to account setup: accounts are created already-verified and no
 # confirmation email is sent. Flip back to True once delivery works.
-EMAIL_VERIFICATION_REQUIRED = os.environ.get('EMAIL_VERIFICATION_REQUIRED', 'True') == 'True'
+# Accepts true/false in any casing, plus 1/0 and yes/no.
+EMAIL_VERIFICATION_REQUIRED = (
+    os.environ.get('EMAIL_VERIFICATION_REQUIRED', 'True').strip().lower()
+    not in ('false', '0', 'no', 'off')
+)
 
 # Brevo HTTP-API email (via django-anymail). Render's free tier blocks the
 # SMTP ports, so production delivers over HTTPS instead: when a key is

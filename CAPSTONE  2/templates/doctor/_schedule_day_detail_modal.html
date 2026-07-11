@@ -9,10 +9,10 @@ as a modal instead of an inline panel.
 <div>
   <div class="flex items-center justify-between gap-3 mb-1">
     <p class="text-gray-500 text-sm">Manage the time slots for this date.</p>
-    <a hx-get="{% url 'doctor:schedule_add' %}?date={{ date_str }}"
+    <a hx-get="{% url 'doctor:schedule_add' %}?date={{ date_str }}{% if slots %}&mode=add_time{% endif %}"
        hx-target="#modal-root" hx-swap="innerHTML"
        class="shrink-0 text-xs font-medium px-3 py-1.5 rounded-lg bg-green-100 text-green-700 hover:bg-green-200 transition cursor-pointer">
-      + Add Time
+      {% if slots %}+ Add Time{% else %}+ Add Slot{% endif %}
     </a>
   </div>
   {% if slots %}

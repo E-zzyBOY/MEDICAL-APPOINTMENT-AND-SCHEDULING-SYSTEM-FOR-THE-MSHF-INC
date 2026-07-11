@@ -9,7 +9,7 @@ import calendar as calendar_module
 from accounts.decorators import role_required
 from appointments.models import Appointment, Schedule, AppointmentPatientDetails, TIME_NULLS_FIRST
 from appointments.forms import PatientDetailsForm
-from accounts.models import CustomUser, PatientProfile, TERMS_VERSION
+from accounts.models import CustomUser, PatientProfile, TERMS_VERSION, SPECIALIZATIONS
 from notifications.email_utils import (
     send_booking_received_email, send_booking_confirmation_email, send_cancellation_email,
     send_reschedule_email, send_time_assigned_email
@@ -100,6 +100,19 @@ def _time_aware_greeting():
     return 'Good evening'
 
 
+def _browsable_specializations():
+    """Specialty chips for "Browse by Specialty", drawn from the same master
+    list the admin doctor forms use (accounts.models.SPECIALIZATIONS) so the
+    two can never disagree. Only specialties that at least one doctor holds
+    are shown, in master-list order."""
+    held = set(
+        CustomUser.objects.filter(role='doctor')
+        .exclude(doctor_profile__specialization='')
+        .values_list('doctor_profile__specialization', flat=True)
+    )
+    return [s for s in SPECIALIZATIONS if s in held]
+
+
 def _build_patient_dashboard_data(request):
     upcoming = Appointment.objects.filter(
         patient=request.user,
@@ -112,11 +125,7 @@ def _build_patient_dashboard_data(request):
     ).select_related('doctor', 'results').order_by('-appointment_date')[:5]
 
     doctors_qs = CustomUser.objects.filter(role='doctor').select_related('doctor_profile')[:8]
-    specializations = sorted({
-        d.doctor_profile.specialization
-        for d in doctors_qs
-        if getattr(d, 'doctor_profile', None) and d.doctor_profile.specialization
-    })
+    specializations = _browsable_specializations()
 
     # "Available Today / Tomorrow" pills on the featured doctor cards —
     # derived from real Schedule rows rather than hardcoded.
@@ -315,11 +324,7 @@ def book_step1(request):
         )
     if specialty:
         doctors = doctors.filter(doctor_profile__specialization=specialty)
-    specializations = sorted({
-        d.doctor_profile.specialization
-        for d in CustomUser.objects.filter(role='doctor').select_related('doctor_profile')
-        if getattr(d, 'doctor_profile', None) and d.doctor_profile.specialization
-    })
+    specializations = _browsable_specializations()
     return render(request, 'patient/book_step1.html', {
         'doctors': doctors, 'query': query, 'specializations': specializations,
         'selected_specialty': specialty,

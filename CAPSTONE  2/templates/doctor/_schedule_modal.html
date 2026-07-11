@@ -5,7 +5,7 @@
       <div class="bg-white h-full max-h-full rounded-t-2xl shadow-soft-lg flex flex-col">
         <!-- Header -->
         <div class="flex items-center justify-between px-6 py-4 border-b border-gray-200 flex-shrink-0">
-          <h2 id="modal-title" class="text-lg font-semibold text-[#1F2937]">{{ action }} Schedule Slot</h2>
+          <h2 id="modal-title" class="text-lg font-semibold text-[#1F2937]">{% if add_time_mode %}Add Time for This Day{% else %}{{ action }} Schedule Slot{% endif %}</h2>
           <button type="button" onclick="closeModal()" aria-label="Close" class="w-8 h-8 flex items-center justify-center rounded-full text-gray-400 hover:text-gray-600 hover:bg-gray-200 bg-gray-100 text-2xl leading-none">&times;</button>
         </div>
         <!-- Content -->
@@ -64,6 +64,7 @@
               {% endfor %}
             {% else %}
               <input type="hidden" id="schedule-selected-dates" name="dates" value="{{ selected_dates }}" />
+              {% if add_time_mode %}<input type="hidden" name="mode" value="add_time" />{% endif %}
               {% if form.dates.errors %}<p class="text-[#DC2626] text-xs">{{ form.dates.errors.0 }}</p>{% endif %}
               <div>
                 <label class="block text-xs font-medium text-[#6B7280] mb-1.5 ml-1">Start Time</label>

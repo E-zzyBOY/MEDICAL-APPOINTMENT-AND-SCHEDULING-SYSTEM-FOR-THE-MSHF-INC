@@ -2,7 +2,7 @@ from datetime import date
 from django import forms
 from django.contrib.auth.forms import UserCreationForm
 import re
-from .models import CustomUser, PatientProfile, DoctorProfile, SecretaryProfile
+from .models import CustomUser, PatientProfile, DoctorProfile, SecretaryProfile, SPECIALIZATION_CHOICES
 from .validators import validate_ph_mobile_number, normalize_ph_mobile_number
 from .psgc import validate_picker_data, validate_place_of_birth_data
 
@@ -261,7 +261,12 @@ class DoctorCreationForm(UserCreationForm):
     first_name     = forms.CharField(max_length=150, required=True)
     last_name      = forms.CharField(max_length=150, required=True)
     email          = forms.EmailField(required=True)
-    specialization = forms.CharField(max_length=150, required=False)
+    # Dropdown fed by the same master list as the patient "Browse by
+    # Specialty" filter (accounts.models.SPECIALIZATIONS) — never free text.
+    specialization = forms.ChoiceField(
+        choices=[('', '— Select specialization —')] + SPECIALIZATION_CHOICES,
+        required=False,
+    )
 
     class Meta:
         model  = CustomUser

@@ -650,7 +650,30 @@ def get_occupied_times(request, pk):
         for time, first_name, last_name, status in occupied
     ]
 
+    # Times where THIS patient is already booked with a different doctor —
+    # mirrors the patient_conflict check in assign_appointment_time so the
+    # slot grid can flag the conflict before the form is ever submitted.
+    patient_conflicts = Appointment.objects.filter(
+        patient=appt.patient,
+        appointment_date=appt.appointment_date,
+        appointment_time__isnull=False,
+        status__in=['Scheduled', 'Rescheduled'],
+    ).exclude(pk=appt.pk).exclude(doctor=appt.doctor).select_related('doctor').values_list(
+        'appointment_time', 'doctor__first_name', 'doctor__last_name', 'status'
+    ).order_by('appointment_time')
+
+    patient_conflict_list = [
+        {
+            'time': time.strftime('%H:%M'),
+            'time_display': time.strftime('%I:%M %p'),
+            'doctor': f"Dr. {first_name} {last_name}",
+            'status': status,
+        }
+        for time, first_name, last_name, status in patient_conflicts
+    ]
+
     return JsonResponse({
         'occupied_times': occupied_list,
+        'patient_conflicts': patient_conflict_list,
         'appointment_id': pk,
     })

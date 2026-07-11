@@ -23,7 +23,7 @@ links to the real, correctly-scoped Edit view for that slot's own id.
             <svg class="w-4 h-4 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
           </a>
           {% endfor %}
-          <a hx-get="{% url 'doctor:schedule_add' %}?date={{ date_str }}"
+          <a hx-get="{% url 'doctor:schedule_add' %}?date={{ date_str }}&mode=add_time"
              hx-target="#modal-root" hx-swap="innerHTML"
              class="block w-full text-center mt-2 px-3 py-2.5 rounded-xl bg-brand-50 text-brand-700 text-xs font-semibold hover:bg-brand-100 transition cursor-pointer">
             + Add Another Time for This Day

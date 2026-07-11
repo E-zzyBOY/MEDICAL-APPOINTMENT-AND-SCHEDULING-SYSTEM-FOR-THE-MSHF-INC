@@ -23,6 +23,13 @@ Two distinct click behaviors depending on mode:
     lightweight hx-get fires alongside the toggle purely to refresh the
     "existing slots on this date" info panel for whichever day was just
     clicked (see scheduleCalendarShowDayInfo below).
+    Which days are toggleable depends on the sub-mode:
+      plain Add Slot            — only OPEN days (no slot yet). Days that
+        already have a slot are locked: re-timing them is Edit Time's
+        job, stacking another block is Add Time's job.
+      add_time_mode (Add Time for This Day) — the exact opposite: only
+        days that ALREADY have a slot, so it can never create a slot on
+        a day the doctor never added.
 The prev/next month arrows always go through the server (different month
 = different days to render); for Add mode the current multi-selection is
 carried along via the hidden #schedule-selected-dates input's value so
@@ -34,14 +41,14 @@ it survives the round trip.
     <p class="font-semibold text-[#1F2937] text-sm">{{ calendar_month_name }} {{ calendar_year }}</p>
     <div class="flex items-center gap-1">
       <button type="button"
-              hx-get="{% if schedule %}{% url 'doctor:schedule_edit_calendar_partial' pk=schedule.pk %}?year={% if calendar_month == 1 %}{{ calendar_year|add:'-1' }}{% else %}{{ calendar_year }}{% endif %}&month={% if calendar_month == 1 %}12{% else %}{{ calendar_month|add:'-1' }}{% endif %}&selected_date={{ selected_date }}{% else %}{% url 'doctor:schedule_add_calendar_partial' %}?year={% if calendar_month == 1 %}{{ calendar_year|add:'-1' }}{% else %}{{ calendar_year }}{% endif %}&month={% if calendar_month == 1 %}12{% else %}{{ calendar_month|add:'-1' }}{% endif %}{% endif %}"
+              hx-get="{% if schedule %}{% url 'doctor:schedule_edit_calendar_partial' pk=schedule.pk %}?year={% if calendar_month == 1 %}{{ calendar_year|add:'-1' }}{% else %}{{ calendar_year }}{% endif %}&month={% if calendar_month == 1 %}12{% else %}{{ calendar_month|add:'-1' }}{% endif %}&selected_date={{ selected_date }}{% else %}{% url 'doctor:schedule_add_calendar_partial' %}?year={% if calendar_month == 1 %}{{ calendar_year|add:'-1' }}{% else %}{{ calendar_year }}{% endif %}&month={% if calendar_month == 1 %}12{% else %}{{ calendar_month|add:'-1' }}{% endif %}{% if add_time_mode %}&mode=add_time{% endif %}{% endif %}"
               hx-vals="js:{selected_dates: (document.getElementById('schedule-selected-dates') || {}).value || ''}"
               hx-target="#schedule-calendar-widget" hx-swap="outerHTML"
               class="size-7 flex items-center justify-center rounded-full bg-white text-[#4B5563] hover:bg-[#E5E7EB] transition cursor-pointer">
         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
       </button>
       <button type="button"
-              hx-get="{% if schedule %}{% url 'doctor:schedule_edit_calendar_partial' pk=schedule.pk %}?year={% if calendar_month == 12 %}{{ calendar_year|add:'1' }}{% else %}{{ calendar_year }}{% endif %}&month={% if calendar_month == 12 %}1{% else %}{{ calendar_month|add:'1' }}{% endif %}&selected_date={{ selected_date }}{% else %}{% url 'doctor:schedule_add_calendar_partial' %}?year={% if calendar_month == 12 %}{{ calendar_year|add:'1' }}{% else %}{{ calendar_year }}{% endif %}&month={% if calendar_month == 12 %}1{% else %}{{ calendar_month|add:'1' }}{% endif %}{% endif %}"
+              hx-get="{% if schedule %}{% url 'doctor:schedule_edit_calendar_partial' pk=schedule.pk %}?year={% if calendar_month == 12 %}{{ calendar_year|add:'1' }}{% else %}{{ calendar_year }}{% endif %}&month={% if calendar_month == 12 %}1{% else %}{{ calendar_month|add:'1' }}{% endif %}&selected_date={{ selected_date }}{% else %}{% url 'doctor:schedule_add_calendar_partial' %}?year={% if calendar_month == 12 %}{{ calendar_year|add:'1' }}{% else %}{{ calendar_year }}{% endif %}&month={% if calendar_month == 12 %}1{% else %}{{ calendar_month|add:'1' }}{% endif %}{% if add_time_mode %}&mode=add_time{% endif %}{% endif %}"
               hx-vals="js:{selected_dates: (document.getElementById('schedule-selected-dates') || {}).value || ''}"
               hx-target="#schedule-calendar-widget" hx-swap="outerHTML"
               class="size-7 flex items-center justify-center rounded-full bg-white text-[#4B5563] hover:bg-[#E5E7EB] transition cursor-pointer">
@@ -51,7 +58,9 @@ it survives the round trip.
   </div>
 
   {% if not schedule %}
-  <p class="text-[11px] text-[#6B7280] mb-3">Click multiple days to add the same time block to all of them.</p>
+  <p class="text-[11px] text-[#6B7280] mb-3">
+    {% if add_time_mode %}Pick day(s) you already added to give them another time block. Days without a slot are locked — use Add Slot for those.{% else %}Click multiple days to add the same time block to all of them. Days already added are locked — use Edit Time to change them.{% endif %}
+  </p>
   {% endif %}
 
   <!-- Weekday labels -->
@@ -92,6 +101,21 @@ it survives the round trip.
         <!-- Edit mode, no slot on this day: locked. Not this doctor's
              scheduled day, so it can't be selected from the Edit view. -->
         <span class="aspect-square rounded-full text-sm flex items-center justify-center text-[#D1D5DB] cursor-not-allowed" title="No schedule on this date — use Add Slot to create one.">
+          {{ cell.day }}
+        </span>
+        {% elif not add_time_mode and cell.status == 'has_slots' %}
+        <!-- Plain Add Slot mode: this day was already added, so it's
+             locked here. Changing its time is Edit Time's job; stacking
+             another block is Add Time for This Day's job. -->
+        <span class="aspect-square rounded-full text-sm flex items-center justify-center bg-[#DCFCE7]/50 text-[#86EFAC] cursor-not-allowed"
+              title="Already added — use Edit Time to change it, or Add Time for This Day to add another block.">
+          {{ cell.day }}
+        </span>
+        {% elif add_time_mode and cell.status != 'has_slots' %}
+        <!-- Add Time mode: no slot on this day yet, so there's nothing to
+             add time to. Creating a brand-new day is Add Slot's job. -->
+        <span class="aspect-square rounded-full text-sm flex items-center justify-center bg-white text-[#D1D5DB] cursor-not-allowed"
+              title="No slot on this date yet — use Add Slot to schedule it first.">
           {{ cell.day }}
         </span>
         {% else %}

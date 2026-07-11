@@ -25,9 +25,9 @@ class Command(BaseCommand):
 
         # Doctors
         specializations = [
-            ('General Medicine', 'Jose', 'Reyes'),
-            ('Cardiology',       'Maria', 'Santos'),
-            ('Pediatrics',       'Carlos', 'Dela Cruz'),
+            ('General Practitioner / Family Medicine Physician', 'Jose', 'Reyes'),
+            ('Cardiologist',  'Maria', 'Santos'),
+            ('Pediatrician',  'Carlos', 'Dela Cruz'),
         ]
         doctors = []
         for i, (spec, first, last) in enumerate(specializations, 1):

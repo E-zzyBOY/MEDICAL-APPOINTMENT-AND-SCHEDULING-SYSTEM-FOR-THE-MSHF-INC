@@ -24,9 +24,18 @@ part of the htmx-swapped grid, so month nav doesn't touch it.
   </div>
   {% endif %}
 
-  <a hx-get="{% url 'doctor:schedule_add' %}?date={{ today_iso }}"
+  {% if today_slots %}
+  <a hx-get="{% url 'doctor:schedule_add' %}?date={{ today_iso }}&mode=add_time"
      hx-target="#modal-root" hx-swap="innerHTML"
      class="block w-full text-center mt-4 px-3 py-2.5 rounded-xl bg-brand-50 text-brand-700 text-xs font-semibold hover:bg-brand-100 transition cursor-pointer">
     + Add Time for Today
   </a>
+  {% else %}
+  {# No slot today yet — adding time to it is Add Slot's job, not Add Time's. #}
+  <a hx-get="{% url 'doctor:schedule_add' %}?date={{ today_iso }}"
+     hx-target="#modal-root" hx-swap="innerHTML"
+     class="block w-full text-center mt-4 px-3 py-2.5 rounded-xl bg-brand-50 text-brand-700 text-xs font-semibold hover:bg-brand-100 transition cursor-pointer">
+    + Add Slot for Today
+  </a>
+  {% endif %}
 </div>

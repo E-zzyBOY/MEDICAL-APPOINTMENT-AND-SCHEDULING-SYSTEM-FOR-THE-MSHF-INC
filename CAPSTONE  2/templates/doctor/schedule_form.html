@@ -25,7 +25,7 @@
     {% include "doctor/_schedule_calendar_fragment.html" %}
   </div>
   <div class="bg-white rounded-2xl shadow-soft-sm p-6 sm:p-8">
-    <h2 class="text-xl font-semibold text-[#1F2937] mb-1">{{ action }} Schedule Slot</h2>
+    <h2 class="text-xl font-semibold text-[#1F2937] mb-1">{% if add_time_mode %}Add Time for This Day{% else %}{{ action }} Schedule Slot{% endif %}</h2>
     {% if schedule %}
     {% if selected_date %}
     <p class="text-sm text-[#6B7280] mb-6">
@@ -58,6 +58,7 @@
         {% endfor %}
       {% else %}
         <input type="hidden" id="schedule-selected-dates" name="dates" value="{{ selected_dates }}" />
+        {% if add_time_mode %}<input type="hidden" name="mode" value="add_time" />{% endif %}
         {% if form.dates.errors %}<p class="text-[#DC2626] text-xs">{{ form.dates.errors.0 }}</p>{% endif %}
         <div>
           <label class="block text-xs font-medium text-[#6B7280] mb-1.5 ml-1">Start Time</label>

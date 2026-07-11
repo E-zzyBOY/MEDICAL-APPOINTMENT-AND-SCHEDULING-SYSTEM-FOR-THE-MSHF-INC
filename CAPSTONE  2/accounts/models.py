@@ -63,9 +63,47 @@ class PatientProfile(models.Model):
         return f"Profile: {self.user.get_full_name()}"
 
 
+# Single master list of doctor specializations, in professional-title form
+# ("Neurologist", not "Neurology"). This is the ONE source used both by the
+# admin Create/Edit Doctor dropdowns and by the patient "Browse by Specialty"
+# filter, so the two can never drift apart (the original bug: admin typed
+# "Neurology" free-text, patient filter looked for "Neurologist").
+SPECIALIZATIONS = [
+    'General Practitioner / Family Medicine Physician',
+    'Internist (Internal Medicine)',
+    'Pediatrician',
+    'Obstetrician-Gynecologist (OB-GYN)',
+    'Surgeon (General Surgery)',
+    'Cardiologist',
+    'Neurologist',
+    'Dermatologist',
+    'Psychiatrist',
+    'Ophthalmologist',
+    'Otorhinolaryngologist (ENT)',
+    'Orthopedic Surgeon',
+    'Urologist',
+    'Nephrologist',
+    'Endocrinologist',
+    'Gastroenterologist',
+    'Pulmonologist',
+    'Oncologist',
+    'Radiologist',
+    'Anesthesiologist',
+    'Pathologist',
+    'Rheumatologist',
+    'Hematologist',
+    'Infectious Disease Specialist',
+    'Allergist / Immunologist',
+    'Nutritionist-Dietitian',
+    'Physiatrist (Physical Medicine & Rehabilitation)',
+    'Dentist',
+]
+SPECIALIZATION_CHOICES = [(s, s) for s in SPECIALIZATIONS]
+
+
 class DoctorProfile(models.Model):
     user                = models.OneToOneField(CustomUser, on_delete=models.CASCADE, related_name='doctor_profile')
-    specialization      = models.CharField(max_length=150, blank=True)
+    specialization      = models.CharField(max_length=150, blank=True, choices=SPECIALIZATION_CHOICES)
     years_of_experience = models.PositiveIntegerField(null=True, blank=True)
     license_number      = models.CharField(max_length=100, blank=True)
     bio                 = models.TextField(blank=True, help_text="Short professional bio shown on your public doctor profile.")

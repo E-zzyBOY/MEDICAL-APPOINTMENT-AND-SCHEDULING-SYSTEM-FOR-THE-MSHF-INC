@@ -380,11 +380,41 @@ def schedule_add(request):
     all of them in a single submit. Each date is checked for overlap
     independently: a date that already has a conflicting slot is skipped
     (not saved) while every other selected date still gets its slot, and
-    the doctor sees exactly which ones succeeded vs were skipped and why."""
+    the doctor sees exactly which ones succeeded vs were skipped and why.
+
+    Two modes share this view, and they are deliberately opposites so
+    neither can do the other's job:
+      default ('Add Slot')      — creates slots only on days with NO slot
+        yet. Days already added are locked here: changing their time is
+        Edit Time's job, adding another block is Add Time's job.
+      mode=add_time ('Add Time for This Day') — only days that ALREADY
+        have at least one slot are accepted, so it can stack an extra
+        time block onto a day the doctor previously added but can never
+        plant a slot on a day that was never added."""
+    add_time_mode = (request.POST.get('mode') or request.GET.get('mode', '')) == 'add_time'
     selected_dates_str = request.POST.get('dates') or request.GET.get('date', '')
     # GET (just opening the modal) only ever carries one date so far, from
     # a single calendar click — that's fine, it seeds the multi-select
-    # with one day already toggled on.
+    # with one day already toggled on. Drop seed dates that this mode
+    # wouldn't accept anyway (e.g. opening plain Add Slot scoped to a day
+    # that already has slots), so the doctor never starts with a
+    # pre-selected day the calendar itself renders as locked.
+    if request.method != 'POST' and selected_dates_str:
+        kept = []
+        for part in selected_dates_str.split(','):
+            part = part.strip()
+            if not part:
+                continue
+            try:
+                d = datetime.strptime(part, '%Y-%m-%d').date()
+            except ValueError:
+                continue
+            day_has_slots = Schedule.objects.filter(
+                doctor=request.user, specific_date=d,
+            ).exists()
+            if day_has_slots == add_time_mode:
+                kept.append(part)
+        selected_dates_str = ','.join(kept)
     year, month = _resolve_calendar_month(request, selected_dates_str.split(',')[0] if selected_dates_str else '')
     calendar_weeks = _compute_schedule_month(request.user, year, month)
 
@@ -399,6 +429,15 @@ def schedule_add(request):
             skipped      = []  # list of (date, reason) tuples
             with transaction.atomic():
                 for d in target_dates:
+                    day_has_slots = Schedule.objects.filter(
+                        doctor=request.user, specific_date=d,
+                    ).exists()
+                    if add_time_mode and not day_has_slots:
+                        skipped.append((d, "has no slot yet — use Add Slot to schedule that day first"))
+                        continue
+                    if not add_time_mode and day_has_slots:
+                        skipped.append((d, "was already added — use Edit Time to change it, or Add Time for This Day to add another block"))
+                        continue
                     overlap = Schedule.objects.filter(
                         doctor=request.user, specific_date=d,
                         start_time__lt=end_time, end_time__gt=start_time,
@@ -422,17 +461,17 @@ def schedule_add(request):
             if saved_dates and not skipped:
                 messages.success(request, f"Added the slot to {len(saved_dates)} date(s).")
             elif saved_dates and skipped:
-                skipped_display = ', '.join(d.strftime('%b %d') for d, _r in skipped)
+                skipped_display = '; '.join(f"{d.strftime('%b %d')} {r}" for d, r in skipped)
                 messages.success(
                     request,
                     f"Added the slot to {len(saved_dates)} date(s). "
-                    f"Skipped {len(skipped)} that already had an overlapping slot: {skipped_display}."
+                    f"Skipped {len(skipped)}: {skipped_display}."
                 )
             elif not saved_dates:
-                skipped_display = ', '.join(d.strftime('%b %d') for d, _r in skipped)
-                conflict_msg = f"This schedule conflicts with an existing time slot on {skipped_display}. Please choose a different time."
+                skipped_display = '; '.join(f"{d.strftime('%b %d')} {r}" for d, r in skipped)
+                conflict_msg = f"No slots were added: {skipped_display}."
                 form.add_error(None, conflict_msg)
-                messages.error(request, f"No slots were added — every selected date already has an overlapping slot ({skipped_display}).")
+                messages.error(request, conflict_msg)
 
             if saved_dates:
                 if request.htmx:
@@ -448,6 +487,7 @@ def schedule_add(request):
 
     context = {
         'form': form, 'action': 'Add',
+        'add_time_mode': add_time_mode,
         'selected_dates': selected_dates_str,
         'selected_dates_list': [s for s in selected_dates_str.split(',') if s],
         'calendar_weeks': calendar_weeks,
@@ -480,6 +520,7 @@ def schedule_add_calendar_partial(request):
         'today_iso': date.today().isoformat(),
         'selected_dates_list': [s for s in selected_dates_str.split(',') if s],
         'multi_select': True,
+        'add_time_mode': request.GET.get('mode', '') == 'add_time',
     })
 
 

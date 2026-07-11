@@ -43,9 +43,18 @@ below-the-calendar panel had, just living on the right now.
   </div>
   {% endif %}
 
-  <a hx-get="{% url 'doctor:schedule_add' %}?date={{ panel_date_iso }}"
+  {% if panel_slots %}
+  <a hx-get="{% url 'doctor:schedule_add' %}?date={{ panel_date_iso }}&mode=add_time"
      hx-target="#modal-root" hx-swap="innerHTML"
      class="block w-full text-center mt-4 px-3 py-2.5 rounded-xl bg-brand-50 text-brand-700 text-xs font-semibold hover:bg-brand-100 transition cursor-pointer">
     + Add Time for This Day
   </a>
+  {% else %}
+  {# No slot on this day yet — adding time to it is Add Slot's job, not Add Time's. #}
+  <a hx-get="{% url 'doctor:schedule_add' %}?date={{ panel_date_iso }}"
+     hx-target="#modal-root" hx-swap="innerHTML"
+     class="block w-full text-center mt-4 px-3 py-2.5 rounded-xl bg-brand-50 text-brand-700 text-xs font-semibold hover:bg-brand-100 transition cursor-pointer">
+    + Add Slot for This Day
+  </a>
+  {% endif %}
 </div>

@@ -32,18 +32,24 @@
     border-radius: 18px;
     box-shadow: 0 25px 60px rgba(31, 77, 17, 0.28);
     overflow: hidden;
-    display: flex;
     min-height: 640px;
   }
 
-  /* Left: form column */
+  /* Left: form column — normally occupies the left half; slides to the
+     right half (translateX 100% of its own width) when register is active */
   .auth-left {
-    flex: 1 1 52%;
+    position: absolute;
+    top: 0; left: 0;
+    width: 50%; height: 100%;
+    background: #fff;
     display: flex;
     flex-direction: column;
     padding: 2.25rem 3rem 1.75rem;
     min-width: 0;
+    z-index: 1;
+    transition: transform 0.65s cubic-bezier(0.65, 0, 0.35, 1);
   }
+  .auth-shell[data-active="register"] .auth-left { transform: translateX(100%); }
   .auth-forms {
     flex: 1;
     display: flex;
@@ -54,19 +60,22 @@
 
   .auth-panel { display: none; }
   .auth-shell[data-active="login"]    .panel-login    { display: block; }
-  .auth-shell[data-active="register"] .panel-register { display: block; animation: authSlideIn 0.55s cubic-bezier(0.22, 1, 0.36, 1) both; }
-  @keyframes authSlideIn {
-    0%   { opacity: 0; transform: translateX(56px); }
-    100% { opacity: 1; transform: translateX(0); }
-  }
+  .auth-shell[data-active="register"] .panel-register { display: block; }
 
-  /* Right: photo panel */
+  /* Right: photo panel — normally occupies the right half; slides to the
+     left half (translateX -100% of its own width) when register is active.
+     Higher z-index so it visually sweeps across on top, like the old design. */
   .auth-right {
-    flex: 1 1 48%;
+    position: absolute;
+    top: 0; right: 0;
+    width: 50%; height: 100%;
     padding: 1.1rem;
     display: flex;
     min-width: 0;
+    z-index: 2;
+    transition: transform 0.65s cubic-bezier(0.65, 0, 0.35, 1);
   }
+  .auth-shell[data-active="register"] .auth-right { transform: translateX(-100%); }
   .auth-photo {
     position: relative;
     flex: 1;
@@ -99,16 +108,6 @@
     max-width: 18ch;
     text-shadow: 0 2px 10px rgba(15, 35, 8, 0.35);
   }
-  .auth-shell[data-active="register"] .auth-photo-headline h2 { animation: authHeadlineSlideL 0.6s cubic-bezier(0.22, 1, 0.36, 1) both; }
-  .auth-shell[data-active="login"]    .auth-photo-headline h2 { animation: authHeadlineSlideR 0.6s cubic-bezier(0.22, 1, 0.36, 1) both; }
-  @keyframes authHeadlineSlideL {
-    0%   { opacity: 0; transform: translateX(18px); }
-    100% { opacity: 1; transform: translateX(0); }
-  }
-  @keyframes authHeadlineSlideR {
-    0%   { opacity: 0; transform: translateX(-18px); }
-    100% { opacity: 1; transform: translateX(0); }
-  }
   .auth-photo-img {
     position: absolute;
     inset: 0;
@@ -124,15 +123,15 @@
     -webkit-mask-image: linear-gradient(to top, black 82%, transparent 100%);
             mask-image: linear-gradient(to top, black 82%, transparent 100%);
   }
-  .auth-shell[data-active="register"] .auth-photo-img img { animation: authPhotoPanL 0.65s cubic-bezier(0.22, 1, 0.36, 1) both; }
-  .auth-shell[data-active="login"]    .auth-photo-img img { animation: authPhotoPanR 0.65s cubic-bezier(0.22, 1, 0.36, 1) both; }
-  @keyframes authPhotoPanL {
-    0%   { transform: scale(1.06) translateX(0); }
-    100% { transform: scale(1.06) translateX(-3.5%); }
-  }
-  @keyframes authPhotoPanR {
-    0%   { transform: scale(1.06) translateX(-3.5%); }
-    100% { transform: scale(1.06) translateX(0); }
+  /* Green brand tint over the photo, echoing the pre-tinted hero photo on
+     the landing page — a soft color wash rather than a flat filter. */
+  .auth-photo-img::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(165deg, rgba(94,154,60,0.30) 0%, rgba(31,77,17,0.38) 55%, rgba(13,36,7,0.55) 100%);
+    mix-blend-mode: multiply;
+    pointer-events: none;
   }
   .auth-photo-dots {
     position: absolute;
@@ -169,13 +168,18 @@
   }
 
   @media (max-width: 900px) {
-    .auth-right { display: none; }
-    .auth-left { padding: 2rem 1.5rem 1.5rem; }
     .auth-shell { min-height: 0; }
+    .auth-right { display: none; }
+    .auth-left {
+      position: static;
+      width: 100%;
+      transform: none !important;
+      padding: 2rem 1.5rem 1.5rem;
+    }
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .auth-card-enter, .auth-panel, .auth-photo-img img, .auth-photo-headline h2 { animation: none !important; }
+    .auth-card-enter, .auth-left, .auth-right { animation: none !important; transition: none !important; }
   }
 </style>
 {% endblock %}
@@ -189,7 +193,8 @@
 
       <!-- ============ Left: form column ============ -->
       <div class="auth-left">
-        <div class="flex items-center gap-2">
+        <div class="flex items-center gap-2.5">
+          <img src="{% static 'img/mshfi-logo.jpg' %}" alt="MSHFI seal" class="w-9 h-9 rounded-full object-cover shrink-0" />
           <span class="auth-brand">MSHFI</span>
         </div>
 

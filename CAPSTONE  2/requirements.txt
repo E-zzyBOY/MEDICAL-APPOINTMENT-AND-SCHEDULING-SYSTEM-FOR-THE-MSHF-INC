@@ -8,5 +8,9 @@ whitenoise==6.8.2
 dj-database-url==2.3.0
 psycopg2-binary==2.9.11
 # Email over HTTPS (Brevo) because Render's free tier blocks SMTP ports.
+# The BREVO_API_KEY env var activates it in settings.py, which imports
+# this package - removing it takes the whole site down.
+django-anymail==13.1
+# Email over HTTPS (Brevo) because Render's free tier blocks SMTP ports.
 # Keep <14: anymail 14+ requires Django 5, this project is on Django 4.2.
 django-anymail==13.1

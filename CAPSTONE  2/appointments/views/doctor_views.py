@@ -3,14 +3,9 @@ from django.template.loader import render_to_string
 from django.urls import reverse
 from django.contrib import messages
 from django.db import transaction
-from django.db.models import Count, Case, When, Value, IntegerField, Func
+from django.db.models import Count, Case, When, Value, IntegerField, DateField, F
 from django.http import JsonResponse, HttpResponse
 from datetime import date, datetime, timedelta
-
-
-class JulianDay(Func):
-    function = 'JULIANDAY'
-    output_field = IntegerField()
 import calendar as calendar_module
 from accounts.decorators import role_required
 from appointments.models import Appointment, Schedule, TIME_NULLS_FIRST
@@ -686,6 +681,12 @@ def doctor_appointment_list(request):
         # doctor sees today's actionable patients first, not old history.
         qs = qs.filter(status__in=['Scheduled', 'Confirmed', 'Rescheduled'])
     today = date.today()
+    # Today's appointments first, then upcoming (soonest first), then past
+    # (most recent first). SQLite's JULIANDAY() can't be used here — it
+    # doesn't exist on PostgreSQL (the production database) — so the two
+    # sort directions are expressed as separate date keys instead: each row
+    # populates only the key for its own group, staying NULL (neutral) for
+    # the other.
     qs = qs.annotate(
         sort_group=Case(
             When(appointment_date=today, then=Value(0)),
@@ -693,12 +694,22 @@ def doctor_appointment_list(request):
             default=Value(2),
             output_field=IntegerField(),
         ),
-        sort_date=Case(
-            When(appointment_date__lt=today, then=JulianDay('appointment_date') * -1),
-            default=JulianDay('appointment_date'),
-            output_field=IntegerField(),
+        upcoming_date=Case(
+            When(appointment_date__gte=today, then=F('appointment_date')),
+            default=None,
+            output_field=DateField(),
         ),
-    ).order_by('sort_group', 'sort_date', TIME_NULLS_FIRST)
+        past_date=Case(
+            When(appointment_date__lt=today, then=F('appointment_date')),
+            default=None,
+            output_field=DateField(),
+        ),
+    ).order_by(
+        'sort_group',
+        F('upcoming_date').asc(nulls_last=True),
+        F('past_date').desc(nulls_last=True),
+        TIME_NULLS_FIRST,
+    )
     return render(request, 'doctor/appointment_list.html', {
         'appointments': qs, 'status_filter': status_filter
     })

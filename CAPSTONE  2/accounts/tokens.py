@@ -10,7 +10,7 @@ from django.core import signing
 from .models import CustomUser
 
 SALT = 'accounts.email-verify'
-MAX_AGE_SECONDS = 60 * 60 * 24  # links are good for 24 hours
+MAX_AGE_SECONDS = 60 * 60  # links are good for 1 hour; Resend issues a fresh one
 
 
 def make_email_verify_token(user):

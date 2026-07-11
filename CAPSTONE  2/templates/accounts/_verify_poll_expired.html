@@ -1,0 +1,13 @@
+{# Swapped in over the spinner (#poll-area) when the 2-minute polling #}
+{# window runs out — returned by verify_email_status with HTTP 286, #}
+{# which also tells htmx to stop polling. #}
+<div id="poll-area" class="mt-7 mb-2 flex flex-col items-center text-center">
+  <div class="w-full rounded-xl bg-[#FFF7ED] text-[#9A3412] p-4 text-sm">
+    <p class="font-semibold mb-1">&#9200; Waiting timed out.</p>
+    <p>Check your spam folder, or press <span class="font-semibold">Resend Email</span> below to get a fresh link.</p>
+  </div>
+  <a href="{% url 'accounts:verify_email_pending' %}"
+     class="text-sm text-[#1F4D11] font-semibold hover:underline mt-3">
+    I already clicked the link — continue
+  </a>
+</div>

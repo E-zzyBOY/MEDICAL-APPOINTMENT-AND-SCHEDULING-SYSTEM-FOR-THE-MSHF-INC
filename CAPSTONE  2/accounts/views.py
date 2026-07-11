@@ -83,25 +83,37 @@ def register_view(request):
 
 RESEND_SESSION_KEY = 'verify_email_last_sent'
 RESEND_COOLDOWN_SECONDS = 60
+POLL_SESSION_KEY = 'verify_poll_started'
+# Abandoned waiting tabs would otherwise poll the server forever; after this
+# long the status endpoint replies 286, which tells htmx to stop polling.
+POLL_TIMEOUT_SECONDS = 120
 
 
 @login_required(login_url='/accounts/login/')
 def verify_email_pending_view(request):
     """The 'Check your email' waiting page. Polls verify_email_status via
-    htmx and auto-advances the moment the link is clicked anywhere."""
+    htmx and auto-advances the moment the link is clicked anywhere. Each
+    render restarts the 2-minute polling window."""
     if request.user.email_verified:
         return redirect('accounts:complete_profile')
+    request.session[POLL_SESSION_KEY] = time.time()
     return render(request, 'accounts/verify_email_pending.html')
 
 
 @login_required(login_url='/accounts/login/')
 def verify_email_status_view(request):
     """htmx polling target for the waiting page. 204 = keep waiting;
-    once verified, an HX-Redirect moves the original tab onward."""
+    once verified, an HX-Redirect moves the original tab onward; after
+    POLL_TIMEOUT_SECONDS a 286 stops htmx polling and swaps in the
+    timed-out fragment (a missing timer counts as timed out, so stale
+    pollers from before a restart also stop)."""
     if request.user.email_verified:
         response = HttpResponse()
         response['HX-Redirect'] = '/accounts/complete-profile/'
         return response
+    started = request.session.get(POLL_SESSION_KEY, 0)
+    if time.time() - started > POLL_TIMEOUT_SECONDS:
+        return render(request, 'accounts/_verify_poll_expired.html', status=286)
     return HttpResponse(status=204)
 
 

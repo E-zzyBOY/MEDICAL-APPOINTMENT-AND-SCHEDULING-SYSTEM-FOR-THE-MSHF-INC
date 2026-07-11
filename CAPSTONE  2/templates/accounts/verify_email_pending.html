@@ -51,14 +51,16 @@
         </div>
         {% endif %}
 
-        {# Polls every 3s; the server answers 204 until the link is clicked #}
+        {# Polls every 5s; the server answers 204 until the link is clicked #}
         {# (on any device), then sends HX-Redirect to continue account setup. #}
-        <div class="mt-7 mb-2 flex flex-col items-center"
+        {# After 2 minutes the server replies 286, which stops the polling #}
+        {# and swaps this block for the timed-out message. #}
+        <div id="poll-area" class="mt-7 mb-2 flex flex-col items-center"
              hx-get="{% url 'accounts:verify_email_status' %}"
-             hx-trigger="every 3s"
-             hx-swap="none">
+             hx-trigger="every 5s"
+             hx-swap="outerHTML">
           <div class="ve-spinner" role="status" aria-label="Waiting for email confirmation"></div>
-          <p class="text-xs text-[#6B7280] mt-3">Waiting for you to click the link…</p>
+          <p class="text-xs text-[#6B7280] mt-3">Waiting for you to click the link… (pauses after 2 minutes)</p>
         </div>
 
         <form method="post" action="{% url 'accounts:resend_verification' %}" class="w-full mt-5">

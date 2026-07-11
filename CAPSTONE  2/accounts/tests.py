@@ -328,12 +328,54 @@ class EmailVerificationTests(TestCase):
 
     def test_status_endpoint_polls_then_redirects(self):
         self._register()
+        # Rendering the waiting page starts the 2-minute polling window.
+        self.client.get(reverse('accounts:verify_email_pending'))
         response = self.client.get(reverse('accounts:verify_email_status'))
         self.assertEqual(response.status_code, 204)
         CustomUser.objects.filter(username='newpatient').update(email_verified=True)
         response = self.client.get(reverse('accounts:verify_email_status'))
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['HX-Redirect'], reverse('accounts:complete_profile'))
+
+    def test_status_times_out_after_two_minutes(self):
+        import time as time_module
+        from accounts.views import POLL_SESSION_KEY, POLL_TIMEOUT_SECONDS
+        self._register()
+        self.client.get(reverse('accounts:verify_email_pending'))
+        session = self.client.session
+        session[POLL_SESSION_KEY] = time_module.time() - POLL_TIMEOUT_SECONDS - 1
+        session.save()
+        response = self.client.get(reverse('accounts:verify_email_status'))
+        self.assertEqual(response.status_code, 286)  # htmx: stop polling
+        self.assertContains(response, 'Waiting timed out', status_code=286)
+
+    def test_status_without_timer_counts_as_timed_out(self):
+        # Status hit without ever rendering the waiting page (stale poller
+        # from before a restart, or a hand-crafted request) must not poll on.
+        self._register()
+        response = self.client.get(reverse('accounts:verify_email_status'))
+        self.assertEqual(response.status_code, 286)
+
+    def test_verified_wins_over_expired_timer(self):
+        self._register()
+        CustomUser.objects.filter(username='newpatient').update(email_verified=True)
+        # No pending-page visit, so the timer is missing/expired — verified
+        # still takes priority and redirects onward.
+        response = self.client.get(reverse('accounts:verify_email_status'))
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response['HX-Redirect'], reverse('accounts:complete_profile'))
+
+    def test_pending_page_restarts_poll_timer(self):
+        import time as time_module
+        from accounts.views import POLL_SESSION_KEY
+        self._register()
+        session = self.client.session
+        session[POLL_SESSION_KEY] = time_module.time() - 999
+        session.save()
+        self.client.get(reverse('accounts:verify_email_pending'))
+        self.assertAlmostEqual(
+            self.client.session[POLL_SESSION_KEY], time_module.time(), delta=5,
+        )
 
     def test_resend_is_throttled(self):
         from django.core import mail

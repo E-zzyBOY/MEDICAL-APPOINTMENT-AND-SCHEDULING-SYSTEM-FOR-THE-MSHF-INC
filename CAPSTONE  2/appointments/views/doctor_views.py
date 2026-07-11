@@ -3,12 +3,17 @@ from django.template.loader import render_to_string
 from django.urls import reverse
 from django.contrib import messages
 from django.db import transaction
-from django.db.models import Count
+from django.db.models import Count, Case, When, Value, IntegerField, Func
 from django.http import JsonResponse, HttpResponse
 from datetime import date, datetime, timedelta
+
+
+class JulianDay(Func):
+    function = 'JULIANDAY'
+    output_field = IntegerField()
 import calendar as calendar_module
 from accounts.decorators import role_required
-from appointments.models import Appointment, Schedule
+from appointments.models import Appointment, Schedule, TIME_NULLS_FIRST
 from appointments.forms import ScheduleForm, RescheduleForm, AssignTimeForm, MultiDateScheduleForm
 from accounts.models import CustomUser
 from notifications.email_utils import (
@@ -671,16 +676,29 @@ def schedule_delete(request, pk):
 
 @role_required('doctor')
 def doctor_appointment_list(request):
-    status_filter = request.GET.get('status', '')
+    status_filter = request.GET.get('status', 'Scheduled')
     qs = Appointment.objects.filter(doctor=request.user).select_related('patient', 'patient_details')
     if status_filter:
         qs = qs.filter(status=status_filter)
     else:
-        # Doctors only need to see their active/upcoming and completed
-        # appointments here. Pending assignment, pending reschedule, and
-        # cancelled appointments are the secretary's responsibility and
-        # are handled on the secretary's own appointments page instead.
-        qs = qs.filter(status__in=['Scheduled', 'Confirmed', 'Rescheduled', 'Completed'])
+        # Active/upcoming appointments only. Completed visits are accessible
+        # via the "Completed" tab — excluded from the default view so the
+        # doctor sees today's actionable patients first, not old history.
+        qs = qs.filter(status__in=['Scheduled', 'Confirmed', 'Rescheduled'])
+    today = date.today()
+    qs = qs.annotate(
+        sort_group=Case(
+            When(appointment_date=today, then=Value(0)),
+            When(appointment_date__gt=today, then=Value(1)),
+            default=Value(2),
+            output_field=IntegerField(),
+        ),
+        sort_date=Case(
+            When(appointment_date__lt=today, then=JulianDay('appointment_date') * -1),
+            default=JulianDay('appointment_date'),
+            output_field=IntegerField(),
+        ),
+    ).order_by('sort_group', 'sort_date', TIME_NULLS_FIRST)
     return render(request, 'doctor/appointment_list.html', {
         'appointments': qs, 'status_filter': status_filter
     })

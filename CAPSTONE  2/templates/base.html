@@ -16,6 +16,33 @@
       }
     });
   </script>
+  {% if user.is_authenticated %}
+  <script>
+    // UX companion to the server's IdleTimeoutMiddleware (which is the
+    // authoritative check): after 1 hour without interaction in this tab,
+    // send the user to the login page instead of leaving a stale page up.
+    // Keep the duration in sync with IDLE_TIMEOUT_SECONDS in settings.py.
+    (function () {
+      var IDLE_MS = 3600 * 1000;
+      var THROTTLE_MS = 30 * 1000;
+      var lastReset = 0;
+      var timer = setTimeout(expire, IDLE_MS);
+      function expire() {
+        window.location.href = '/accounts/login/?expired=1';
+      }
+      function reset() {
+        var now = Date.now();
+        if (now - lastReset < THROTTLE_MS) return;
+        lastReset = now;
+        clearTimeout(timer);
+        timer = setTimeout(expire, IDLE_MS);
+      }
+      ['mousemove', 'keydown', 'click', 'scroll', 'touchstart'].forEach(function (evt) {
+        window.addEventListener(evt, reset, { passive: true });
+      });
+    })();
+  </script>
+  {% endif %}
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">

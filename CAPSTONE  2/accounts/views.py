@@ -43,6 +43,8 @@ def _notify_admins(message):
 def login_view(request):
     if request.user.is_authenticated:
         return _role_redirect(request.user)
+    if request.GET.get('expired'):
+        messages.info(request, 'You were logged out due to inactivity. Please log in again.')
     if request.method == 'POST':
         username = request.POST.get('username', '').strip()
         password = request.POST.get('password', '')

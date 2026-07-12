@@ -30,3 +30,4 @@ class AccountsConfig(AppConfig):
 
     def ready(self):
         _patch_template_context_copy_for_py313()
+        from . import signals  # noqa: F401  (audit-log signal receivers)

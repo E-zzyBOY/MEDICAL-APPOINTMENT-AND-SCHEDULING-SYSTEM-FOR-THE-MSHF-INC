@@ -154,3 +154,30 @@ class SecretaryProfile(models.Model):
 
     def __str__(self):
         return f"Secretary: {self.user.get_full_name()}"
+
+
+class ActivityLog(models.Model):
+    """Security audit trail: one row per auth event, written by the
+    receivers in accounts/signals.py and by IdleTimeoutMiddleware."""
+    ACTION_CHOICES = [
+        ('login',        'Login'),
+        ('logout',       'Logout'),
+        ('auto_logout',  'Auto logout (inactivity)'),
+        ('login_failed', 'Failed login'),
+    ]
+    user = models.ForeignKey(
+        CustomUser, null=True, blank=True,
+        on_delete=models.SET_NULL, related_name='activity_logs')
+    # Kept as plain text so the row survives user deletion; on login_failed
+    # it holds the username that was attempted.
+    username   = models.CharField(max_length=150, blank=True)
+    action     = models.CharField(max_length=20, choices=ACTION_CHOICES)
+    timestamp  = models.DateTimeField(auto_now_add=True, db_index=True)
+    ip_address = models.GenericIPAddressField(null=True, blank=True)
+    user_agent = models.CharField(max_length=300, blank=True)
+
+    class Meta:
+        ordering = ['-timestamp']
+
+    def __str__(self):
+        return f"{self.get_action_display()} — {self.username or 'unknown'} @ {self.timestamp:%Y-%m-%d %H:%M}"

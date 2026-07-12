@@ -47,6 +47,7 @@ MIDDLEWARE = [
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'accounts.middleware.IdleTimeoutMiddleware',
     'accounts.middleware.EmailVerificationRequiredMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
@@ -151,6 +152,15 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 LOGIN_URL = '/accounts/login/'
 LOGIN_REDIRECT_URL = '/'
 LOGOUT_REDIRECT_URL = '/accounts/login/'
+
+# Security: the session cookie dies when the browser closes, and the DB
+# session record lives at most an hour past the last real user action.
+# IdleTimeoutMiddleware refreshes the session (and thus its expiry) only on
+# real activity, never on background dashboard/status polls, giving a
+# sliding 1-hour inactivity window without SESSION_SAVE_EVERY_REQUEST.
+SESSION_EXPIRE_AT_BROWSER_CLOSE = True
+SESSION_COOKIE_AGE = 3600
+IDLE_TIMEOUT_SECONDS = int(os.environ.get('IDLE_TIMEOUT_SECONDS', 3600))
 
 # Google OAuth (sign in/up with Google, patients only). Leave both unset to
 # keep the Google button on the login page in its disabled "Coming soon"

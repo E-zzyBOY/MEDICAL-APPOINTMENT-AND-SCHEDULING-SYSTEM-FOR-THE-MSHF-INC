@@ -5,7 +5,10 @@
 {% block patient_content %}
 <div class="flex gap-6 items-start">
   <div class="flex-1 min-w-0 max-w-4xl">
-    {% include "patient/_booking_progress.html" with current=1 %}
+    {# Inline stepper for small screens only — on desktop the sidebar shows it #}
+    <div class="lg:hidden">
+      {% include "patient/_booking_progress.html" with current=1 %}
+    </div>
 
     <!-- Search bar -->
     <form method="get" class="flex items-center gap-2.5 mb-6">

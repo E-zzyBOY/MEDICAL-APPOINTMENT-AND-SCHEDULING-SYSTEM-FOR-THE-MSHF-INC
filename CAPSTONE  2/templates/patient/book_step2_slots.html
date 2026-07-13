@@ -10,7 +10,10 @@
       Back
     </a>
 
-    {% include "patient/_booking_progress.html" with current=2 doctor_id=doctor.pk %}
+    {# Inline stepper for small screens only — on desktop the sidebar shows it #}
+    <div class="lg:hidden">
+      {% include "patient/_booking_progress.html" with current=2 doctor_id=doctor.pk %}
+    </div>
 
     <h2 class="text-lg font-semibold text-[#1F2937]">Pick a Date</h2>
     <p class="text-sm text-[#6B7280] mb-5">Select your preferred date — our staff will confirm the exact time.</p>

@@ -9,7 +9,10 @@
       Back
     </a>
 
-    {% include "patient/_booking_progress.html" with current=3 doctor_id=doctor.pk appointment_date=appointment_date %}
+    {# Inline stepper for small screens only — on desktop the sidebar shows it #}
+    <div class="lg:hidden">
+      {% include "patient/_booking_progress.html" with current=3 doctor_id=doctor.pk appointment_date=appointment_date %}
+    </div>
 
     <h2 class="text-lg font-semibold text-[#1F2937] mb-1">Who is this appointment for?</h2>
     <p class="text-sm text-[#6B7280] mb-6">Select whether this booking is for yourself or someone else.</p>

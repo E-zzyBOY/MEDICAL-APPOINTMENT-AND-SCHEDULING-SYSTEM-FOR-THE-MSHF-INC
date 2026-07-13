@@ -9,6 +9,11 @@
       Back
     </a>
 
+    {# Inline stepper for small screens only — on desktop the sidebar shows it #}
+    <div class="lg:hidden">
+      {% include "patient/_booking_progress.html" with current=4 doctor_id=doctor.pk appointment_date=appointment_date %}
+    </div>
+
     <div class="bg-white rounded-2xl shadow-soft-sm p-6 sm:p-8">
       <h2 id="patient-details-title" class="text-xl font-semibold text-[#1F2937] mb-1">Patient Details</h2>
       <p class="text-sm text-[#6B7280] mb-6">

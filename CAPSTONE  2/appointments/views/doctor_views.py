@@ -158,12 +158,12 @@ def _build_doctor_dashboard_data(request):
     today_appts = Appointment.objects.filter(
         doctor=request.user,
         appointment_date=date.today(),
-        status__in=['Scheduled', 'Rescheduled', 'Pending Reschedule']
+        status__in=['Scheduled', 'Confirmed', 'Rescheduled', 'Pending Reschedule']
     ).select_related('patient').order_by('appointment_time')
     upcoming = Appointment.objects.filter(
         doctor=request.user,
         appointment_date__gt=date.today(),
-        status__in=['Scheduled', 'Rescheduled']
+        status__in=['Scheduled', 'Confirmed', 'Rescheduled']
     ).count()
     pending_reschedules = Appointment.objects.filter(
         doctor=request.user, status='Pending Reschedule'
@@ -714,7 +714,13 @@ def schedule_delete(request, pk):
 def doctor_appointment_list(request):
     status_filter = request.GET.get('status', 'Scheduled')
     qs = Appointment.objects.filter(doctor=request.user).select_related('patient', 'patient_details')
-    if status_filter:
+    if status_filter == 'Scheduled':
+        # The "Scheduled" tab is the doctor's active worklist. 'Confirmed'
+        # (patient checked in) and 'Rescheduled' appointments must stay
+        # visible here until completed — otherwise a secretary confirming
+        # a patient makes the appointment vanish from the doctor's view.
+        qs = qs.filter(status__in=['Scheduled', 'Confirmed', 'Rescheduled'])
+    elif status_filter:
         qs = qs.filter(status=status_filter)
     else:
         # Active/upcoming appointments only. Completed visits are accessible

@@ -187,8 +187,11 @@ button:focus-visible,
     transition: grid-template-columns 0.3s ease-in-out;
   }
 
-  #page-wrapper.sidebar-collapsed {
-    grid-template-columns: 0 1fr;
+  /* Collapsed = mini icon rail, not fully hidden: the logo stays visible
+     and nav links shrink to icon-only so the doctor/patient can still
+     navigate while the content area gets nearly the full width. */
+  html.sidebar-collapsed #page-wrapper {
+    grid-template-columns: 4.5rem 1fr;
   }
 
   #desktop-sidebar {
@@ -199,17 +202,79 @@ button:focus-visible,
 
   #desktop-sidebar .sidebar-inner {
     min-width: 16rem;
-    transition: opacity 0.15s ease-in-out;
+    transition: min-width 0.3s ease-in-out;
   }
 
-  #page-wrapper.sidebar-collapsed #desktop-sidebar {
-    border-right-color: transparent;
-    padding: 0;
+  html.sidebar-collapsed #desktop-sidebar .sidebar-inner {
+    min-width: 4.5rem;
   }
 
-  #page-wrapper.sidebar-collapsed #desktop-sidebar .sidebar-inner {
-    opacity: 0;
-    pointer-events: none;
+  /* The rail is narrower than the user-menu dropdown (w-52); without
+     this the aside's overflow: hidden would clip the popover. Safe here
+     because the inner rail width matches the grid column exactly. */
+  html.sidebar-collapsed #desktop-sidebar {
+    overflow: visible;
+  }
+
+  /* Logo block: keep the seal, minimized and centered; hide the
+     MSHFI wordmark + role badge next to it. */
+  html.sidebar-collapsed #desktop-sidebar .sidebar-inner > div:first-child {
+    padding-left: 0;
+    padding-right: 0;
+  }
+  html.sidebar-collapsed #desktop-sidebar .sidebar-inner > div:first-child a {
+    justify-content: center;
+    gap: 0;
+  }
+  html.sidebar-collapsed #desktop-sidebar .sidebar-inner > div:first-child a > div {
+    display: none;
+  }
+  html.sidebar-collapsed #desktop-sidebar .sidebar-inner > div:first-child img {
+    width: 2.5rem;
+    height: 2.5rem;
+  }
+
+  /* "MAIN MENU" section label: no room on the rail. */
+  html.sidebar-collapsed #desktop-sidebar .sidebar-inner > p {
+    display: none;
+  }
+
+  /* Nav links: icon-only. Labels are bare text nodes inside the <a>,
+     so font-size: 0 is the only way to hide them without markup changes;
+     the svg icons keep their fixed w-5/h-5 size. */
+  html.sidebar-collapsed #desktop-sidebar nav a {
+    font-size: 0;
+    gap: 0;
+    justify-content: center;
+    padding-left: 0;
+    padding-right: 0;
+  }
+  html.sidebar-collapsed #desktop-sidebar nav a svg {
+    width: 1.25rem;
+    height: 1.25rem;
+  }
+  html.sidebar-collapsed #desktop-sidebar nav a .ml-auto {
+    display: none;
+  }
+
+  /* Footer user menu: avatar only, centered. */
+  html.sidebar-collapsed #desktop-sidebar #user-menu button {
+    justify-content: center;
+    gap: 0;
+  }
+  html.sidebar-collapsed #desktop-sidebar #user-menu button > div,
+  html.sidebar-collapsed #desktop-sidebar #user-menu button > svg {
+    display: none;
+  }
+
+  /* With the rail collapsed, center width-capped page content so the
+     freed space is split evenly instead of piling up on the right. */
+  html.sidebar-collapsed main > [class*="max-w-"] {
+    margin-left: auto;
+    margin-right: auto;
+  }
+  html.sidebar-collapsed main > .flex.gap-6 {
+    justify-content: center;
   }
 }
 

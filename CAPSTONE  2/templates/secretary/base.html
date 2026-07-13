@@ -106,7 +106,8 @@
       }
     }
   </script>
-  <link rel="stylesheet" href="/static/css/custom.css" />
+  {# bump ?v= when custom.css changes so browsers don't serve a stale cached copy #}
+  <link rel="stylesheet" href="/static/css/custom.css?v=3" />
   {% block extra_head %}{% endblock %}
 </head>
 <body class="bg-softgray min-h-screen font-sans text-ink antialiased">

@@ -133,7 +133,12 @@
       }
     }
   </script>
-  <link rel="stylesheet" href="/static/css/custom.css" />
+  {% comment %}Apply the saved sidebar state before first paint — doing this on DOMContentLoaded makes the sidebar visibly re-collapse on every navigation because the width transition fires after render.{% endcomment %}
+  <script>
+    try { if (sessionStorage.getItem('sidebar_collapsed') === 'true') document.documentElement.classList.add('sidebar-collapsed'); } catch (e) {}
+  </script>
+  {# bump ?v= when custom.css changes so browsers don't serve a stale cached copy #}
+  <link rel="stylesheet" href="/static/css/custom.css?v=3" />
   {% block extra_head %}{% endblock %}
 </head>
 <body class="bg-softgray min-h-screen font-sans text-ink antialiased">
@@ -487,10 +492,10 @@
 
   <!-- Desktop sidebar collapse toggle -->
   <script>
+    // State lives on <html> so the head pre-paint script can apply it
+    // before the body renders (prevents the re-collapse flash on nav).
     function toggleSidebar() {
-      const wrapper = document.getElementById('page-wrapper');
-      if (!wrapper) return;
-      const isCollapsed = wrapper.classList.toggle('sidebar-collapsed');
+      const isCollapsed = document.documentElement.classList.toggle('sidebar-collapsed');
       try { sessionStorage.setItem('sidebar_collapsed', isCollapsed ? 'true' : 'false'); } catch (e) {}
       const btn = document.querySelector('.sidebar-toggle-btn');
       if (btn) {
@@ -500,26 +505,20 @@
     }
 
     document.addEventListener('DOMContentLoaded', function () {
-      const wrapper = document.getElementById('page-wrapper');
-      if (!wrapper) return;
-      try {
-        const saved = sessionStorage.getItem('sidebar_collapsed');
-        if (saved === 'true') {
-          wrapper.classList.add('sidebar-collapsed');
-          const btn = document.querySelector('.sidebar-toggle-btn');
-          if (btn) {
-            btn.setAttribute('aria-expanded', 'false');
-            btn.setAttribute('aria-label', 'Expand sidebar');
-          }
+      // Class was already applied pre-paint in <head>; just sync the button.
+      if (document.documentElement.classList.contains('sidebar-collapsed')) {
+        const btn = document.querySelector('.sidebar-toggle-btn');
+        if (btn) {
+          btn.setAttribute('aria-expanded', 'false');
+          btn.setAttribute('aria-label', 'Expand sidebar');
         }
-      } catch (e) {}
+      }
     });
 
     document.addEventListener('keydown', function (event) {
       if ((event.ctrlKey || event.metaKey) && event.key === 'b') {
         event.preventDefault();
-        const wrapper = document.getElementById('page-wrapper');
-        if (wrapper) toggleSidebar();
+        if (document.getElementById('page-wrapper')) toggleSidebar();
       }
     });
   </script>

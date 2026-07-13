@@ -23,7 +23,6 @@ import {
 	ChartTooltipContent,
 } from "@/components/ui/chart";
 import { DashboardStats } from "@/components/stats";
-import { QuickActions } from "@/components/quick-actions";
 import { usePollingData } from "@/hooks/use-polling-data";
 import type { DashboardData, LabelValue } from "@/types";
 
@@ -290,13 +289,8 @@ export function AdminDashboard({
 				)}
 			</div>
 
-			{/* Ratings + quick actions */}
-			<div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-				{live.ratingDist && <RatingsCard items={live.ratingDist} delay={240} />}
-				{live.quickActions && live.quickActions.length > 0 && (
-					<QuickActions actions={live.quickActions} />
-				)}
-			</div>
+			{/* Ratings */}
+			{live.ratingDist && <RatingsCard items={live.ratingDist} delay={240} />}
 		</div>
 	);
 }

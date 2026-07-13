@@ -37,6 +37,39 @@ def _build_admin_dashboard_data(request):
         for i in range(30)
     ]
 
+    # ── System-wide analytics (admin-only view) ──
+    status_order = ['Pending Assignment', 'Scheduled', 'Confirmed', 'Rescheduled',
+                    'Pending Reschedule', 'Completed', 'Cancelled', 'No-Show']
+    status_counts = {
+        row['status']: row['c']
+        for row in Appointment.objects.values('status').annotate(c=Count('id'))
+    }
+    status_breakdown = [
+        {'label': s, 'value': status_counts[s]}
+        for s in status_order if status_counts.get(s)
+    ]
+
+    doctor_load = [
+        {'label': f"Dr. {row['doctor__first_name']} {row['doctor__last_name']}".strip(),
+         'value': row['c']}
+        for row in Appointment.objects.exclude(status='Cancelled').values(
+            'doctor__first_name', 'doctor__last_name'
+        ).annotate(c=Count('id')).order_by('-c')[:7]
+    ]
+
+    rating_counts = {
+        row['rating']: row['c']
+        for row in Feedback.objects.values('rating').annotate(c=Count('id'))
+    }
+    rating_dist = [
+        {'label': f'{i} star{"s" if i > 1 else ""}', 'value': rating_counts.get(i, 0)}
+        for i in range(1, 6)
+    ]
+
+    new_patients_30 = CustomUser.objects.filter(
+        role='patient', date_joined__date__gte=trend_start
+    ).count()
+
     return {
         'userName': request.user.get_full_name() or request.user.username,
         'stats': [
@@ -45,10 +78,14 @@ def _build_admin_dashboard_data(request):
             {'label': 'Secretaries', 'value': total_secretaries},
             {'label': 'Total Appointments', 'value': total_appts},
             {'label': "Today's Appointments", 'value': today_appts},
+            {'label': 'New Patients', 'value': new_patients_30, 'hint': 'last 30 days'},
             {'label': 'Average Rating', 'value': round(avg_rating, 1) if avg_rating else None, 'hint': 'out of 5'},
         ],
         'trend': trend,
         'trendLabel': 'Appointments',
+        'statusBreakdown': status_breakdown,
+        'doctorLoad': doctor_load,
+        'ratingDist': rating_dist,
         'appointmentsTitle': 'Recent Appointments',
         'appointmentsHref': '/admin-panel/appointments/',
         'appointments': [

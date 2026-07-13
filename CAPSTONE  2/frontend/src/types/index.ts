@@ -122,6 +122,11 @@ export interface CarouselSlideData {
   theme: "navy" | "teal" | "violet";
 }
 
+export interface LabelValue {
+  label: string;
+  value: number;
+}
+
 export interface DashboardData {
   userName?: string;
   userPhotoUrl?: string | null;
@@ -133,6 +138,9 @@ export interface DashboardData {
   stats: DashboardStat[];
   trend?: TrendPoint[];
   trendLabel?: string;
+  statusBreakdown?: LabelValue[];
+  doctorLoad?: LabelValue[];
+  ratingDist?: LabelValue[];
   appointmentsTitle: string;
   appointmentsHref?: string;
   appointments: AppointmentRow[];

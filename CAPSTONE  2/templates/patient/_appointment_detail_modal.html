@@ -53,23 +53,7 @@
     <p class="text-sm font-semibold text-[#1F2937] mb-1">Reason for Visit</p>
     <p class="text-sm text-[#4B5563]">{{ appointment.reason|default:"—" }}</p>
   </div>
-  {% if appointment.status == 'Completed' %}
-  <div>
-    <p class="text-sm font-semibold text-[#1F2937] mb-1">Result</p>
-    {% if appointment.results.diagnosis %}
-    <p class="text-sm text-[#4B5563]">{{ appointment.results.diagnosis }}</p>
-    {% else %}
-    <p class="text-sm text-[#9CA3AF] italic">Pending</p>
-    {% endif %}
-  </div>
-  {% endif %}
   <div class="flex gap-3 pt-2">
-    {% if medical_record %}
-    <a hx-get="{% url 'patient:medical_record_detail' pk=medical_record.pk %}" hx-target="#modal-root" hx-swap="innerHTML"
-       class="flex-1 text-center bg-brand-500 text-white font-medium py-3 rounded-xl text-sm hover:bg-brand-600 transition cursor-pointer">
-      View Medical Record
-    </a>
-    {% endif %}
     <button type="button" onclick="closeModal()" class="flex-1 bg-[#F5F7FA] text-[#1F2937] font-medium py-3 rounded-xl text-sm hover:bg-[#E5E7EB] transition">
       Close
     </button>

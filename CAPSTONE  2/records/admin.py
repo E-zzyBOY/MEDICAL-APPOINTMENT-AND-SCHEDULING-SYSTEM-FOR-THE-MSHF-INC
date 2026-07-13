@@ -1,7 +1,3 @@
-from django.contrib import admin
-from .models import VitalSign, ResultsConsultation, Prescription, MedicalRecords
-
-admin.site.register(VitalSign)
-admin.site.register(ResultsConsultation)
-admin.site.register(Prescription)
-admin.site.register(MedicalRecords)
+# Medical records models are intentionally not registered in the Django
+# admin: prescriptions, diagnoses, and vitals are clinical data that must
+# not be visible to admin accounts (which are superusers).

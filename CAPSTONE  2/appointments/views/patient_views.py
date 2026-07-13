@@ -122,7 +122,7 @@ def _build_patient_dashboard_data(request):
     past = Appointment.objects.filter(
         patient=request.user,
         status='Completed'
-    ).select_related('doctor', 'results').order_by('-appointment_date')[:5]
+    ).select_related('doctor').order_by('-appointment_date')[:5]
 
     doctors_qs = CustomUser.objects.filter(role='doctor').select_related('doctor_profile')[:8]
     specializations = _browsable_specializations()
@@ -272,7 +272,7 @@ def appointment_list(request):
     completed = Appointment.objects.filter(
         patient=request.user,
         status='Completed'
-    ).select_related('doctor', 'results', 'patient_details').order_by('-appointment_date')
+    ).select_related('doctor', 'patient_details').order_by('-appointment_date')
     cancelled = Appointment.objects.filter(
         patient=request.user,
         status__in=['Cancelled', 'No-Show']
@@ -832,17 +832,10 @@ def reschedule_appointment(request, pk):
 @role_required('patient')
 def appointment_detail(request, pk):
     appointment = get_object_or_404(
-        Appointment.objects.select_related('doctor', 'doctor__doctor_profile', 'results', 'patient_details'), pk=pk, patient=request.user
+        Appointment.objects.select_related('doctor', 'doctor__doctor_profile', 'patient_details'), pk=pk, patient=request.user
     )
-    medical_record = None
-    if appointment.status == 'Completed':
-        from records.models import ResultsConsultation
-        try:
-            medical_record = appointment.results.medical_records.first()
-        except ResultsConsultation.DoesNotExist:
-            medical_record = None
     return render(request, 'patient/_appointment_detail_modal.html', {
-        'appointment': appointment, 'medical_record': medical_record, 'title': 'Appointment Details',
+        'appointment': appointment, 'title': 'Appointment Details',
     })
 
 
@@ -883,21 +876,9 @@ def medical_records(request):
     from records.models import MedicalRecords, VitalSign
     records = MedicalRecords.objects.filter(
         patient=request.user
-    ).select_related('doctor', 'results').order_by('-visit_date')
+    ).select_related('doctor').order_by('-visit_date')
     vitals = VitalSign.objects.filter(patient=request.user).order_by('-date_taken')
     return render(request, 'patient/medical_records.html', {'records': records, 'vitals': vitals})
-
-
-@role_required('patient')
-def medical_record_detail(request, pk):
-    from records.models import MedicalRecords
-    record = get_object_or_404(
-        MedicalRecords.objects.select_related('doctor', 'results').prefetch_related('results__prescriptions'),
-        pk=pk, patient=request.user
-    )
-    return render(request, 'patient/_medical_record_detail_modal.html', {
-        'record': record, 'title': 'Medical Record',
-    })
 
 
 @role_required('patient')

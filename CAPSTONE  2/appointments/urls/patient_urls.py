@@ -19,6 +19,5 @@ urlpatterns = [
     path('appointments/<int:pk>/reschedule/',    v.reschedule_appointment, name='reschedule'),
     path('appointments/<int:pk>/cancel/',        v.cancel_appointment,     name='cancel'),
     path('records/',                             v.medical_records,        name='medical_records'),
-    path('records/<int:pk>/detail/',             v.medical_record_detail,  name='medical_record_detail'),
     path('notifications/',                       v.patient_notifications,  name='notifications'),
 ]

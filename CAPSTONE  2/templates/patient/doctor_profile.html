@@ -9,12 +9,15 @@
   <!-- Header card: aqua banner + photo + name -->
   <div class="bg-white rounded-3xl shadow-soft-sm overflow-hidden mb-4">
     <div class="relative h-24 bg-gradient-to-r from-[#E0EED5] to-[#C3DEAF]">
+      {# subtle dot-grid texture over the gradient #}
+      <div class="absolute inset-0" aria-hidden="true"
+           style="background-image: radial-gradient(rgba(24,62,12,0.10) 1.5px, transparent 1.5px); background-size: 14px 14px;"></div>
       <span class="absolute top-4 right-4 text-[#9CA3AF]" aria-hidden="true">{# decorative #}
         <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/></svg>
       </span>
     </div>
     <div class="px-6 pb-6">
-      <div class="flex items-end gap-4 -mt-10 mb-4">
+      <div class="relative z-10 flex items-end gap-4 -mt-10 mb-4">
         {% if doctor.profile_picture %}
           <img src="{{ doctor.profile_picture.url }}" class="size-20 rounded-2xl object-cover ring-4 ring-white shadow-soft-sm" alt="">
         {% else %}

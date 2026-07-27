@@ -12,7 +12,8 @@ from appointments.forms import PatientDetailsForm
 from accounts.models import CustomUser, PatientProfile, TERMS_VERSION, SPECIALIZATIONS
 from notifications.email_utils import (
     send_booking_received_email, send_booking_confirmation_email, send_cancellation_email,
-    send_reschedule_email, send_time_assigned_email
+    send_reschedule_email, send_time_assigned_email,
+    send_staff_new_booking_email, send_staff_reschedule_request_email, send_staff_cancellation_email,
 )
 from notifications.models import Notification
 from feedback.models import Feedback
@@ -729,6 +730,7 @@ def book_step3_confirm(request):
 
         try:
             send_booking_received_email(appointment)
+            send_staff_new_booking_email(appointment)
         except Exception:
             pass
         # Build a patient name for the notification. If the appointment is
@@ -809,6 +811,10 @@ def reschedule_appointment(request, pk):
         appointment.requested_reason  = reason
         appointment.save()
 
+        try:
+            send_staff_reschedule_request_email(appointment)
+        except Exception:
+            pass
         _notify_assigned_secretaries_and_doctor(
             appointment.doctor,
             f"{appointment.patient.get_full_name()} requested to reschedule their appointment to "
@@ -850,6 +856,7 @@ def cancel_appointment(request, pk):
         appointment.save()
         try:
             send_cancellation_email(appointment)
+            send_staff_cancellation_email(appointment)
         except Exception:
             pass
         _notify_assigned_secretaries_and_doctor(

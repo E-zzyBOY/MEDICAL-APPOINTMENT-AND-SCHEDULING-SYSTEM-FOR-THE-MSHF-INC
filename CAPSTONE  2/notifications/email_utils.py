@@ -147,3 +147,64 @@ def send_reminder_email(appointment):
     message = render_to_string('notifications/email/reminder.html', ctx)
     send_mail(subject, message, settings.DEFAULT_FROM_EMAIL,
               [appointment.patient.email], fail_silently=True)
+
+
+def _staff_recipients(doctor):
+    """The doctor plus every secretary assigned to them — mirrors
+    _notify_assigned_secretaries_and_doctor() in appointments/views/patient_views.py,
+    which fans the equivalent in-app Notification out to the same set."""
+    recipients = [doctor]
+    for secretary_profile in doctor.assigned_secretaries.select_related('user').all():
+        if secretary_profile.user:
+            recipients.append(secretary_profile.user)
+    return recipients
+
+
+def _send_staff_email(appointment, subject, template, ctx=None):
+    ctx = ctx if ctx is not None else {
+        'patient_name': appointment.patient.get_full_name(),
+        'doctor_name':  f"Dr. {appointment.doctor.get_full_name()}",
+        'date':         appointment.appointment_date.strftime('%B %d, %Y'),
+        'time':         _format_time_or_none(appointment.appointment_time),
+        'reason':       appointment.reason,
+    }
+    message = render_to_string(template, ctx)
+    for staff_user in _staff_recipients(appointment.doctor):
+        if _should_email(staff_user):
+            send_mail(subject, message, settings.DEFAULT_FROM_EMAIL,
+                      [staff_user.email], fail_silently=True)
+
+
+def send_staff_new_booking_email(appointment):
+    """Notifies the doctor and their assigned secretaries by email that a
+    patient requested a new appointment awaiting time assignment."""
+    _send_staff_email(
+        appointment, "New Appointment Request — MSHFI",
+        'notifications/email/staff_new_booking.html',
+    )
+
+
+def send_staff_reschedule_request_email(appointment):
+    """Notifies the doctor and their assigned secretaries by email that a
+    patient requested to reschedule, pending approval. Uses requested_date
+    (not appointment_date) since the reschedule hasn't been approved yet —
+    mirrors the in-app notification built at the same call site in
+    appointments/views/patient_views.py:reschedule_appointment."""
+    ctx = {
+        'patient_name': appointment.patient.get_full_name(),
+        'doctor_name':  f"Dr. {appointment.doctor.get_full_name()}",
+        'date':         appointment.requested_date.strftime('%B %d, %Y'),
+    }
+    _send_staff_email(
+        appointment, "Reschedule Request — MSHFI",
+        'notifications/email/staff_reschedule_request.html', ctx=ctx,
+    )
+
+
+def send_staff_cancellation_email(appointment):
+    """Notifies the doctor and their assigned secretaries by email that a
+    patient cancelled their appointment."""
+    _send_staff_email(
+        appointment, "Appointment Cancelled by Patient — MSHFI",
+        'notifications/email/staff_cancellation.html',
+    )

@@ -260,7 +260,10 @@ class SecretaryProfileEditForm(forms.ModelForm):
 class DoctorCreationForm(UserCreationForm):
     first_name     = forms.CharField(max_length=150, required=True)
     last_name      = forms.CharField(max_length=150, required=True)
-    email          = forms.EmailField(required=True)
+    email          = forms.EmailField(
+        required=True, label='Email (must be a Gmail address)',
+        help_text='Used to send this doctor appointment notifications.',
+    )
     # Dropdown fed by the same master list as the patient "Browse by
     # Specialty" filter (accounts.models.SPECIALIZATIONS) — never free text.
     specialization = forms.ChoiceField(
@@ -271,6 +274,12 @@ class DoctorCreationForm(UserCreationForm):
     class Meta:
         model  = CustomUser
         fields = ['username', 'first_name', 'last_name', 'email', 'password1', 'password2']
+
+    def clean_email(self):
+        email = self.cleaned_data['email']
+        if not email.lower().endswith('@gmail.com'):
+            raise forms.ValidationError('Must be a Gmail address (used to send appointment notifications).')
+        return email
 
     def save(self, commit=True):
         user = super().save(commit=False)
@@ -290,7 +299,10 @@ class DoctorCreationForm(UserCreationForm):
 class SecretaryCreationForm(UserCreationForm):
     first_name      = forms.CharField(max_length=150, required=True)
     last_name       = forms.CharField(max_length=150, required=True)
-    email           = forms.EmailField(required=True)
+    email           = forms.EmailField(
+        required=True, label='Email (must be a Gmail address)',
+        help_text='Used to send this secretary appointment notifications.',
+    )
     contact_number  = forms.CharField(max_length=20, required=False, label='Contact Number')
     employee_id     = forms.CharField(max_length=30, required=False, label='Employee/Staff ID')
     assigned_doctor = forms.ModelChoiceField(
@@ -313,6 +325,12 @@ class SecretaryCreationForm(UserCreationForm):
         # not a same-visit reading — it just needs to be a real, 4-digit year.
         self.fields['date_assigned'].widget.attrs['min'] = date(DATE_ASSIGNED_MIN_YEAR, 1, 1).isoformat()
         self.fields['date_assigned'].widget.attrs['max'] = date.today().isoformat()
+
+    def clean_email(self):
+        email = self.cleaned_data['email']
+        if not email.lower().endswith('@gmail.com'):
+            raise forms.ValidationError('Must be a Gmail address (used to send appointment notifications).')
+        return email
 
     def clean_date_assigned(self):
         # Belt-and-suspenders: the widget's min/max only guard the picker

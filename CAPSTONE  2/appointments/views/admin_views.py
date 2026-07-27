@@ -231,12 +231,15 @@ def user_delete(request, pk):
 @role_required('admin')
 def admin_appointment_list(request):
     qs = Appointment.objects.all().select_related('patient', 'doctor', 'secretary', 'patient_details').order_by('-appointment_date', TIME_NULLS_FIRST)
+    today = date.today()
     return render(request, 'admin_panel/appointment_list.html', {
         # "Scheduled" bucket covers every appointment that hasn't finished or
         # been cancelled yet (Pending Assignment, Scheduled, Confirmed,
         # Rescheduled, Pending Reschedule) — mirrors the patient-facing
-        # "Upcoming" tab.
-        'scheduled': qs.exclude(status__in=['Completed', 'Cancelled']),
+        # "Upcoming" tab. Past-dated rows move to "Past" instead of
+        # lingering here indefinitely.
+        'scheduled': qs.exclude(status__in=['Completed', 'Cancelled']).filter(appointment_date__gte=today),
+        'past': qs.exclude(status__in=['Completed', 'Cancelled']).filter(appointment_date__lt=today),
         'completed': qs.filter(status='Completed'),
         'cancelled': qs.filter(status='Cancelled'),
     })

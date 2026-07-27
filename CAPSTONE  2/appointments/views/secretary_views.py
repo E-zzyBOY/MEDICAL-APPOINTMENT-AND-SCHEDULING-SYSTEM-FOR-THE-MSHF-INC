@@ -96,8 +96,16 @@ def secretary_appointment_list(request):
     status_filter = request.GET.get('status', 'Pending Assignment')
     date_filter   = request.GET.get('date', '')
     qs = Appointment.objects.filter(doctor=doctor).select_related('patient', 'doctor', 'patient_details') if doctor else Appointment.objects.none()
-    if status_filter:
+    if status_filter == 'Past':
+        # Anything still non-terminal whose date has already passed —
+        # nobody ever marked it Completed/No-Show/Cancelled.
+        qs = qs.filter(status__in=Appointment.ACTIVE_STATUSES, appointment_date__lt=date.today())
+    elif status_filter:
         qs = qs.filter(status=status_filter)
+        if status_filter in Appointment.ACTIVE_STATUSES:
+            # Past-dated rows in an active status move to the "Past" tab
+            # instead of lingering in their normal status tab forever.
+            qs = qs.filter(appointment_date__gte=date.today())
     if date_filter:
         qs = qs.filter(appointment_date=date_filter)
     today = date.today()

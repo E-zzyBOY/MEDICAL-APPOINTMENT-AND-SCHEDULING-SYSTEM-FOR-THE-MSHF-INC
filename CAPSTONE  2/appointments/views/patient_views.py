@@ -267,8 +267,18 @@ def patient_dashboard_data(request):
 def appointment_list(request):
     upcoming = Appointment.objects.filter(
         patient=request.user,
-        status__in=['Pending Assignment', 'Scheduled', 'Confirmed', 'Rescheduled', 'Pending Reschedule']
+        status__in=Appointment.ACTIVE_STATUSES,
+        appointment_date__gte=date.today(),
     ).select_related('doctor', 'patient_details').order_by('appointment_date', TIME_NULLS_FIRST)
+    # Appointments that lapsed without ever being closed out (never marked
+    # Completed/Cancelled/No-Show) — kept separate from 'upcoming' so a
+    # stale request/booking doesn't sit there forever, and separate from
+    # 'completed'/'cancelled' since nobody actually resolved it.
+    past = Appointment.objects.filter(
+        patient=request.user,
+        status__in=Appointment.ACTIVE_STATUSES,
+        appointment_date__lt=date.today(),
+    ).select_related('doctor', 'patient_details').order_by('-appointment_date')
     completed = Appointment.objects.filter(
         patient=request.user,
         status='Completed'
@@ -284,7 +294,7 @@ def appointment_list(request):
         ).values_list('appointment_id', flat=True)
     )
     return render(request, 'patient/appointment_list.html', {
-        'upcoming': upcoming, 'completed': completed, 'cancelled': cancelled,
+        'upcoming': upcoming, 'past': past, 'completed': completed, 'cancelled': cancelled,
         'reviewed_appointment_ids': reviewed_appointment_ids,
     })
 

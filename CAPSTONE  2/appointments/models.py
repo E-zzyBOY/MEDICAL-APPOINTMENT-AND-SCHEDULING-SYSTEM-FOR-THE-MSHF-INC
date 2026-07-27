@@ -141,6 +141,19 @@ class Appointment(models.Model):
     class Meta:
         ordering = ['appointment_date', TIME_NULLS_FIRST]
 
+    # Non-terminal statuses — the appointment is still awaiting some action
+    # (time assignment, check-in, staff approval, etc.) rather than resolved.
+    # Shared by has_active_appointment() below and by every role's
+    # appointment-list view, which uses it to keep past-dated appointments
+    # that were never closed out from lingering in the active/pending tabs.
+    ACTIVE_STATUSES = [
+        'Pending Assignment',
+        'Scheduled',
+        'Confirmed',
+        'Rescheduled',
+        'Pending Reschedule',
+    ]
+
     @property
     def needs_time_assignment(self):
         return self.status == 'Pending Assignment'
@@ -159,16 +172,9 @@ class Appointment(models.Model):
         - Completed (consultation finished)
         - Cancelled (patient or staff cancelled)
         """
-        active_statuses = [
-            'Pending Assignment',
-            'Scheduled',
-            'Confirmed',
-            'Rescheduled',
-            'Pending Reschedule',
-        ]
         return cls.objects.filter(
             patient=patient,
-            status__in=active_statuses
+            status__in=cls.ACTIVE_STATUSES
         ).exists()
 
     def __str__(self):

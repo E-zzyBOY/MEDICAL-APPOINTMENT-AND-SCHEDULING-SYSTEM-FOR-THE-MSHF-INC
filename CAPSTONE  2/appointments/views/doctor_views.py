@@ -719,14 +719,20 @@ def doctor_appointment_list(request):
         # (patient checked in) and 'Rescheduled' appointments must stay
         # visible here until completed — otherwise a secretary confirming
         # a patient makes the appointment vanish from the doctor's view.
-        qs = qs.filter(status__in=['Scheduled', 'Confirmed', 'Rescheduled'])
+        # Past-dated rows that were never closed out move to the "Past"
+        # tab instead of lingering here indefinitely.
+        qs = qs.filter(status__in=['Scheduled', 'Confirmed', 'Rescheduled'], appointment_date__gte=date.today())
+    elif status_filter == 'Past':
+        # Anything still non-terminal whose date has already passed —
+        # nobody ever marked it Completed/No-Show/Cancelled.
+        qs = qs.filter(status__in=Appointment.ACTIVE_STATUSES, appointment_date__lt=date.today())
     elif status_filter:
         qs = qs.filter(status=status_filter)
     else:
         # Active/upcoming appointments only. Completed visits are accessible
         # via the "Completed" tab — excluded from the default view so the
         # doctor sees today's actionable patients first, not old history.
-        qs = qs.filter(status__in=['Scheduled', 'Confirmed', 'Rescheduled'])
+        qs = qs.filter(status__in=['Scheduled', 'Confirmed', 'Rescheduled'], appointment_date__gte=date.today())
     today = date.today()
     # Today's appointments first, then upcoming (soonest first), then past
     # (most recent first). SQLite's JULIANDAY() can't be used here — it

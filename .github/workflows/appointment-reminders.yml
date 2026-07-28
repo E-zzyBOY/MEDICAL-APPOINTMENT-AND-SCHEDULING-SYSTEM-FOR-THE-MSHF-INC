@@ -27,4 +27,5 @@ jobs:
       - name: Call reminder endpoint
         run: |
           curl --fail --show-error --max-time 90 \
-            "${{ secrets.APP_URL }}/internal/cron/send-appointment-reminders/?token=${{ secrets.CRON_SECRET }}"
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            "${{ secrets.APP_URL }}/internal/cron/send-appointment-reminders/"

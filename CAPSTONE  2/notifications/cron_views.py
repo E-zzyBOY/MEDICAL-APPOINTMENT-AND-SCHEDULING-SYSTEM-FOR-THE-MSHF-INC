@@ -12,18 +12,22 @@ logger = logging.getLogger(__name__)
 
 def _token_is_valid(request):
     """Fails closed: an unset CRON_SECRET (the default) never matches
-    anything, so this endpoint is inert until explicitly configured."""
+    anything, so this endpoint is inert until explicitly configured.
+    Reads the token from the Authorization header rather than the query
+    string so it doesn't end up in access/proxy logs."""
     expected = settings.CRON_SECRET
-    provided = request.GET.get('token', '')
+    auth = request.headers.get('Authorization', '')
+    provided = auth[7:] if auth.startswith('Bearer ') else ''
     return bool(expected) and hmac.compare_digest(expected, provided)
 
 
 @require_GET
 def send_appointment_reminders(request):
     """Free-tier substitute for a Render Cron Job: an external scheduler
-    (GitHub Actions, cron-job.org, ...) hits this URL with ?token=<CRON_SECRET>
-    once a day to run the same day-before reminder command a paid Cron
-    Job would otherwise run directly on Render."""
+    (GitHub Actions, cron-job.org, ...) hits this URL with an
+    "Authorization: Bearer <CRON_SECRET>" header once a day to run the
+    same day-before reminder command a paid Cron Job would otherwise run
+    directly on Render."""
     if not _token_is_valid(request):
         return HttpResponseForbidden('Forbidden')
 

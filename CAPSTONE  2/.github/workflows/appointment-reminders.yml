@@ -1,0 +1,30 @@
+# Free substitute for a Render Cron Job (which needs a paid Render plan).
+# GitHub Actions' scheduled workflows are free on both public and private
+# repos at this frequency, and just ping the app's own /internal/cron/
+# endpoint (see notifications/cron_views.py) once a day — the reminder
+# logic itself still runs on Render, against the production database.
+#
+# Setup (one-time, in this repo's GitHub Settings -> Secrets and variables
+# -> Actions -> New repository secret):
+#   APP_URL     e.g. https://your-app-name.onrender.com  (no trailing slash)
+#   CRON_SECRET must match the CRON_SECRET env var set on the Render web service
+#
+# Render's free web services spin down after ~15 min idle and take a while
+# to wake back up on the next request, hence the generous curl timeout.
+
+name: Send appointment reminders
+
+on:
+  schedule:
+    # 00:00 UTC = 8:00 AM Asia/Manila (no DST in the Philippines)
+    - cron: '0 0 * * *'
+  workflow_dispatch: {}  # allows manually running it from the Actions tab too
+
+jobs:
+  trigger-reminders:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call reminder endpoint
+        run: |
+          curl --fail --show-error --max-time 90 \
+            "${{ secrets.APP_URL }}/internal/cron/send-appointment-reminders/?token=${{ secrets.CRON_SECRET }}"

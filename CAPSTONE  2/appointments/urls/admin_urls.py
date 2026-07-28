@@ -18,4 +18,5 @@ urlpatterns = [
     path('feedback/',                    v.admin_feedback_list,       name='feedback_list'),
     path('feedback/doctor/<int:pk>/',    v.admin_feedback_by_doctor, name='feedback_by_doctor'),
     path('feedback/<int:pk>/detail/',    v.admin_feedback_detail,    name='feedback_detail'),
+    path('broadcasts/',                  v.broadcast_list,           name='broadcast_list'),
 ]

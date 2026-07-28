@@ -9,6 +9,9 @@ from accounts.forms import DoctorCreationForm, SecretaryCreationForm, UserEditFo
 from appointments.models import Appointment, TIME_NULLS_FIRST
 from appointments.forms import AdminAppointmentEditForm
 from feedback.models import Feedback
+from notifications.forms import BroadcastForm
+from notifications.models import Broadcast
+from notifications.broadcast import send_broadcast
 
 
 def _build_admin_dashboard_data(request):
@@ -301,4 +304,24 @@ def admin_feedback_detail(request, pk):
     fb = get_object_or_404(Feedback.objects.select_related('patient', 'appointment', 'appointment__doctor'), pk=pk)
     return render(request, 'admin_panel/_feedback_detail_modal.html', {
         'fb': fb, 'title': 'Feedback Details',
+    })
+
+
+@role_required('admin')
+def broadcast_list(request):
+    form = BroadcastForm(request.POST or None)
+    if request.method == 'POST' and form.is_valid():
+        broadcast = form.save(commit=False)
+        broadcast.sender = request.user
+        broadcast.save()
+        send_broadcast(broadcast)
+        messages.success(
+            request,
+            f'Announcement sent to {broadcast.recipient_count} user(s) '
+            f'({broadcast.email_sent_count} email(s) delivered).'
+        )
+        return redirect('admin_panel:broadcast_list')
+    history = Broadcast.objects.select_related('sender').all()[:20]
+    return render(request, 'admin_panel/broadcast_list.html', {
+        'form': form, 'history': history,
     })

@@ -3,6 +3,7 @@ from django.conf.urls.static import static
 from django.contrib import admin
 from django.urls import path, include
 from django.shortcuts import render, redirect
+from notifications import cron_views
 
 
 def landing_view(request):
@@ -46,6 +47,8 @@ urlpatterns = [
     path('records/',       include('records.urls')),
     path('notifications/', include('notifications.urls')),
     path('feedback/',      include('feedback.urls')),
+    path('internal/cron/send-appointment-reminders/', cron_views.send_appointment_reminders,
+         name='cron_send_appointment_reminders'),
 ]
 
 if settings.DEBUG:

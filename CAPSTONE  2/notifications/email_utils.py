@@ -208,3 +208,13 @@ def send_staff_cancellation_email(appointment):
         appointment, "Appointment Cancelled by Patient — MSHFI",
         'notifications/email/staff_cancellation.html',
     )
+
+
+def send_staff_reminder_email(appointment):
+    """Notifies the doctor and their assigned secretaries by email that a
+    patient has an appointment tomorrow. Companion to send_reminder_email
+    (patient-facing) — used by the send_appointment_reminders command."""
+    _send_staff_email(
+        appointment, "Appointment Reminder — MSHFI (Tomorrow)",
+        'notifications/email/staff_reminder.html',
+    )

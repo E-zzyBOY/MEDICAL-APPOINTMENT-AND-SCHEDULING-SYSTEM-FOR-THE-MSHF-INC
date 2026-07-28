@@ -201,3 +201,9 @@ if BREVO_API_KEY:
     ANYMAIL = {'BREVO_API_KEY': BREVO_API_KEY}
     EMAIL_BACKEND = 'anymail.backends.brevo.EmailBackend'
 DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'noreply@mshfi.com')
+
+# Shared secret for the /internal/cron/ HTTP endpoints (see notifications/cron_views.py).
+# These let a free external scheduler (GitHub Actions, cron-job.org, etc.) trigger
+# management commands on Render's free tier, which has no built-in Cron Job option.
+# Left blank by default so the endpoint fails closed until explicitly configured.
+CRON_SECRET = os.environ.get('CRON_SECRET', '')

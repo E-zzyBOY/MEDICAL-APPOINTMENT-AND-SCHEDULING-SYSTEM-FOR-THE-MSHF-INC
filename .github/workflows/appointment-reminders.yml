@@ -26,6 +26,11 @@ jobs:
     steps:
       - name: Call reminder endpoint
         run: |
+          # Strip any trailing slash from APP_URL so a double "//" before
+          # /internal/... (which Django's URL resolver won't match, causing
+          # a false 404) can't happen regardless of how the secret was entered.
+          BASE_URL="${{ secrets.APP_URL }}"
+          BASE_URL="${BASE_URL%/}"
           curl --fail --show-error --max-time 90 \
             -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
-            "${{ secrets.APP_URL }}/internal/cron/send-appointment-reminders/"
+            "$BASE_URL/internal/cron/send-appointment-reminders/"

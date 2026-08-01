@@ -237,6 +237,7 @@ htmx modals.
       var init = hidden.value.trim();
       if (init) {
         var m = init.match(/^(?:(.*),\s*)?Brgy\.\s*(.+?),\s*(.+?),\s*(.+)$/i);
+        var resolved = false;
         if (m) {
           var prov = PROVINCES.find(function (p) { return p.toLowerCase() === m[4].trim().toLowerCase(); });
           var mun = prov ? Object.keys(d).find(function (n) { return n.toLowerCase() === m[3].trim().toLowerCase(); }) : null;
@@ -244,7 +245,10 @@ htmx modals.
             provH.value = prov;
             munH.value = mun;
             var b = (d[mun] || []).find(function (n) { return n.toLowerCase() === m[2].trim().toLowerCase(); });
-            if (b) brgyH.value = b;
+            if (b) {
+              brgyH.value = b;
+              resolved = true;
+            }
             street.value = m[1] || '';
           } else {
             street.value = init;
@@ -252,7 +256,15 @@ htmx modals.
         } else {
           street.value = init;               // legacy free-text -> street line
         }
-        compose(); updateLabel();
+        // Only let compose() recompute the hidden field once province +
+        // municipality + barangay were ALL confidently resolved from the
+        // saved value. Otherwise compose() would blank out a perfectly
+        // valid saved address just because this page load couldn't fully
+        // re-match it (e.g. a barangay name that no longer matches the
+        // PSGC data exactly) — leave the original value in place until the
+        // user actively repicks something.
+        if (resolved) compose();
+        updateLabel();
       }
     });
 

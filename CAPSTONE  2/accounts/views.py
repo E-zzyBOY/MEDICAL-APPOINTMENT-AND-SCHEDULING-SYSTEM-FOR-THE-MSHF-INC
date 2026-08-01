@@ -209,7 +209,7 @@ def profile_edit_view(request):
             return render(request, modal_template, {'form': None, 'pic_form': pic_form, 'title': 'Edit Profile'})
         return render(request, template, {'form': None, 'pic_form': pic_form})
     form = FormClass(request.POST or None, instance=profile)
-    if request.method == 'POST' and form.is_valid() and pic_form.is_valid():
+    if request.method == 'POST' and form.is_valid():
         # Also update first/last name on the user object
         first = request.POST.get('first_name', '').strip()
         last  = request.POST.get('last_name', '').strip()
@@ -219,8 +219,21 @@ def profile_edit_view(request):
             request.user.last_name = last
         request.user.save()
         form.save()
-        pic_form.save()
-        messages.success(request, 'Profile updated.')
+        # The picture upload is validated/saved independently: a rejected
+        # photo (bad format, too large, etc.) must never discard the just
+        # saved profile fields above, which is what happened when both
+        # forms were required to be valid together — the whole POST would
+        # silently no-op and the page would redisplay the typed values as
+        # if they'd been saved, even though nothing reached the database.
+        if pic_form.is_valid():
+            pic_form.save()
+            messages.success(request, 'Profile updated.')
+        else:
+            messages.warning(
+                request,
+                'Profile updated, but the profile picture could not be saved: '
+                + ' '.join(pic_form.errors.get('profile_picture', ['Invalid file.']))
+            )
         if request.htmx:
             response = render(request, modal_template, {'form': form, 'pic_form': pic_form, 'title': 'Edit Profile'})
             response['HX-Redirect'] = '/accounts/profile/'

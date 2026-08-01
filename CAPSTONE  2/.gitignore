@@ -1,5 +1,7 @@
 .env
 db.sqlite3
+data.json
+backup_render_*.json
 __pycache__/
 *.pyc
 *.pyo

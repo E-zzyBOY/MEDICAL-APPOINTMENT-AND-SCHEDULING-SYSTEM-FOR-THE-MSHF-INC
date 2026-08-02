@@ -3,7 +3,7 @@ from django.template.loader import render_to_string
 from django.urls import reverse
 from django.contrib import messages
 from django.db import transaction
-from django.db.models import Count, Case, When, Value, IntegerField, DateField, F
+from django.db.models import Count, Case, When, Value, IntegerField, DateField, F, Q
 from django.http import JsonResponse, HttpResponse
 from datetime import date, datetime, timedelta
 import calendar as calendar_module
@@ -19,6 +19,24 @@ from notifications.models import Notification
 
 def _notify(user, message):
     Notification.objects.create(user=user, message=message)
+
+
+def _parse_date_str(value):
+    """Parse a YYYY-MM-DD query param into a date, or None if missing/invalid
+    (an unparseable date simply disables that end of the filter range)."""
+    if not value:
+        return None
+    try:
+        return datetime.strptime(value, '%Y-%m-%d').date()
+    except (ValueError, TypeError):
+        return None
+
+
+def _parse_int(value, default=None):
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return default
 
 
 def _notify_assigned_secretaries(doctor, message):
@@ -1147,14 +1165,82 @@ def doctor_patient_records(request, patient_id):
         return redirect('doctor:patient_list')
     from records.models import MedicalRecords
     from records.views import partition_vitals
-    records   = MedicalRecords.objects.filter(patient=patient).select_related('results', 'doctor')
-    visit_vitals, general_vitals = partition_vitals(patient, records)
-    profile   = getattr(patient, 'patient_profile', None)
-    return render(request, 'doctor/patient_records.html', {
-        'patient': patient, 'records': records,
-        'visit_vitals': visit_vitals, 'general_vitals': general_vitals,
+
+    q         = (request.GET.get('q') or '').strip()
+    from_date = _parse_date_str(request.GET.get('from_date'))
+    to_date   = _parse_date_str(request.GET.get('to_date'))
+    doctor_pk = _parse_int(request.GET.get('doctor'))
+    has_filters = bool(q or from_date or to_date or doctor_pk)
+
+    base = MedicalRecords.objects.filter(patient=patient).select_related('results', 'doctor')
+    filtered = base
+    if q:
+        filtered = filtered.filter(
+            Q(results__diagnosis__icontains=q)
+            | Q(results__prescriptions__notes__icontains=q)
+            | Q(results__prescriptions__treatment__icontains=q)
+        ).distinct()
+    if from_date:
+        filtered = filtered.filter(visit_date__gte=from_date)
+    if to_date:
+        filtered = filtered.filter(visit_date__lte=to_date)
+    if doctor_pk:
+        filtered = filtered.filter(doctor_id=doctor_pk)
+    filtered = filtered.order_by('-visit_date')
+
+    total_count = filtered.count()
+
+    # A filtered view returns every match (a doctor searching a chronic
+    # patient wants the whole set); only the unfiltered history is paginated
+    # (10 at a time, "Load more" via htmx).
+    if has_filters:
+        visible_records = filtered
+        limit           = total_count
+        has_more        = False
+        load_more_url   = None
+    else:
+        limit         = _parse_int(request.GET.get('limit'), 10)
+        visible_records = filtered[:limit]
+        has_more      = total_count > limit
+        load_more_url = None
+        if has_more:
+            params = request.GET.copy()
+            params['limit'] = str(limit + 10)
+            load_more_url = reverse(
+                'doctor:patient_records', kwargs={'patient_id': patient.pk}
+            ) + '?' + params.urlencode()
+
+    # Partition vitals against the FULL records set (not the filtered one) so
+    # readings belonging to filtered-out visits never leak into General Vitals —
+    # their visit cards simply aren't rendered.
+    visit_vitals, general_vitals = partition_vitals(patient, base)
+
+    profile = getattr(patient, 'patient_profile', None)
+    doctors = CustomUser.objects.filter(
+        pk__in=MedicalRecords.objects.filter(patient=patient)
+        .values_list('doctor_id', flat=True).distinct()
+    ).order_by('last_name', 'first_name')
+
+    context = {
+        'patient': patient,
+        'records': visible_records,
+        'total_count': total_count,
+        'limit': limit,
+        'has_more': has_more,
+        'load_more_url': load_more_url,
+        'visit_vitals': visit_vitals,
+        'general_vitals': general_vitals,
         'profile': profile,
-    })
+        'doctors': doctors,
+        'q': q,
+        'from_date': request.GET.get('from_date', ''),
+        'to_date': request.GET.get('to_date', ''),
+        'selected_doctor_id': doctor_pk,
+        'has_filters': has_filters,
+    }
+    if request.htmx:
+        return render(request, 'doctor/_records_list.html', context)
+    return render(request, 'doctor/patient_records.html', context)
 
 
 @role_required('doctor')

@@ -49,7 +49,7 @@ class AppointmentPatientDetails(models.Model):
     the appointment was booked for, independent of any future changes to
     either the account owner's profile or a separate patient profile.
     """
-    GENDER_CHOICES = [('M', 'Male'), ('F', 'Female'), ('O', 'Other')]
+    GENDER_CHOICES = [('M', 'Male'), ('F', 'Female')]
 
     RELATIONSHIP_CHOICES = [
         ('Self', 'Self'),

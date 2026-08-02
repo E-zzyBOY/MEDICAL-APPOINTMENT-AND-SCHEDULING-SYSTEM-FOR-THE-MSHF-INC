@@ -89,7 +89,6 @@
               <option value="" {% if not form.gender.value %}selected{% endif %}>Gender — Select</option>
               <option value="M" {% if form.gender.value == 'M' %}selected{% endif %}>Male</option>
               <option value="F" {% if form.gender.value == 'F' %}selected{% endif %}>Female</option>
-              <option value="O" {% if form.gender.value == 'O' %}selected{% endif %}>Other</option>
             </select>
             {% if form.gender.errors %}<p class="text-[#DC2626] text-xs mt-1 ml-1">{{ form.gender.errors.0 }}</p>{% endif %}
           </div>

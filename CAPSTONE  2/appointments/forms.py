@@ -39,7 +39,7 @@ class PatientDetailsForm(forms.Form):
         widget=forms.DateInput(attrs={'type': 'date'})
     )
     gender        = forms.ChoiceField(
-        choices=[('', '-- Select --')] + [('M', 'Male'), ('F', 'Female'), ('O', 'Other')],
+        choices=[('', '-- Select --')] + [('M', 'Male'), ('F', 'Female')],
         required=True, label='Sex'
     )
     address       = forms.CharField(

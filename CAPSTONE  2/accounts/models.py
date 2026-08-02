@@ -35,7 +35,7 @@ class CustomUser(AbstractUser):
 
 
 class PatientProfile(models.Model):
-    GENDER_CHOICES = [('M', 'Male'), ('F', 'Female'), ('O', 'Other')]
+    GENDER_CHOICES = [('M', 'Male'), ('F', 'Female')]
     BLOOD_TYPE_CHOICES = [
         ('A+', 'A+'), ('A-', 'A-'), ('B+', 'B+'), ('B-', 'B-'),
         ('AB+', 'AB+'), ('AB-', 'AB-'), ('O+', 'O+'), ('O-', 'O-'),

@@ -2,6 +2,7 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.http import FileResponse, Http404
 from accounts.decorators import role_required
 from accounts.models import CustomUser
+from appointments.models import Appointment
 from .models import MedicalRecords, VitalSign, Prescription
 
 
@@ -37,20 +38,25 @@ def prescription_attachment(request, pk):
     """Streams a prescription attachment instead of letting it be served
     directly from /media/ — these are medical documents (prescription
     scans, lab results), not public assets like profile pictures, so they
-    need an ownership check before anyone can view them.
+    need an access check before anyone can view them.
 
-    Allowed: only the doctor who wrote it. Patients receive a signed
-    physical prescription at consultation, so prescriptions are never
-    shown in patient, secretary, or admin accounts. Any other doctor
-    gets a 404 rather than a 403, so this endpoint doesn't even confirm
-    whether a given pk has an attachment.
+    Allowed: any doctor who has had an appointment with the patient —
+    the same access rule used by the doctor's patient-records page, so a
+    patient's full record (including attachments from other doctors) is
+    visible to every attending doctor. Patients receive a signed physical
+    prescription at consultation, so prescriptions are never shown in
+    patient, secretary, or admin accounts. Anyone else gets a 404 rather
+    than a 403, so this endpoint doesn't even confirm whether a given pk
+    has an attachment.
     """
     prescription = get_object_or_404(
         Prescription.objects.select_related('results_consultation__appointment'),
         pk=pk
     )
     appointment = prescription.results_consultation.appointment
-    allowed = request.user.pk == appointment.doctor_id
+    allowed = Appointment.objects.filter(
+        doctor=request.user, patient=appointment.patient
+    ).exists()
     if not allowed or not prescription.attachment:
         raise Http404('Attachment not found.')
 

@@ -14,8 +14,58 @@
       </div>
     </div>
 
+    <!-- Pinned Critical Info — safety info surfaced before visit history -->
+    <div class="rounded-2xl border-2 border-rose-200 bg-rose-50 p-5">
+      <div class="flex items-start gap-3">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-6 h-6 text-rose-500 flex-shrink-0 mt-0.5" aria-hidden="true">
+          <path fill-rule="evenodd" d="M9.401 3.003c1.155-2 4.043-2 5.197 0l7.355 12.748c1.154 2-.29 4.5-2.599 4.5H4.645c-2.309 0-3.752-2.5-2.598-4.5L9.4 3.003zM12 8.25a.75.75 0 01.75.75v3.75a.75.75 0 01-1.5 0V9a.75.75 0 01.75-.75zm0 8.25a.75.75 0 100-1.5.75.75 0 000 1.5z" clip-rule="evenodd" />
+        </svg>
+        <div class="flex-1 min-w-0">
+          <div class="flex items-center justify-between gap-3 mb-3">
+            <h3 class="font-semibold text-rose-800">Critical Info</h3>
+            <button type="button"
+                    hx-get="{% url 'doctor:patient_critical_info' patient_id=patient.pk %}"
+                    hx-target="#modal-root" hx-swap="innerHTML"
+                    class="px-3 py-1.5 bg-rose-600 text-white text-xs font-semibold rounded-lg hover:bg-rose-700 transition">
+              {% if profile.allergies or profile.chronic_conditions or profile.critical_notes %}Edit{% else %}Add Critical Info{% endif %}
+            </button>
+          </div>
+          <div class="grid gap-3 sm:grid-cols-2">
+            <div>
+              <p class="font-medium text-rose-700 text-sm">Allergies</p>
+              {% if profile.allergies %}
+              <p class="text-gray-700 text-sm mt-0.5">{{ profile.allergies }}</p>
+              {% else %}
+              <p class="text-gray-400 text-sm mt-0.5 italic">None recorded</p>
+              {% endif %}
+            </div>
+            <div>
+              <p class="font-medium text-rose-700 text-sm">Chronic Conditions</p>
+              {% if profile.chronic_conditions %}
+              <p class="text-gray-700 text-sm mt-0.5">{{ profile.chronic_conditions }}</p>
+              {% else %}
+              <p class="text-gray-400 text-sm mt-0.5 italic">None recorded</p>
+              {% endif %}
+            </div>
+            <div>
+              <p class="font-medium text-rose-700 text-sm">Blood Type</p>
+              <p class="text-gray-700 text-sm mt-0.5">{{ profile.blood_type|default:"Not on file" }}</p>
+            </div>
+            <div>
+              <p class="font-medium text-rose-700 text-sm">Other Critical Notes</p>
+              {% if profile.critical_notes %}
+              <p class="text-gray-700 text-sm mt-0.5">{{ profile.critical_notes }}</p>
+              {% else %}
+              <p class="text-gray-400 text-sm mt-0.5 italic">None recorded</p>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     {% if records %}
-    <h3 class="font-semibold text-gray-700 mb-3">Medical Records</h3>
+    <h3 class="font-semibold text-gray-700 mb-3 mt-6">Medical Records</h3>
     {% for record in records %}
     {% with color=record.doctor_id|doctor_color %}
     <div class="border-l-4 {{ color.border }} {{ color.bg }} rounded-r-lg p-4 mb-3">
@@ -78,6 +128,24 @@
         {% endfor %}
         {% endif %}
         {% endwith %}
+
+        {% with card_vitals=visit_vitals|get_item:record.results.appointment_id %}
+        {% if card_vitals %}
+        <div>
+          <p class="font-medium text-gray-700">Vitals</p>
+          <div class="flex flex-wrap gap-2 mt-1.5">
+            {% for v in card_vitals %}
+            <span class="inline-flex items-center gap-1.5 bg-white border border-gray-200 rounded-lg px-2.5 py-1 text-gray-600">
+              <span class="font-medium text-gray-700">{{ v.date_taken|date:"M j, Y" }}</span>
+              <span>BP {{ v.bp }}</span>
+              <span>·</span>
+              <span>{{ v.weight }} kg</span>
+            </span>
+            {% endfor %}
+          </div>
+        </div>
+        {% endif %}
+        {% endwith %}
         {% endif %}
       </div>
     </div>
@@ -87,13 +155,14 @@
     <p class="text-gray-400 text-sm">No medical records.</p>
     {% endif %}
 
-    {% if vitals %}
-    <h3 class="font-semibold text-gray-700 mt-6 mb-3">Vital Signs</h3>
+    {% if general_vitals %}
+    <h3 class="font-semibold text-gray-700 mt-6 mb-1">General Vitals</h3>
+    <p class="text-xs text-gray-400 mb-3">Vitals recorded outside a specific visit.</p>
     <div class="hidden md:block overflow-x-auto">
       <table class="w-full text-sm">
         <thead class="text-left text-gray-500 border-b border-gray-100"><tr><th class="pb-2">Date</th><th class="pb-2">BP</th><th class="pb-2">Weight</th></tr></thead>
         <tbody class="divide-y divide-gray-100">
-          {% for v in vitals %}
+          {% for v in general_vitals %}
           <tr>
             <td class="py-2 text-gray-600">{{ v.date_taken|date:"M j, Y" }}</td>
             <td class="py-2">{{ v.bp }}</td>
@@ -104,7 +173,7 @@
       </table>
     </div>
     <div class="flex md:hidden flex-col gap-2">
-      {% for v in vitals %}
+      {% for v in general_vitals %}
       <div class="flex items-center justify-between border border-gray-200 rounded-xl px-3 py-2 text-sm">
         <span class="text-gray-500">{{ v.date_taken|date:"M j, Y" }}</span>
         <span class="text-gray-700 font-medium">{{ v.bp }}</span>

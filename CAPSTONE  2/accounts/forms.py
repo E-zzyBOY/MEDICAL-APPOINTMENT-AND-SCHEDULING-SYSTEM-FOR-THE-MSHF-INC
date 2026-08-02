@@ -226,6 +226,22 @@ class PatientProfileEditForm(forms.ModelForm):
         return digits
 
 
+class CriticalInfoForm(forms.ModelForm):
+    """Edits a patient's safety-critical info (allergies, chronic conditions,
+    other critical notes) from the doctor's Patient Records page. These fields
+    persist across visits on the patient's profile, so any treating doctor can
+    view and update them regardless of who recorded them."""
+
+    class Meta:
+        model  = PatientProfile
+        fields = ['allergies', 'chronic_conditions', 'critical_notes']
+        widgets = {
+            'allergies':         forms.Textarea(attrs={'rows': 2, 'placeholder': 'e.g. Penicillin, peanuts, latex'}),
+            'chronic_conditions': forms.Textarea(attrs={'rows': 2, 'placeholder': 'e.g. Hypertension, Type 2 Diabetes'}),
+            'critical_notes':    forms.Textarea(attrs={'rows': 2, 'placeholder': 'e.g. Previous adverse drug reaction, special precautions'}),
+        }
+
+
 class PatientOnboardingForm(PatientProfileEditForm):
     """Shown right after account creation (regular sign-up or first Google
     sign-in) to collect the details that used to be gathered at sign-up

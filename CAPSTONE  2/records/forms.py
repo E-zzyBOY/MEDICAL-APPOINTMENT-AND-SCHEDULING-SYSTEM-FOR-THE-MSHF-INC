@@ -13,9 +13,18 @@ VITALS_BACKDATE_WINDOW_DAYS = 7
 
 
 class VitalSignForm(forms.ModelForm):
+    # Optional appointment link — the view scopes this queryset to the
+    # patient's own appointments. Leave empty to record a general/unlinked
+    # reading (shown under "General Vitals" on the Patient Records page).
+    appointment = forms.ModelChoiceField(
+        queryset=VitalSign.objects.none(), required=False,
+        empty_label='— No appointment (General Vitals) —',
+        label='Appointment (optional)',
+    )
+
     class Meta:
         model   = VitalSign
-        fields  = ['bp', 'weight', 'date_taken']
+        fields  = ['bp', 'weight', 'date_taken', 'appointment']
         widgets = {'date_taken': forms.DateInput(attrs={'type': 'date'})}
 
     def __init__(self, *args, **kwargs):

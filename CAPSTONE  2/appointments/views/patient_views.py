@@ -890,12 +890,17 @@ def cancel_appointment(request, pk):
 
 @role_required('patient')
 def medical_records(request):
-    from records.models import MedicalRecords, VitalSign
+    from records.models import MedicalRecords
+    from records.views import partition_vitals
     records = MedicalRecords.objects.filter(
         patient=request.user
-    ).select_related('doctor').order_by('-visit_date')
-    vitals = VitalSign.objects.filter(patient=request.user).order_by('-date_taken')
-    return render(request, 'patient/medical_records.html', {'records': records, 'vitals': vitals})
+    ).select_related('results', 'doctor').order_by('-visit_date')
+    visit_vitals, general_vitals = partition_vitals(request.user, records)
+    profile = getattr(request.user, 'patient_profile', None)
+    return render(request, 'patient/medical_records.html', {
+        'records': records, 'visit_vitals': visit_vitals,
+        'general_vitals': general_vitals, 'profile': profile,
+    })
 
 
 @role_required('patient')

@@ -15,6 +15,15 @@ class VitalSign(models.Model):
     bp         = models.CharField(max_length=20, verbose_name='Blood Pressure')
     weight     = models.DecimalField(max_digits=5, decimal_places=2, verbose_name='Weight (kg)')
     date_taken = models.DateField()
+    # The visit/consultation these vitals were recorded for. Vitals are taken
+    # by the secretary at check-in against a specific appointment; keeping the
+    # link lets the Patient Records page show each visit's vitals inside its
+    # own consultation card instead of a disconnected flat table. NULL = taken
+    # outside any appointment context (recorded as a general/unlinked reading).
+    appointment = models.ForeignKey(
+        'appointments.Appointment', on_delete=models.SET_NULL,
+        null=True, blank=True, related_name='vital_signs'
+    )
 
     class Meta:
         ordering = ['-date_taken']

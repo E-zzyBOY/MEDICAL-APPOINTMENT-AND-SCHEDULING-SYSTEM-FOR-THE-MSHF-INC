@@ -2,19 +2,23 @@ import time
 
 from django.conf import settings
 from django.shortcuts import render, redirect, get_object_or_404
-from django.contrib.auth import authenticate, login, logout
+from django.contrib.auth import authenticate, login, logout, update_session_auth_hash
+from django.contrib.auth.forms import PasswordChangeForm, SetPasswordForm
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse
 from .forms import (
     PatientRegistrationForm, PatientOnboardingForm, PatientProfileEditForm, DoctorProfileEditForm,
-    SecretaryProfileEditForm, ProfilePictureForm, EmailNotificationSettingsForm,
+    SecretaryProfileEditForm, ProfilePictureForm, EmailNotificationSettingsForm, DeactivateAccountForm,
 )
 from .models import CustomUser, PatientProfile, DoctorProfile, SecretaryProfile
 from .decorators import role_required
 from .social_auth import provider_is_configured
+from .signals import log_activity
 from .tokens import read_email_verify_token
-from notifications.email_utils import send_verification_email
+from notifications.email_utils import (
+    send_verification_email, send_password_changed_email, send_account_deactivated_email,
+)
 from notifications.models import Notification
 
 
@@ -301,7 +305,66 @@ def settings_view(request):
     else:
         form = EmailNotificationSettingsForm(instance=request.user)
     template = SETTINGS_TEMPLATES.get(request.user.role, 'accounts/settings_patient.html')
-    return render(request, template, {'form': form})
+    context = {
+        'form': form,
+        'password_form': (PasswordChangeForm if request.user.has_usable_password() else SetPasswordForm)(request.user),
+        'deactivate_form': DeactivateAccountForm(user=request.user),
+        'activity_logs': request.user.activity_logs.all()[:10],
+    }
+    return render(request, template, context)
+
+
+@role_required('patient', 'doctor', 'secretary', 'admin')
+def password_change_view(request):
+    """Handles both 'change my password' (has one already) and 'set a
+    password' (Google-linked patients who've never had one) — same form
+    swap logic as settings_view uses to render the field set."""
+    form_class = PasswordChangeForm if request.user.has_usable_password() else SetPasswordForm
+    if request.method == 'POST':
+        form = form_class(request.user, request.POST)
+        if form.is_valid():
+            user = form.save()
+            update_session_auth_hash(request, user)
+            log_activity(request, 'password_change', user=user)
+            send_password_changed_email(user)
+            messages.success(request, 'Your password has been updated.')
+            return redirect('accounts:settings')
+        messages.error(request, 'Please fix the errors below.')
+    template = SETTINGS_TEMPLATES.get(request.user.role, 'accounts/settings_patient.html')
+    context = {
+        'form': EmailNotificationSettingsForm(instance=request.user),
+        'password_form': form,
+        'deactivate_form': DeactivateAccountForm(user=request.user),
+        'activity_logs': request.user.activity_logs.all()[:10],
+        'password_form_open': True,
+    }
+    return render(request, template, context)
+
+
+@role_required('patient', 'doctor', 'secretary', 'admin')
+def deactivate_account_view(request):
+    if request.method != 'POST':
+        return redirect('accounts:settings')
+    form = DeactivateAccountForm(request.POST, user=request.user)
+    if form.is_valid():
+        user = request.user
+        user.is_active = False
+        user.save(update_fields=['is_active'])
+        log_activity(request, 'account_deactivated', user=user)
+        send_account_deactivated_email(user)
+        logout(request)
+        messages.info(request, 'Your account has been deactivated. Contact the clinic staff if you want it reactivated.')
+        return redirect('accounts:login')
+    messages.error(request, form.errors.get('password', form.errors.get('confirm', ['Could not deactivate your account.']))[0])
+    template = SETTINGS_TEMPLATES.get(request.user.role, 'accounts/settings_patient.html')
+    context = {
+        'form': EmailNotificationSettingsForm(instance=request.user),
+        'password_form': (PasswordChangeForm if request.user.has_usable_password() else SetPasswordForm)(request.user),
+        'deactivate_form': form,
+        'activity_logs': request.user.activity_logs.all()[:10],
+        'deactivate_form_open': True,
+    }
+    return render(request, template, context)
 
 
 @role_required('patient', 'doctor', 'secretary', 'admin')

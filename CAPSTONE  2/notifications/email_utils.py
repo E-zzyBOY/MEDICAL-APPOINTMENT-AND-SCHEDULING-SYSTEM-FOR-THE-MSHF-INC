@@ -50,6 +50,42 @@ def send_verification_email(user, request):
         logger.exception('Verification email to %s failed to send', user.email)
 
 
+def send_password_changed_email(user):
+    """Security notice sent right after a Settings password change/set.
+    Ignores email_notifications_enabled like send_verification_email —
+    this is an account-security alert, not a courtesy notification."""
+    if not user.email:
+        return
+    subject = "Your password was changed — MSHFI"
+    ctx = {
+        'user_name': user.get_full_name() or user.username,
+        'username':  user.username,
+    }
+    message = render_to_string('notifications/email/password_changed.html', ctx)
+    try:
+        send_mail(subject, message, settings.DEFAULT_FROM_EMAIL,
+                  [user.email], fail_silently=False)
+    except Exception:
+        logger.exception('Password-changed email to %s failed to send', user.email)
+
+
+def send_account_deactivated_email(user):
+    """Security notice sent right after a Settings self-deactivation."""
+    if not user.email:
+        return
+    subject = "Your account was deactivated — MSHFI"
+    ctx = {
+        'user_name': user.get_full_name() or user.username,
+        'username':  user.username,
+    }
+    message = render_to_string('notifications/email/account_deactivated.html', ctx)
+    try:
+        send_mail(subject, message, settings.DEFAULT_FROM_EMAIL,
+                  [user.email], fail_silently=False)
+    except Exception:
+        logger.exception('Account-deactivated email to %s failed to send', user.email)
+
+
 def send_booking_received_email(appointment):
     """Sent right after a patient books — no time has been assigned yet,
     so this confirms the date only and explains staff will follow up with

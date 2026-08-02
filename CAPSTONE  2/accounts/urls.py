@@ -17,6 +17,8 @@ urlpatterns = [
     path('social/<str:provider>/callback/', social_views.social_callback, name='social_callback'),
     path('profile/',      views.profile_view,       name='profile_view'),
     path('profile/edit/', views.profile_edit_view,  name='profile_edit'),
-    path('settings/',     views.settings_view,      name='settings'),
+    path('settings/',            views.settings_view,           name='settings'),
+    path('settings/password/',   views.password_change_view,    name='password_change'),
+    path('settings/deactivate/', views.deactivate_account_view, name='deactivate_account'),
     path('help/',         views.help_view,          name='help'),
 ]

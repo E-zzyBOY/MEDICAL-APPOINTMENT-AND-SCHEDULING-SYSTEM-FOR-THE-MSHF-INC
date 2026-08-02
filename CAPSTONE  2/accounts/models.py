@@ -168,10 +168,12 @@ class ActivityLog(models.Model):
     """Security audit trail: one row per auth event, written by the
     receivers in accounts/signals.py and by IdleTimeoutMiddleware."""
     ACTION_CHOICES = [
-        ('login',        'Login'),
-        ('logout',       'Logout'),
-        ('auto_logout',  'Auto logout (inactivity)'),
-        ('login_failed', 'Failed login'),
+        ('login',              'Login'),
+        ('logout',             'Logout'),
+        ('auto_logout',        'Auto logout (inactivity)'),
+        ('login_failed',       'Failed login'),
+        ('password_change',    'Password changed'),
+        ('account_deactivated', 'Account deactivated'),
     ]
     user = models.ForeignKey(
         CustomUser, null=True, blank=True,

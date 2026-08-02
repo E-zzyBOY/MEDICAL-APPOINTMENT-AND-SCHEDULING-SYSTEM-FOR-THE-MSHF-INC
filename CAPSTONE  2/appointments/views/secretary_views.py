@@ -349,11 +349,13 @@ def appointment_confirm(request, pk):
                 f"{appt.appointment_time.strftime('%I:%M %p') if appt.appointment_time else 'the scheduled time'}. "
                 f"Please proceed for vital signs assessment.")
         messages.success(request, 'Patient confirmed as arrived. Vital signs assessment can now begin.')
+        vitals_url = reverse('secretary:vitals_add', kwargs={'patient_id': appt.patient.pk})
+        vitals_url += f'?appointment={appt.pk}'
         if request.htmx:
             response = render(request, 'secretary/_appointment_confirm_modal.html', {'appt': appt, 'action': 'confirm'})
-            response['HX-Redirect'] = reverse('secretary:vitals_add', kwargs={'patient_id': appt.patient.pk})
+            response['HX-Redirect'] = vitals_url
             return response
-        return redirect('secretary:vitals_add', patient_id=appt.patient.pk)
+        return redirect(vitals_url)
     if request.htmx:
         return render(request, 'secretary/_appointment_confirm_modal.html', {'appt': appt, 'action': 'confirm'})
     return render(request, 'secretary/appointment_confirm_action.html', {
@@ -511,17 +513,43 @@ def vitals_add(request, patient_id):
         return redirect('secretary:patient_list')
     from records.forms import VitalSignForm
     from records.models import VitalSign
-    form = VitalSignForm(request.POST or None, initial={'date_taken': date.today()})
+
+    # When arriving from the check-in flow (?appointment=<pk>), pre-link the
+    # reading to that specific visit. The pk is validated against the
+    # secretary's own appointments so a tampered value can't link vitals to
+    # another secretary's patient.
+    initial = {'date_taken': date.today()}
+    pre_linked_appointment = None
+    appointment_param = request.GET.get('appointment')
+    if appointment_param:
+        appt = Appointment.objects.filter(
+            pk=appointment_param, patient=patient, doctor=_assigned_doctor(request.user)
+        ).first()
+        if appt:
+            initial['appointment'] = appt
+            pre_linked_appointment = appt
+
+    form = VitalSignForm(request.POST or None, initial=initial)
+    form.fields['appointment'].queryset = Appointment.objects.filter(
+        patient=patient, doctor=_assigned_doctor(request.user)
+    ).order_by('-appointment_date')
     if request.method == 'POST' and form.is_valid():
         vital = form.save(commit=False)
         vital.patient   = patient
         vital.secretary = request.user
+        # When arriving from the check-in flow the appointment comes via the
+        # ?appointment= query param; the dropdown on the rendered form still
+        # carries it, but a partial/tampered POST may omit it, so fall back
+        # to the pre-linked appointment to keep the visit link intact.
+        if vital.appointment is None and pre_linked_appointment is not None:
+            vital.appointment = pre_linked_appointment
         vital.save()
         messages.success(request, 'Vital signs recorded.')
         return redirect('secretary:patient_records', patient_id=patient.pk)
     vitals = VitalSign.objects.filter(patient=patient).order_by('-date_taken')
     return render(request, 'secretary/vitals_form.html', {
-        'form': form, 'patient': patient, 'vitals': vitals
+        'form': form, 'patient': patient, 'vitals': vitals,
+        'pre_linked_appointment': pre_linked_appointment,
     })
 
 
@@ -616,12 +644,16 @@ def secretary_patient_records(request, patient_id):
     patient = _get_accessible_patient_or_deny(request, patient_id)
     if patient is None:
         return redirect('secretary:patient_list')
-    from records.models import MedicalRecords, VitalSign
+    from records.models import MedicalRecords
+    from records.views import partition_vitals
     records = MedicalRecords.objects.filter(patient=patient).select_related('results', 'doctor')
-    vitals  = VitalSign.objects.filter(patient=patient).order_by('-date_taken')
+    visit_vitals, general_vitals = partition_vitals(patient, records)
     appts   = Appointment.objects.filter(patient=patient).select_related('doctor').order_by('-appointment_date')
+    profile = getattr(patient, 'patient_profile', None)
     return render(request, 'secretary/patient_records.html', {
-        'patient': patient, 'records': records, 'vitals': vitals, 'appts': appts
+        'patient': patient, 'records': records,
+        'visit_vitals': visit_vitals, 'general_vitals': general_vitals,
+        'appts': appts, 'profile': profile,
     })
 
 

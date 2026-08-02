@@ -1,18 +1,79 @@
 {% extends "patient/base_patient.html" %}
+{% load record_extras %}
 {% block page_title %}Medical Records{% endblock %}
 
 {% block patient_content %}
 <div class="space-y-6">
+  <!-- Pinned Critical Info (read-only for patients) -->
+  <div class="rounded-2xl border-2 border-rose-200 bg-rose-50 p-5">
+    <div class="flex items-start gap-3">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-6 h-6 text-rose-500 flex-shrink-0 mt-0.5" aria-hidden="true">
+        <path fill-rule="evenodd" d="M9.401 3.003c1.155-2 4.043-2 5.197 0l7.355 12.748c1.154 2-.29 4.5-2.599 4.5H4.645c-2.309 0-3.752-2.5-2.598-4.5L9.4 3.003zM12 8.25a.75.75 0 01.75.75v3.75a.75.75 0 01-1.5 0V9a.75.75 0 01.75-.75zm0 8.25a.75.75 0 100-1.5.75.75 0 000 1.5z" clip-rule="evenodd" />
+      </svg>
+      <div class="flex-1 min-w-0">
+        <h3 class="font-semibold text-rose-800 mb-3">Critical Info</h3>
+        <div class="grid gap-3 sm:grid-cols-2">
+          <div>
+            <p class="font-medium text-rose-700 text-sm">Allergies</p>
+            {% if profile.allergies %}
+            <p class="text-gray-700 text-sm mt-0.5">{{ profile.allergies }}</p>
+            {% else %}
+            <p class="text-gray-400 text-sm mt-0.5 italic">None recorded</p>
+            {% endif %}
+          </div>
+          <div>
+            <p class="font-medium text-rose-700 text-sm">Chronic Conditions</p>
+            {% if profile.chronic_conditions %}
+            <p class="text-gray-700 text-sm mt-0.5">{{ profile.chronic_conditions }}</p>
+            {% else %}
+            <p class="text-gray-400 text-sm mt-0.5 italic">None recorded</p>
+            {% endif %}
+          </div>
+          <div>
+            <p class="font-medium text-rose-700 text-sm">Blood Type</p>
+            <p class="text-gray-700 text-sm mt-0.5">{{ profile.blood_type|default:"Not on file" }}</p>
+          </div>
+          <div>
+            <p class="font-medium text-rose-700 text-sm">Other Critical Notes</p>
+            {% if profile.critical_notes %}
+            <p class="text-gray-700 text-sm mt-0.5">{{ profile.critical_notes }}</p>
+            {% else %}
+            <p class="text-gray-400 text-sm mt-0.5 italic">None recorded</p>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <div class="bg-white rounded-2xl shadow-soft p-6">
     <h2 class="text-lg font-semibold text-gray-800 mb-4">Medical Records</h2>
     {% if records %}
     <div class="divide-y divide-gray-100">
       {% for record in records %}
-      <div class="flex items-center justify-between gap-4 py-3 rounded-xl px-2">
-        <div class="min-w-0">
-          <p class="font-semibold text-gray-800">Visit on {{ record.visit_date|date:"F j, Y" }}</p>
-          <p class="text-sm text-gray-500">Dr. {{ record.doctor.get_full_name }}</p>
+      <div class="py-3 rounded-xl px-2">
+        <div class="flex items-center justify-between gap-4">
+          <div class="min-w-0">
+            <p class="font-semibold text-gray-800">Visit on {{ record.visit_date|date:"F j, Y" }}</p>
+            <p class="text-sm text-gray-500">Dr. {{ record.doctor.get_full_name }}</p>
+          </div>
         </div>
+        {% if record.results %}
+        {% with card_vitals=visit_vitals|get_item:record.results.appointment_id %}
+        {% if card_vitals %}
+        <div class="flex flex-wrap gap-2 mt-2">
+          {% for v in card_vitals %}
+          <span class="inline-flex items-center gap-1.5 border border-gray-200 rounded-lg px-2.5 py-1 text-xs text-gray-600">
+            <span class="font-medium text-gray-700">{{ v.date_taken|date:"M j, Y" }}</span>
+            <span>BP {{ v.bp }}</span>
+            <span>·</span>
+            <span>{{ v.weight }} kg</span>
+          </span>
+          {% endfor %}
+        </div>
+        {% endif %}
+        {% endwith %}
+        {% endif %}
       </div>
       {% endfor %}
     </div>
@@ -21,10 +82,11 @@
     {% endif %}
   </div>
 
-  <!-- Vital Signs -->
-  {% if vitals %}
+  <!-- General Vitals -->
+  {% if general_vitals %}
   <div class="bg-white rounded-2xl shadow-soft p-6">
-    <h2 class="text-lg font-semibold text-gray-800 mb-4">Vital Signs History</h2>
+    <h2 class="text-lg font-semibold text-gray-800 mb-1">General Vitals</h2>
+    <p class="text-xs text-gray-400 mb-4">Vitals recorded outside a specific visit.</p>
     <div class="hidden md:block overflow-x-auto">
       <table class="w-full text-sm">
         <thead class="text-left text-gray-500 border-b border-gray-200">
@@ -35,7 +97,7 @@
           </tr>
         </thead>
         <tbody class="divide-y divide-gray-100">
-          {% for v in vitals %}
+          {% for v in general_vitals %}
           <tr>
             <td class="py-2 text-gray-600">{{ v.date_taken|date:"M j, Y" }}</td>
             <td class="py-2 text-gray-700 font-medium">{{ v.bp }}</td>
@@ -46,7 +108,7 @@
       </table>
     </div>
     <div class="flex md:hidden flex-col gap-2">
-      {% for v in vitals %}
+      {% for v in general_vitals %}
       <div class="flex items-center justify-between border border-gray-200 rounded-xl px-3 py-2 text-sm">
         <span class="text-gray-500">{{ v.date_taken|date:"M j, Y" }}</span>
         <span class="text-gray-700 font-medium">{{ v.bp }}</span>

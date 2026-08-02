@@ -1145,11 +1145,47 @@ def doctor_patient_records(request, patient_id):
     if not has_appt:
         messages.error(request, 'You do not have access to this patient.')
         return redirect('doctor:patient_list')
-    from records.models import MedicalRecords, VitalSign
+    from records.models import MedicalRecords
+    from records.views import partition_vitals
     records   = MedicalRecords.objects.filter(patient=patient).select_related('results', 'doctor')
-    vitals    = VitalSign.objects.filter(patient=patient)
+    visit_vitals, general_vitals = partition_vitals(patient, records)
+    profile   = getattr(patient, 'patient_profile', None)
     return render(request, 'doctor/patient_records.html', {
-        'patient': patient, 'records': records, 'vitals': vitals
+        'patient': patient, 'records': records,
+        'visit_vitals': visit_vitals, 'general_vitals': general_vitals,
+        'profile': profile,
+    })
+
+
+@role_required('doctor')
+def patient_critical_info(request, patient_id):
+    """GET returns the Edit Critical Info modal; POST saves it. Same access
+    rule as the doctor's Patient Records page — the doctor must have had an
+    appointment with the patient."""
+    patient = get_object_or_404(CustomUser, pk=patient_id, role='patient')
+    has_appt = Appointment.objects.filter(doctor=request.user, patient=patient).exists()
+    if not has_appt:
+        messages.error(request, 'You do not have access to this patient.')
+        return redirect('doctor:patient_list')
+    from accounts.forms import CriticalInfoForm
+    profile = getattr(patient, 'patient_profile', None)
+    if request.method == 'POST':
+        form = CriticalInfoForm(request.POST or None, instance=profile)
+        if form.is_valid():
+            if profile is None:
+                profile = form.save(commit=False)
+                profile.user = patient
+            profile.save()
+            messages.success(request, 'Critical info saved.')
+            if request.htmx:
+                response = HttpResponse('')
+                response['HX-Redirect'] = reverse('doctor:patient_records', kwargs={'patient_id': patient.pk})
+                return response
+            return redirect('doctor:patient_records', patient_id=patient.pk)
+    else:
+        form = CriticalInfoForm(instance=profile)
+    return render(request, 'doctor/_critical_info_modal.html', {
+        'form': form, 'patient': patient, 'title': 'Edit Critical Info',
     })
 
 

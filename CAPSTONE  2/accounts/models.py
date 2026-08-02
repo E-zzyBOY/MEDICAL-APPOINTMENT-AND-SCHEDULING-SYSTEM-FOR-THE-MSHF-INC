@@ -52,6 +52,14 @@ class PatientProfile(models.Model):
     emergency_contact_name   = models.CharField(max_length=150, blank=True)
     emergency_contact_number = models.CharField(max_length=20, blank=True)
     blood_type     = models.CharField(max_length=3, choices=BLOOD_TYPE_CHOICES, blank=True)
+    # Critical/safety info — allergies and chronic conditions persist across
+    # visits and are surfaced prominently (pinned Critical Info section) on
+    # every Patient Records page so any treating doctor sees them before
+    # prescribing. Maintained by doctors from the records page, not by the
+    # booking flow (which never writes back to this profile).
+    allergies         = models.TextField(blank=True, help_text='Known allergies (e.g. Penicillin, peanuts).')
+    chronic_conditions = models.TextField(blank=True, help_text='Chronic conditions (e.g. Hypertension, Diabetes).')
+    critical_notes     = models.TextField(blank=True, help_text='Any other safety flags relevant to treatment.')
     # Set the first time the patient checks the Terms & Conditions / Privacy
     # Policy box during booking. Once set, the booking flow treats consent
     # as already on file and doesn't force a re-check on every visit unless

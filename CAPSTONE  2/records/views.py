@@ -6,6 +6,35 @@ from appointments.models import Appointment
 from .models import MedicalRecords, VitalSign, Prescription
 
 
+def partition_vitals(patient, records):
+    """Split a patient's vitals into those tied to a recorded visit and those
+    that are unlinked/general.
+
+    Returns (visit_vitals, general_vitals):
+    - visit_vitals:  dict {appointment_id: [VitalSign...]} for readings whose
+                     appointment produced a MedicalRecords visit entry, so each
+                     visit card can render its own vitals inline.
+    - general_vitals: every other reading (no appointment link, or linked to an
+                     appointment whose results were never saved) — shown in a
+                     separate "General Vitals" section.
+    The `records` queryset should select_related('results') to avoid an
+    N+1 hit when reading record.results.appointment_id."""
+    vitals = VitalSign.objects.filter(patient=patient).select_related('appointment')
+    visit_appointment_ids = {
+        r.results.appointment_id
+        for r in records
+        if getattr(r, 'results', None) is not None
+    }
+    visit_vitals = {}
+    general_vitals = []
+    for v in vitals:
+        if v.appointment_id is not None and v.appointment_id in visit_appointment_ids:
+            visit_vitals.setdefault(v.appointment_id, []).append(v)
+        else:
+            general_vitals.append(v)
+    return visit_vitals, general_vitals
+
+
 @role_required('patient', 'doctor', 'secretary')
 def records_redirect(request):
     if request.user.role == 'patient':

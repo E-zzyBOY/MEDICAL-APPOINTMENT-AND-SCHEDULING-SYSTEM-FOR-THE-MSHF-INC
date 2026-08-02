@@ -5,6 +5,12 @@
   <div class="bg-white rounded-2xl shadow-soft p-8">
     <h2 class="text-xl font-semibold text-gray-800 mb-2">Record Vital Signs</h2>
     <p class="text-gray-500 text-sm mb-6">Patient: <strong>{{ patient.get_full_name }}</strong></p>
+    {% if pre_linked_appointment %}
+    <p class="text-xs text-purple-700 bg-purple-50 border border-purple-200 rounded-lg px-3 py-2 mb-4">
+      These vitals will be linked to the {{ pre_linked_appointment.appointment_date|date:"F j, Y" }} visit with
+      Dr. {{ pre_linked_appointment.doctor.get_full_name }}. Change the selection below if needed.
+    </p>
+    {% endif %}
     <form method="post" class="space-y-4">
       {% csrf_token %}
       {% for field in form %}

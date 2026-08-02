@@ -86,6 +86,28 @@ def send_account_deactivated_email(user):
         logger.exception('Account-deactivated email to %s failed to send', user.email)
 
 
+def send_account_created_email(user, plain_password):
+    """Sent right after an admin creates a Doctor or Secretary account,
+    giving them their login credentials. Ignores email_notifications_enabled
+    like send_verification_email — this IS the account gate, not a courtesy
+    notification."""
+    if not user.email:
+        return
+    subject = "Your MSHFI Staff Account Has Been Created"
+    ctx = {
+        'user_name': user.get_full_name() or user.username,
+        'username':  user.username,
+        'password':  plain_password,
+        'role':      user.get_role_display(),
+    }
+    message = render_to_string('notifications/email/account_created.html', ctx)
+    try:
+        send_mail(subject, message, settings.DEFAULT_FROM_EMAIL,
+                  [user.email], fail_silently=False)
+    except Exception:
+        logger.exception('Account-created email to %s failed to send', user.email)
+
+
 def send_booking_received_email(appointment):
     """Sent right after a patient books — no time has been assigned yet,
     so this confirms the date only and explains staff will follow up with

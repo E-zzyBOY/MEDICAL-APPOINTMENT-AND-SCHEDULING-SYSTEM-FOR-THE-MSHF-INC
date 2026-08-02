@@ -12,6 +12,7 @@ from feedback.models import Feedback
 from notifications.forms import BroadcastForm
 from notifications.models import Broadcast
 from notifications.broadcast import send_broadcast
+from notifications.email_utils import send_account_created_email
 
 
 def _build_admin_dashboard_data(request):
@@ -164,6 +165,10 @@ def user_create(request):
     form = FormClass(request.POST or None)
     if request.method == 'POST' and form.is_valid():
         user = form.save()
+        try:
+            send_account_created_email(user, form.cleaned_data['password1'])
+        except Exception:
+            pass
         messages.success(request, f'{user.get_full_name()} ({user.role}) account created.')
         if request.htmx:
             response = render(request, 'admin_panel/_user_create_modal.html', {'form': form, 'role': role})

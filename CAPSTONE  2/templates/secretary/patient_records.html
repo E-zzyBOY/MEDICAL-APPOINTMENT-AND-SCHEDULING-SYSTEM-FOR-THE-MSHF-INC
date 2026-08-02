@@ -91,11 +91,9 @@
     {% if records %}
     <div class="space-y-2">
       {% for record in records %}
-      {% with color=record.doctor_id|doctor_color %}
-      <div class="border-l-4 {{ color.border }} {{ color.bg }} rounded-r-lg p-3">
+      <div class="border border-gray-200 rounded-lg p-3">
         <div class="flex items-center gap-2 mb-1">
-          <span class="w-2 h-2 rounded-full {{ color.dot }}"></span>
-          <span class="font-medium {{ color.text }} text-sm">Dr. {{ record.doctor.get_full_name }}</span>
+          <span class="font-medium text-gray-700 text-sm">Dr. {{ record.doctor.get_full_name }}</span>
         </div>
         <p class="text-sm text-gray-500">
           <span class="font-medium text-gray-700">Consultation Date:</span>
@@ -120,7 +118,6 @@
         <p class="text-xs text-gray-400 mt-1">Medical record on file</p>
         {% endif %}
       </div>
-      {% endwith %}
       {% endfor %}
     </div>
     {% else %}

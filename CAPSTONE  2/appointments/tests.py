@@ -3,7 +3,7 @@ from django.contrib.auth import get_user_model
 from django.urls import reverse
 from datetime import date, datetime, timedelta
 from appointments.models import Appointment, Schedule
-from records.models import VitalSign, MedicalRecords, ResultsConsultation
+from records.models import VitalSign, MedicalRecords, ResultsConsultation, Prescription
 from records.views import partition_vitals
 from accounts.models import PatientProfile
 
@@ -351,3 +351,101 @@ class PatientRecordsRestructureTestCase(TestCase):
         self.assertEqual(response.status_code, 302)
         vital = VitalSign.objects.get(patient=self.patient)
         self.assertEqual(vital.appointment_id, appt.pk)
+
+
+class PatientRecordsFilterTestCase(TestCase):
+    """Search/filter/pagination on the doctor's Patient Records page."""
+
+    def setUp(self):
+        self.patient = User.objects.create_user(
+            username='filtpatient', email='filtpatient@test.com',
+            password='testpass123', role='patient')
+        self.doc1 = User.objects.create_user(
+            username='filtdoc1', email='filtdoc1@test.com',
+            password='testpass123', role='doctor',
+            first_name='Alice', last_name='Doctor')
+        self.doc2 = User.objects.create_user(
+            username='filtdoc2', email='filtdoc2@test.com',
+            password='testpass123', role='doctor',
+            first_name='Bob', last_name='Physician')
+        self.client = Client()
+        self.client.login(username='filtdoc1', password='testpass123')
+
+    def _visit(self, doctor, visit_date, diagnosis='Routine checkup'):
+        appt = Appointment.objects.create(
+            patient=self.patient, doctor=doctor,
+            appointment_date=visit_date, status='Completed')
+        results = ResultsConsultation.objects.create(appointment=appt, diagnosis=diagnosis)
+        return MedicalRecords.objects.create(
+            doctor=doctor, patient=self.patient, results=results, visit_date=visit_date)
+
+    def _records_url(self):
+        return reverse('doctor:patient_records', kwargs={'patient_id': self.patient.pk})
+
+    def test_date_range_filter(self):
+        self._visit(self.doc1, date(2026, 1, 10), 'Allergic dermatitis')
+        self._visit(self.doc1, date(2026, 2, 20), 'Hypertension')
+        response = self.client.get(self._records_url(), {
+            'from_date': '2026-01-15', 'to_date': '2026-02-28'
+        })
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Hypertension')
+        self.assertNotContains(response, 'Allergic dermatitis')
+
+    def test_keyword_search_matches_diagnosis(self):
+        self._visit(self.doc1, date(2026, 1, 10), 'Allergic dermatitis')
+        self._visit(self.doc1, date(2026, 2, 20), 'Hypertension')
+        response = self.client.get(self._records_url(), {'q': 'allergic'})
+        self.assertContains(response, 'Allergic dermatitis')
+        self.assertNotContains(response, 'Hypertension')
+
+    def test_keyword_search_matches_notes_without_duplicates(self):
+        record = self._visit(self.doc1, date(2026, 1, 10), 'Asthma review')
+        for i in range(2):
+            Prescription.objects.create(
+                results_consultation=record.results,
+                date_issued=record.visit_date,
+                medication_names='Salbutamol',
+                notes='patient reports wheezing episodes',
+            )
+        response = self.client.get(self._records_url(), {'q': 'wheezing'})
+        self.assertContains(response, 'Asthma review')
+        self.assertEqual(response.content.count(b'Asthma review'), 1)
+
+    def test_doctor_filter(self):
+        self._visit(self.doc1, date(2026, 1, 10), 'Psoriasis flare')
+        self._visit(self.doc2, date(2026, 2, 20), 'Hypertension')
+        response = self.client.get(self._records_url(), {'doctor': self.doc2.pk})
+        self.assertContains(response, self.doc2.get_full_name())
+        self.assertContains(response, 'Hypertension')
+        self.assertNotContains(response, 'Psoriasis flare')
+        self.assertEqual(response.content.count(b'Attending Doctor'), 1)
+
+    def test_htmx_returns_partial_only(self):
+        self._visit(self.doc1, date(2026, 1, 10))
+        response = self.client.get(
+            self._records_url(), {'q': 'checkup'}, HTTP_HX_REQUEST='true')
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'records-list')
+        self.assertNotContains(response, 'Critical Info')
+
+    def test_pagination_load_more(self):
+        for i in range(12):
+            self._visit(self.doc1, date(2026, 3, 1) - timedelta(days=i))
+        response = self.client.get(self._records_url())
+        self.assertContains(response, 'Showing 10 of 12 visits')
+        self.assertContains(response, 'Load more visits')
+        self.assertEqual(response.content.count(b'Attending Doctor'), 10)
+        response = self.client.get(self._records_url(), {'limit': '20'})
+        self.assertContains(response, 'Showing 12 of 12 visits')
+        self.assertNotContains(response, 'Load more visits')
+        self.assertEqual(response.content.count(b'Attending Doctor'), 12)
+
+    def test_filtered_view_returns_all_matches(self):
+        for i in range(12):
+            self._visit(self.doc1, date(2026, 3, 1) - timedelta(days=i),
+                        'Allergic dermatitis' if i < 3 else 'Routine checkup')
+        response = self.client.get(self._records_url(), {'q': 'allergic'})
+        self.assertContains(response, 'Showing 3 of 3 visits')
+        self.assertNotContains(response, 'Load more visits')
+        self.assertEqual(response.content.count(b'Attending Doctor'), 3)

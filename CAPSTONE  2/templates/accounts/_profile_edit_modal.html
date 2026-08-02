@@ -2,3 +2,13 @@
 {% block modal_content %}
 {% include "accounts/_profile_edit_content.html" with is_modal=True %}
 {% endblock %}
+{% block modal_footer %}
+<div class="flex gap-3 px-6 py-4 border-t border-gray-100 flex-shrink-0">
+  <button type="submit" form="profile-edit-form" class="flex-1 px-6 py-2.5 bg-brand-600 text-white font-semibold rounded-xl hover:bg-brand-700 transition text-sm">
+    Save Changes
+  </button>
+  <button type="button" onclick="closeModal()" class="flex-1 px-6 py-2.5 border border-gray-300 text-gray-700 font-semibold rounded-xl hover:bg-gray-50 transition text-sm">
+    Cancel
+  </button>
+</div>
+{% endblock %}

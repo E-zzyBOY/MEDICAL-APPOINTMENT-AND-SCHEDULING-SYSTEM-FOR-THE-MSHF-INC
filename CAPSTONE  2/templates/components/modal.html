@@ -20,9 +20,11 @@ instead of centering. Plain @media rules don't have that failure mode.
           </button>
         </div>
         <!-- Content -->
-        <div class="px-6 py-6 overflow-y-auto">
+        <div class="px-6 py-6 overflow-y-auto flex-1 min-h-0">
           {% block modal_content %}{% endblock %}
         </div>
+        <!-- Optional pinned footer (e.g. form actions that must stay visible while content scrolls) -->
+        {% block modal_footer %}{% endblock %}
       </div>
     </div>
   </div>

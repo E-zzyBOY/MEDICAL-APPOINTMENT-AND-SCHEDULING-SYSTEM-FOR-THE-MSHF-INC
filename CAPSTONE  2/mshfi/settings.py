@@ -144,9 +144,16 @@ MEDIA_ROOT = BASE_DIR / 'media'
 # CLOUDINARY_URL is set — the cloudinary SDK reads that env var on its own,
 # no further config needed here. Locally, without it, files keep using the
 # plain filesystem storage configured above.
+#
+# RawMediaCloudinaryStorage (not MediaCloudinaryStorage) is required: the
+# latter forces resource_type='image' and rejects anything Cloudinary can't
+# validate as an image — which breaks Prescription.attachment, since that
+# field accepts PDFs as well as JPG/PNG (see records/models.py). "Raw"
+# accepts any file type, images included; the only cost is skipping
+# Cloudinary's image-specific transforms, which this project doesn't use.
 if os.environ.get('CLOUDINARY_URL'):
     INSTALLED_APPS += ['cloudinary_storage', 'cloudinary']
-    STORAGES['default'] = {'BACKEND': 'cloudinary_storage.storage.MediaCloudinaryStorage'}
+    STORAGES['default'] = {'BACKEND': 'cloudinary_storage.storage.RawMediaCloudinaryStorage'}
 
 # React dashboard build (frontend/) is compiled by Vite into static/dist; run
 # `npm run build` after changing anything under frontend/ to refresh it.

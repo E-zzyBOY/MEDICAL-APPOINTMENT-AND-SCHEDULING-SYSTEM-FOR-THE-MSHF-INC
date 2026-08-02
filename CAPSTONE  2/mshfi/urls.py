@@ -49,6 +49,8 @@ urlpatterns = [
     path('feedback/',      include('feedback.urls')),
     path('internal/cron/send-appointment-reminders/', cron_views.send_appointment_reminders,
          name='cron_send_appointment_reminders'),
+    path('internal/cron/backup-database/', cron_views.backup_database,
+         name='cron_backup_database'),
 ]
 
 if settings.DEBUG:

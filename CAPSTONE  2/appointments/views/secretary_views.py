@@ -1,7 +1,7 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse
 from django.contrib import messages
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse, HttpResponseNotAllowed
 from django.db import transaction
 from datetime import date, datetime, timedelta
 from django.db.models import Q, Count, Case, When, Value, IntegerField, F, DateField
@@ -10,7 +10,8 @@ from appointments.models import Appointment, Schedule, TIME_NULLS_FIRST
 from appointments.forms import AssignTimeForm
 from accounts.models import CustomUser, PatientProfile
 from notifications.email_utils import (
-    send_cancellation_email, send_time_assigned_email, send_booking_confirmation_email
+    send_cancellation_email, send_time_assigned_email, send_booking_confirmation_email,
+    send_reminder_email
 )
 from notifications.models import Notification
 
@@ -152,6 +153,33 @@ def appointment_detail(request, pk):
     return render(request, 'secretary/_appointment_detail_modal.html', {
         'appt': appt, 'title': 'Appointment Details', 'today': date.today(),
     })
+
+
+@role_required('secretary')
+def resend_reminder(request, pk):
+    """Lets the secretary manually re-send the day-before reminder email to
+    the patient on demand, instead of only ever firing automatically from
+    the send_appointment_reminders cron job."""
+    doctor = _assigned_doctor(request.user)
+    appt = get_object_or_404(Appointment, pk=pk, doctor=doctor)
+    if request.method == 'POST':
+        if not appt.can_resend_reminder:
+            messages.error(request, 'Reminders can only be resent for upcoming scheduled appointments.')
+        else:
+            try:
+                send_reminder_email(appt)
+            except Exception:
+                pass
+            _notify(appt.patient,
+                    f"Reminder: your appointment reminder for "
+                    f"{appt.appointment_date.strftime('%B %d, %Y')} was resent.")
+            messages.success(request, 'Reminder email resent to the patient.')
+        if request.htmx:
+            response = HttpResponse('')
+            response['HX-Redirect'] = request.META.get('HTTP_REFERER', '/secretary/appointments/')
+            return response
+        return redirect('secretary:appointment_list')
+    return HttpResponseNotAllowed(['POST'])
 
 
 def _working_hours_for_date(doctor, the_date):

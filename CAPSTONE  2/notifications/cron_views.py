@@ -40,3 +40,24 @@ def send_appointment_reminders(request):
         return JsonResponse({'ok': False, 'output': out.getvalue(), 'error': err.getvalue()}, status=500)
 
     return JsonResponse({'ok': True, 'output': out.getvalue(), 'error': err.getvalue()})
+
+
+@require_GET
+def backup_database(request):
+    """Free-tier substitute for a Render Cron Job (see send_appointment_reminders
+    above for the same pattern): an external scheduler hits this URL once a day
+    with an "Authorization: Bearer <CRON_SECRET>" header to run backup_database,
+    which dumps the DB and uploads it to Cloudinary since Render's own disk
+    doesn't persist across deploys/restarts."""
+    if not _token_is_valid(request):
+        return HttpResponseForbidden('Forbidden')
+
+    out = io.StringIO()
+    err = io.StringIO()
+    try:
+        call_command('backup_database', stdout=out, stderr=err)
+    except Exception:
+        logger.exception('backup_database failed via cron endpoint')
+        return JsonResponse({'ok': False, 'output': out.getvalue(), 'error': err.getvalue()}, status=500)
+
+    return JsonResponse({'ok': True, 'output': out.getvalue(), 'error': err.getvalue()})

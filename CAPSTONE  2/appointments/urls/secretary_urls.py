@@ -9,6 +9,7 @@ urlpatterns = [
     path('dashboard/data/',                          v.secretary_dashboard_data,  name='dashboard_data'),
     path('appointments/',                            v.secretary_appointment_list, name='appointment_list'),
     path('appointments/<int:pk>/detail/',            v.appointment_detail,        name='appointment_detail'),
+    path('appointments/<int:pk>/resend-reminder/',   v.resend_reminder,           name='resend_reminder'),
     path('appointments/<int:pk>/assign-time/',       v.assign_appointment_time,   name='assign_time'),
     path('appointments/<int:pk>/occupied-times/',    v.get_occupied_times,        name='occupied_times'),
     path('appointments/<int:pk>/confirm/',           v.appointment_confirm,       name='appointment_confirm'),

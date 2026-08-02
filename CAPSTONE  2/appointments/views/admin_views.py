@@ -2,6 +2,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.db.models import Count, Avg, Q
 from django.http import JsonResponse, HttpResponse, HttpResponseNotAllowed
+from django.urls import reverse
 from datetime import date, timedelta
 from accounts.decorators import role_required
 from accounts.models import CustomUser, PatientProfile, DoctorProfile, SecretaryProfile
@@ -12,7 +13,15 @@ from feedback.models import Feedback
 from notifications.forms import BroadcastForm
 from notifications.models import Broadcast
 from notifications.broadcast import send_broadcast
-from notifications.email_utils import send_account_created_email
+from notifications.email_utils import send_account_created_email, send_reminder_email
+from notifications.models import Notification
+
+
+def _parse_int(value, default=None):
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return default
 
 
 def _build_admin_dashboard_data(request):
@@ -140,12 +149,40 @@ def user_list(request):
             Q(username__icontains=search)
         )
         users = users.distinct().order_by('role', 'last_name')
-    return render(request, 'admin_panel/user_list.html', {
+
+    # Doctors/secretaries are bounded by hospital headcount (never large),
+    # so they're rendered in full. Patients are the one list that can grow
+    # without bound, so that's the one paginated ("Load more" via htmx,
+    # same pattern as doctor_patient_records).
+    staff_users = [u for u in users if u.role in ('doctor', 'secretary')]
+    # Explicit ordering here (unlike the unfiltered `users` above) because a
+    # sliced/paginated queryset needs a stable order across "Load more"
+    # requests — without one, the DB isn't guaranteed to return rows in the
+    # same order twice, which could skip or repeat patients between pages.
+    patient_qs  = users.filter(role='patient').order_by('last_name', 'first_name')
+
+    limit = _parse_int(request.GET.get('limit'), 20)
+    total_patients = patient_qs.count()
+    patient_users  = list(patient_qs[:limit])
+    has_more       = total_patients > limit
+    load_more_url  = None
+    if has_more:
+        params = request.GET.copy()
+        params['limit'] = str(limit + 20)
+        params['partial'] = 'patients'
+        load_more_url = reverse('admin_panel:user_list') + '?' + params.urlencode()
+
+    context = {
         'users': users,
-        'staff_users': [u for u in users if u.role in ('doctor', 'secretary')],
-        'patient_users': [u for u in users if u.role == 'patient'],
+        'staff_users': staff_users,
+        'patient_users': patient_users,
+        'patient_has_more': has_more,
+        'patient_load_more_url': load_more_url,
         'role_filter': role_filter, 'search': search,
-    })
+    }
+    if request.htmx and request.GET.get('partial') == 'patients':
+        return render(request, 'admin_panel/_patient_users_list.html', context)
+    return render(request, 'admin_panel/user_list.html', context)
 
 
 @role_required('admin')
@@ -240,17 +277,48 @@ def user_delete(request, pk):
 def admin_appointment_list(request):
     qs = Appointment.objects.all().select_related('patient', 'doctor', 'secretary', 'patient_details').order_by('-appointment_date', TIME_NULLS_FIRST)
     today = date.today()
-    return render(request, 'admin_panel/appointment_list.html', {
-        # "Scheduled" bucket covers every appointment that hasn't finished or
-        # been cancelled yet (Pending Assignment, Scheduled, Confirmed,
-        # Rescheduled, Pending Reschedule) — mirrors the patient-facing
-        # "Upcoming" tab. Past-dated rows move to "Past" instead of
-        # lingering here indefinitely.
+    # "Scheduled" bucket covers every appointment that hasn't finished or
+    # been cancelled yet (Pending Assignment, Scheduled, Confirmed,
+    # Rescheduled, Pending Reschedule) — mirrors the patient-facing
+    # "Upcoming" tab. Past-dated rows move to "Past" instead of
+    # lingering here indefinitely.
+    buckets = {
         'scheduled': qs.exclude(status__in=['Completed', 'Cancelled']).filter(appointment_date__gte=today),
         'past': qs.exclude(status__in=['Completed', 'Cancelled']).filter(appointment_date__lt=today),
         'completed': qs.filter(status='Completed'),
         'cancelled': qs.filter(status='Cancelled'),
-    })
+    }
+
+    # Each tab is paginated independently ("Load more" via htmx, same
+    # pattern as doctor_patient_records) since these lists grow without
+    # bound over the life of the hospital and previously rendered every
+    # row unpaginated.
+    context = {}
+    for name, bucket_qs in buckets.items():
+        limit = _parse_int(request.GET.get(f'limit_{name}'), 10)
+        total = bucket_qs.count()
+        items = list(bucket_qs[:limit])
+        has_more = total > limit
+        load_more_url = None
+        if has_more:
+            params = request.GET.copy()
+            params[f'limit_{name}'] = str(limit + 10)
+            params['tab'] = name
+            load_more_url = reverse('admin_panel:appointment_list') + '?' + params.urlencode()
+        context[name] = items
+        context[f'{name}_has_more'] = has_more
+        context[f'{name}_load_more_url'] = load_more_url
+
+    if request.htmx:
+        tab = request.GET.get('tab')
+        if tab in buckets:
+            return render(request, 'admin_panel/_appointment_tab_list.html', {
+                'tab': tab,
+                'appts': context[tab],
+                'has_more': context[f'{tab}_has_more'],
+                'load_more_url': context[f'{tab}_load_more_url'],
+            })
+    return render(request, 'admin_panel/appointment_list.html', context)
 
 
 @role_required('admin')
@@ -259,6 +327,34 @@ def admin_appointment_detail(request, pk):
     return render(request, 'admin_panel/_appointment_detail_modal.html', {
         'appt': appt, 'title': 'Appointment Details',
     })
+
+
+@role_required('admin')
+def admin_resend_reminder(request, pk):
+    """Lets an admin manually re-send the day-before reminder email to the
+    patient on demand, instead of only ever firing automatically from the
+    send_appointment_reminders cron job."""
+    appt = get_object_or_404(Appointment, pk=pk)
+    if request.method == 'POST':
+        if not appt.can_resend_reminder:
+            messages.error(request, 'Reminders can only be resent for upcoming scheduled appointments.')
+        else:
+            try:
+                send_reminder_email(appt)
+            except Exception:
+                pass
+            Notification.objects.create(
+                user=appt.patient,
+                message=f"Reminder: your appointment reminder for "
+                        f"{appt.appointment_date.strftime('%B %d, %Y')} was resent."
+            )
+            messages.success(request, 'Reminder email resent to the patient.')
+        if request.htmx:
+            response = HttpResponse('')
+            response['HX-Redirect'] = request.META.get('HTTP_REFERER', '/admin-panel/appointments/')
+            return response
+        return redirect('admin_panel:appointment_list')
+    return HttpResponseNotAllowed(['POST'])
 
 
 @role_required('admin')

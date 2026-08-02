@@ -2,6 +2,7 @@
 db.sqlite3
 data.json
 backup_render_*.json
+backups/
 __pycache__/
 *.pyc
 *.pyo

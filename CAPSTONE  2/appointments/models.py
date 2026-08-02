@@ -140,6 +140,11 @@ class Appointment(models.Model):
 
     class Meta:
         ordering = ['appointment_date', TIME_NULLS_FIRST]
+        indexes = [
+            models.Index(fields=['status']),
+            models.Index(fields=['appointment_date']),
+            models.Index(fields=['doctor', 'appointment_date']),
+        ]
 
     # Non-terminal statuses — the appointment is still awaiting some action
     # (time assignment, check-in, staff approval, etc.) rather than resolved.
@@ -157,6 +162,14 @@ class Appointment(models.Model):
     @property
     def needs_time_assignment(self):
         return self.status == 'Pending Assignment'
+
+    @property
+    def can_resend_reminder(self):
+        """Whether staff can manually re-send the day-before reminder email —
+        mirrors the automated reminder command's own eligibility (upcoming,
+        not yet resolved), just triggerable on demand instead of only the
+        night before."""
+        return self.status in ('Scheduled', 'Confirmed', 'Rescheduled') and self.appointment_date >= timezone.localdate()
 
     @classmethod
     def has_active_appointment(cls, patient):

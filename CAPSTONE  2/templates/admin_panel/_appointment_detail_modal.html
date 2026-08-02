@@ -12,6 +12,15 @@
     <div class="flex justify-between"><span class="text-gray-500">Reason</span><span class="font-medium">{{ appt.reason|default:"—" }}</span></div>
   </div>
   <p class="text-xs text-gray-400 italic">Clinical details are restricted to the doctor and secretary only.</p>
+  {% if appt.can_resend_reminder %}
+  <button type="button"
+          hx-post="{% url 'admin_panel:resend_reminder' pk=appt.pk %}"
+          hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+          hx-confirm="Resend the appointment reminder email to {{ appt.patient.get_full_name }}?"
+          class="w-full text-center border border-brand-200 text-brand-700 font-semibold py-2.5 rounded-xl hover:bg-brand-50 transition cursor-pointer text-sm">
+    Resend Reminder Email
+  </button>
+  {% endif %}
   <div class="flex gap-3 pt-2">
     <button type="button" onclick="closeModal()" class="flex-1 border border-gray-300 text-gray-700 font-semibold py-3 rounded-xl hover:bg-gray-50 transition">
       Close

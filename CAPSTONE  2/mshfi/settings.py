@@ -137,6 +137,17 @@ STORAGES = {
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
+# Cloudinary media storage. Render's disk never serves /media/ files in
+# production (see urls.py, which only wires that up when DEBUG=True) and
+# wipes whatever's there on every deploy/restart, so uploads (profile
+# pictures, prescription attachments) go to Cloudinary instead whenever
+# CLOUDINARY_URL is set — the cloudinary SDK reads that env var on its own,
+# no further config needed here. Locally, without it, files keep using the
+# plain filesystem storage configured above.
+if os.environ.get('CLOUDINARY_URL'):
+    INSTALLED_APPS += ['cloudinary_storage', 'cloudinary']
+    STORAGES['default'] = {'BACKEND': 'cloudinary_storage.storage.MediaCloudinaryStorage'}
+
 # React dashboard build (frontend/) is compiled by Vite into static/dist; run
 # `npm run build` after changing anything under frontend/ to refresh it.
 DJANGO_VITE = {

@@ -394,3 +394,28 @@ class ProfilePictureForm(forms.ModelForm):
                 'accept': 'image/*',
             }),
         }
+
+
+class DeactivateAccountForm(forms.Form):
+    """Confirmation form for the Settings 'Danger Zone'. password is only
+    required when the account actually has one to check (Google-linked
+    patients who never set a password get just the checkbox)."""
+    password = forms.CharField(widget=forms.PasswordInput, required=False)
+    confirm  = forms.BooleanField(
+        required=True,
+        error_messages={'required': 'Please confirm you understand this will deactivate your account.'},
+    )
+
+    def __init__(self, *args, user=None, **kwargs):
+        self.user = user
+        super().__init__(*args, **kwargs)
+        if user is not None and not user.has_usable_password():
+            self.fields['password'].widget = forms.HiddenInput()
+
+    def clean(self):
+        cleaned = super().clean()
+        if self.user is not None and self.user.has_usable_password():
+            password = cleaned.get('password')
+            if not password or not self.user.check_password(password):
+                self.add_error('password', 'Incorrect password.')
+        return cleaned

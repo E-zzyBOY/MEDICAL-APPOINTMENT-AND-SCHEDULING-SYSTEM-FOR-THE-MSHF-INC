@@ -19,11 +19,17 @@ class CustomUser(AbstractUser):
     role = models.CharField(max_length=20, choices=ROLE_CHOICES, default='patient')
     profile_picture = models.ImageField(upload_to='profile_pics/', blank=True, null=True)
     email_notifications_enabled = models.BooleanField(default=True)
-    # Self-registered patients (password OR Google sign-up) must click the
-    # link emailed to them before using the app (see
+    # Self-registered patients (password OR Google sign-up) must enter the
+    # 6-digit code emailed to them before using the app (see
     # EmailVerificationRequiredMiddleware). Staff accounts and walk-in
     # patients registered by staff are never gated on it.
     email_verified = models.BooleanField(default=False)
+    # The outstanding email-verification OTP, if any (see accounts/otp.py).
+    # Empty string means no code is currently outstanding. Cleared on
+    # successful verification so a used code can't be replayed.
+    email_otp = models.CharField(max_length=6, blank=True)
+    email_otp_expires_at = models.DateTimeField(null=True, blank=True)
+    email_otp_attempts = models.PositiveSmallIntegerField(default=0)
 
     def is_patient(self):    return self.role == 'patient'
     def is_doctor(self):     return self.role == 'doctor'

@@ -21,23 +21,17 @@ def _format_time_or_none(t):
     return t.strftime('%I:%M %p') if t else 'To be confirmed'
 
 
-def send_verification_email(user, request):
-    """Sent right after a password sign-up (and on 'Resend') with the
-    signed link that flips CustomUser.email_verified. Google sign-ups never
-    receive this — the provider already verified their address. Ignores the
-    email_notifications_enabled opt-out: this email IS the account gate,
-    not a courtesy notification."""
-    from django.urls import reverse
-    from accounts.tokens import make_email_verify_token
-
-    token = make_email_verify_token(user)
-    verify_url = request.build_absolute_uri(
-        reverse('accounts:verify_email', args=[token])
-    )
+def send_verification_email(user, code, ttl_minutes=10):
+    """Sent right after a password OR Google sign-up (and on 'Resend') with
+    the 6-digit code the user types on the confirmation page to flip
+    CustomUser.email_verified — see accounts/otp.py for issuing/checking the
+    code. Ignores the email_notifications_enabled opt-out: this email IS the
+    account gate, not a courtesy notification."""
     subject = "Confirm your email — MSHFI"
     ctx = {
         'patient_name': user.get_full_name() or user.username,
-        'verify_url':   verify_url,
+        'code':         code,
+        'ttl_minutes':  ttl_minutes,
     }
     message = render_to_string('notifications/email/verify_email.html', ctx)
     try:
@@ -106,6 +100,30 @@ def send_account_created_email(user, plain_password):
                   [user.email], fail_silently=False)
     except Exception:
         logger.exception('Account-created email to %s failed to send', user.email)
+
+
+def send_password_reset_email(user, new_plain_password):
+    """Forgot Password flow. Returns True only if the mail actually left —
+    the caller must NOT commit the new password unless it did, or a mail
+    outage would lock the account out with nobody holding the new password.
+    Ignores email_notifications_enabled: this is account recovery, not a
+    courtesy notification."""
+    if not user.email:
+        return False
+    subject = "Your new MSHFI password"
+    ctx = {
+        'user_name': user.get_full_name() or user.username,
+        'username':  user.username,
+        'password':  new_plain_password,
+    }
+    message = render_to_string('notifications/email/password_reset.html', ctx)
+    try:
+        send_mail(subject, message, settings.DEFAULT_FROM_EMAIL,
+                  [user.email], fail_silently=False)
+        return True
+    except Exception:
+        logger.exception('Password-reset email to %s failed to send', user.email)
+        return False
 
 
 def send_booking_received_email(appointment):

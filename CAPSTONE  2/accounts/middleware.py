@@ -8,13 +8,13 @@ from django.shortcuts import redirect
 
 class EmailVerificationRequiredMiddleware:
     """Self-registered patients (password or Google sign-up) are fully
-    blocked until they click the link emailed to them: every page redirects
-    to the 'check your email' waiting page except the verification flow
-    itself and logout. Staff roles never hit this. Must sit after
+    blocked until they enter the 6-digit code emailed to them: every page
+    redirects to the 'enter your code' waiting page except the verification
+    flow itself and logout. Staff roles never hit this. Must sit after
     AuthenticationMiddleware in settings.MIDDLEWARE."""
 
     ALLOWED_PREFIXES = (
-        '/accounts/verify-email/',  # pending page, status poll, resend, link target
+        '/accounts/verify-email/',  # pending page, status poll, resend, code confirm
         '/accounts/logout/',
         '/static/',
         '/media/',

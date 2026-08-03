@@ -10,14 +10,17 @@ from django.http import HttpResponse
 from .forms import (
     PatientRegistrationForm, PatientOnboardingForm, PatientProfileEditForm, DoctorProfileEditForm,
     SecretaryProfileEditForm, ProfilePictureForm, EmailNotificationSettingsForm, DeactivateAccountForm,
+    ForgotPasswordForm,
 )
 from .models import CustomUser, PatientProfile, DoctorProfile, SecretaryProfile
 from .decorators import role_required
 from .social_auth import provider_is_configured
 from .signals import log_activity
-from .tokens import read_email_verify_token
+from .otp import issue_and_send_email_otp, verify_code, MAX_OTP_ATTEMPTS
+from .passwords import generate_temp_password
 from notifications.email_utils import (
-    send_verification_email, send_password_changed_email, send_account_deactivated_email,
+    send_password_changed_email, send_account_deactivated_email,
+    send_password_reset_email,
 )
 from notifications.models import Notification
 
@@ -85,7 +88,7 @@ def register_view(request):
         login(request, user)
         _notify_admins(f"New patient account created: {user.get_full_name() or user.username} ({user.username}).")
         if settings.EMAIL_VERIFICATION_REQUIRED:
-            send_verification_email(user, request)
+            issue_and_send_email_otp(user)
             messages.success(request, 'Account created! Please confirm your email to continue.')
             return redirect('accounts:verify_email_pending')
         messages.success(request, 'Account created! Welcome to MSHFI.')
@@ -95,6 +98,56 @@ def register_view(request):
         'active_panel': 'register',
         'social_providers': _social_providers(),
     })
+
+
+FORGOT_SESSION_KEY = 'forgot_password_last_sent'
+FORGOT_COOLDOWN_SECONDS = 60
+# One fixed reply for every outcome — matched, unmatched, throttled, or a
+# mail-send failure. Anything that varies by outcome tells a stranger which
+# email addresses have accounts here.
+FORGOT_GENERIC_MESSAGE = (
+    "If an account exists for that email, we've sent a new password to it. "
+    "Please check your inbox and your spam folder."
+)
+
+
+def forgot_password_view(request):
+    """Login card's 'Forgot password?' panel. Generates a fresh random
+    password, emails it, and only then saves it — see
+    send_password_reset_email for why that order matters."""
+    if request.user.is_authenticated:
+        return _role_redirect(request.user)
+
+    form = ForgotPasswordForm(request.POST or None)
+    sent = False
+    if request.method == 'POST' and form.is_valid():
+        last_sent = request.session.get(FORGOT_SESSION_KEY, 0)
+        if time.time() - last_sent >= FORGOT_COOLDOWN_SECONDS:
+            request.session[FORGOT_SESSION_KEY] = time.time()
+            _reset_and_email_password(request, form.cleaned_data['email'])
+        sent = True
+        messages.success(request, FORGOT_GENERIC_MESSAGE)
+
+    return render(request, 'accounts/register.html', {
+        'register_form': PatientRegistrationForm(),
+        'forgot_form': form,
+        'forgot_sent': sent,
+        'active_panel': 'forgot',
+        'social_providers': _social_providers(),
+    })
+
+
+def _reset_and_email_password(request, email):
+    """Email has no unique constraint on CustomUser (staff-registered
+    walk-ins may even share or omit one), so reset every active account on
+    the address and send one email each — each names its own username so
+    the recipient can tell them apart."""
+    for user in CustomUser.objects.filter(email__iexact=email, is_active=True):
+        new_password = generate_temp_password()
+        if send_password_reset_email(user, new_password):
+            user.set_password(new_password)
+            user.save(update_fields=['password'])
+            log_activity(request, 'password_change', user=user)
 
 
 RESEND_SESSION_KEY = 'verify_email_last_sent'
@@ -107,9 +160,10 @@ POLL_TIMEOUT_SECONDS = 120
 
 @login_required(login_url='/accounts/login/')
 def verify_email_pending_view(request):
-    """The 'Check your email' waiting page. Polls verify_email_status via
-    htmx and auto-advances the moment the link is clicked anywhere. Each
-    render restarts the 2-minute polling window."""
+    """The 'Enter your code' page — renders the OTP-entry form. Each render
+    restarts the 2-minute polling window used by verify_email_status_view
+    (kept for IdleTimeoutMiddleware's non-activity check, though its
+    cross-device auto-advance no longer applies to the OTP flow)."""
     if request.user.email_verified:
         return redirect('accounts:complete_profile')
     request.session[POLL_SESSION_KEY] = time.time()
@@ -133,26 +187,29 @@ def verify_email_status_view(request):
     return HttpResponse(status=204)
 
 
-def verify_email_view(request, token):
-    """Target of the link in the confirmation email. Public on purpose —
-    the link is often opened on a phone or another browser with no session;
-    the signed token itself proves control of the inbox."""
-    user = read_email_verify_token(token)
-    if user is None:
-        messages.error(request, 'This confirmation link is invalid or has expired. Please request a new one.')
-        if request.user.is_authenticated and not request.user.email_verified:
-            return redirect('accounts:verify_email_pending')
-        return redirect('accounts:login')
+@login_required(login_url='/accounts/login/')
+def verify_email_confirm_view(request):
+    """Target of the OTP-entry form on the pending page. Acts only on
+    request.user — never a target user chosen by the request — which is
+    what makes a 6-digit code acceptable: brute-forcing it requires an
+    already-authenticated session for that account. One consequence: unlike
+    the old link, this can't be completed from a different device/tab than
+    the one used to sign up."""
+    if request.method != 'POST':
+        return redirect('accounts:verify_email_pending')
 
-    if not user.email_verified:
-        user.email_verified = True
-        user.save(update_fields=['email_verified'])
-
-    if request.user.is_authenticated and request.user.pk == user.pk:
+    outcome = verify_code(request.user, request.POST.get('code', '').strip())
+    if outcome == 'ok':
         messages.success(request, 'Email confirmed! Let\'s finish setting up your account.')
         return redirect('accounts:complete_profile')
-    messages.success(request, 'Email confirmed! You can continue on the tab where you signed up, or log in here.')
-    return redirect('accounts:login')
+    if outcome == 'expired':
+        messages.error(request, 'That code has expired. Press Resend to get a new one.')
+    elif outcome == 'locked':
+        messages.error(request, 'Too many incorrect attempts. Press Resend to get a new code.')
+    else:
+        remaining = MAX_OTP_ATTEMPTS - request.user.email_otp_attempts
+        messages.error(request, f'Incorrect code. {remaining} attempt(s) remaining.')
+    return redirect('accounts:verify_email_pending')
 
 
 @login_required(login_url='/accounts/login/')
@@ -163,11 +220,11 @@ def resend_verification_view(request):
         return redirect('accounts:complete_profile')
     last_sent = request.session.get(RESEND_SESSION_KEY, 0)
     if time.time() - last_sent < RESEND_COOLDOWN_SECONDS:
-        messages.info(request, 'A confirmation email was just sent. Please wait a minute before trying again.')
+        messages.info(request, 'A verification code was just sent. Please wait a minute before trying again.')
     else:
-        send_verification_email(request.user, request)
+        issue_and_send_email_otp(request.user)
         request.session[RESEND_SESSION_KEY] = time.time()
-        messages.success(request, f'Confirmation email sent to {request.user.email}.')
+        messages.success(request, f'Verification code sent to {request.user.email}.')
     return redirect('accounts:verify_email_pending')
 
 

@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% load static %}
-{% block title %}{% if active_panel == 'register' %}Register{% else %}Sign In{% endif %} — MSHFI{% endblock %}
+{% block title %}{% if active_panel == 'register' %}Register{% elif active_panel == 'forgot' %}Forgot Password{% else %}Sign In{% endif %} — MSHFI{% endblock %}
 
 {% block extra_head %}
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -74,6 +74,7 @@
   .auth-panel { display: none; }
   .auth-shell[data-active="login"]    .panel-login    { display: block; }
   .auth-shell[data-active="register"] .panel-register { display: block; }
+  .auth-shell[data-active="forgot"]   .panel-forgot   { display: block; }
 
   /* Right: photo panel — normally occupies the right half; slides to the
      left half (translateX -100% of its own width) when register is active.
@@ -155,6 +156,7 @@
   .auth-photo-dots span { width: 8px; height: 8px; border-radius: 9999px; background: rgba(255,255,255,0.55); transition: width 0.4s ease, background 0.4s ease; }
   .auth-shell[data-active="login"]    .auth-photo-dots span:nth-child(1) { width: 26px; background: #fff; }
   .auth-shell[data-active="register"] .auth-photo-dots span:nth-child(2) { width: 26px; background: #fff; }
+  .auth-shell[data-active="forgot"]   .auth-photo-dots span:nth-child(3) { width: 26px; background: #fff; }
 
   .auth-brand { color: #1F4D11; font-weight: 700; font-size: 1.25rem; letter-spacing: 0.2px; }
   .auth-footer { color: #94A3B8; font-size: 11px; }
@@ -244,6 +246,10 @@
                 </button>
               </form>
 
+              <p class="text-right mt-2.5">
+                <a href="#" class="auth-switch-link text-xs font-semibold text-[#64748B] hover:text-[#1F4D11] hover:underline" data-target="forgot">Forgot password?</a>
+              </p>
+
               <div class="flex items-center gap-3 my-5">
                 <span class="h-px flex-1 bg-[#E2E8F0]"></span>
                 <span class="text-[11px] text-[#94A3B8]">or sign in with</span>
@@ -268,6 +274,50 @@
                   Back to Home
                 </a>
               </p>
+            </div>
+
+            <!-- ===== Forgot Password ===== -->
+            <div class="auth-panel panel-forgot">
+              <div class="flex items-center justify-between mb-5">
+                <h1 class="text-xl font-bold text-[#1E293B]">Forgot Password</h1>
+                <a href="#" class="auth-switch-link text-sm font-semibold text-[#1F4D11] hover:underline" data-target="login">Sign In</a>
+              </div>
+
+              {% if forgot_sent %}
+              <div class="bg-[#F0FDF4] text-[#166534] rounded-lg p-3.5 text-sm leading-relaxed">
+                If an account exists for that email, we've sent a new password to it. Please check your inbox and your spam folder.
+              </div>
+              <p class="text-center mt-6">
+                <a href="#" class="auth-switch-link inline-flex items-center gap-1.5 text-sm text-[#64748B] hover:text-[#1E293B] transition" data-target="login">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
+                  Back to Sign In
+                </a>
+              </p>
+              {% else %}
+              <p class="text-sm text-[#64748B] mb-4 leading-relaxed">
+                Enter the email address on your account. We'll email you a new password you can sign in with right away.
+              </p>
+              <form method="post" action="{% url 'accounts:forgot_password' %}" class="space-y-3 hp-field">
+                {% csrf_token %}
+                {% if forgot_form.email.errors %}
+                <p class="text-[#DC2626] text-xs mt-1 ml-1">{{ forgot_form.email.errors.0 }}</p>
+                {% endif %}
+                <input type="email" name="{{ forgot_form.email.html_name }}"
+                       {% if forgot_form.email.value %}value="{{ forgot_form.email.value }}"{% endif %}
+                       required class="w-full" placeholder="Email Address" />
+                <button type="submit" data-loading-text="Sending…"
+                        class="w-full bg-[#1F4D11] hover:bg-[#183E0C] text-white font-bold uppercase tracking-widest py-3 px-4 rounded-lg text-xs transition-all duration-200 hover:-translate-y-0.5 disabled:opacity-60 disabled:cursor-not-allowed !mt-5">
+                  Send New Password
+                </button>
+              </form>
+
+              <p class="text-center mt-6">
+                <a href="/" class="inline-flex items-center gap-1.5 text-sm text-[#64748B] hover:text-[#1E293B] transition">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
+                  Back to Home
+                </a>
+              </p>
+              {% endif %}
             </div>
 
             <!-- ===== Register ===== -->

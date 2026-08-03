@@ -1,14 +1,51 @@
 {% extends "doctor/base_doctor.html" %}
 {% block page_title %}{{ action|capfirst }} Appointment{% endblock %}
 {% block doctor_content %}
-<div class="max-w-md">
-  <div class="bg-white rounded-2xl shadow-soft p-8">
-    <h2 class="text-xl font-semibold text-gray-800 mb-4">{{ action|capfirst }} Appointment</h2>
-    <div class="bg-gray-50 rounded-xl p-4 mb-6 text-sm space-y-2">
-      <div class="flex justify-between"><span class="text-gray-500">Patient</span><span class="font-medium">{{ appointment.patient.get_full_name }}</span></div>
-      <div class="flex justify-between"><span class="text-gray-500">Date</span><span class="font-medium">{{ appointment.appointment_date|date:"F j, Y" }}</span></div>
-      <div class="flex justify-between"><span class="text-gray-500">Time</span><span class="font-medium">{{ appointment.appointment_time|time:"g:i A" }}</span></div>
+<div class="max-w-md mx-auto">
+  <div class="confirm-action-form bg-white rounded-2xl shadow-soft p-6 sm:p-8">
+    <div class="flex items-center gap-3 mb-6">
+      <div class="w-11 h-11 rounded-xl flex items-center justify-center shrink-0 {% if action == 'accept' or action == 'complete' %}bg-green-50{% else %}bg-red-50{% endif %}">
+        {% if action == 'accept' or action == 'complete' %}
+        <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        {% else %}
+        <svg class="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 9l-6 6m0-6l6 6M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        {% endif %}
+      </div>
+      <div>
+        <h2 class="text-xl font-bold text-[#1E293B]">{{ action|capfirst }} Appointment</h2>
+        <p class="text-sm text-gray-400">
+          {% if action == 'accept' %}Confirm this appointment with the patient.
+          {% elif action == 'complete' %}Mark this consultation as finished.
+          {% else %}This will cancel the appointment and notify the patient.
+          {% endif %}
+        </p>
+      </div>
     </div>
+
+    <div class="rounded-xl border border-gray-100 divide-y divide-gray-100 mb-6">
+      <div class="flex items-center justify-between px-4 py-3">
+        <span class="flex items-center gap-2 text-sm text-gray-500">
+          <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+          Patient
+        </span>
+        <span class="text-sm font-semibold text-gray-800">{{ appointment.patient.get_full_name }}</span>
+      </div>
+      <div class="flex items-center justify-between px-4 py-3">
+        <span class="flex items-center gap-2 text-sm text-gray-500">
+          <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+          Date
+        </span>
+        <span class="text-sm font-semibold text-gray-800">{{ appointment.appointment_date|date:"F j, Y" }}</span>
+      </div>
+      <div class="flex items-center justify-between px-4 py-3">
+        <span class="flex items-center gap-2 text-sm text-gray-500">
+          <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          Time
+        </span>
+        <span class="text-sm font-semibold text-gray-800">{{ appointment.appointment_time|time:"g:i A" }}</span>
+      </div>
+    </div>
+
     <form method="post" class="space-y-4">
       {% csrf_token %}
       {% if action == 'decline' or action == 'cancel' %}
@@ -20,18 +57,29 @@
       </div>
       {% endif %}
       <div class="flex gap-3">
+        <a href="/doctor/appointments/" class="flex-1 inline-flex items-center justify-center gap-1.5 text-center border border-gray-300 text-gray-700 font-semibold py-3 rounded-xl hover:bg-gray-50 transition text-sm">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+          Back
+        </a>
         <button type="submit"
-                class="flex-1 font-semibold py-3 rounded-xl transition
+                class="flex-1 inline-flex items-center justify-center gap-1.5 font-semibold py-3 rounded-xl transition text-sm
                   {% if action == 'accept' or action == 'complete' %}bg-green-600 text-white hover:bg-green-700
                   {% elif action == 'decline' or action == 'cancel' %}bg-red-600 text-white hover:bg-red-700
                   {% else %}bg-brand-600 text-white hover:bg-brand-700{% endif %}">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
           Confirm {{ action|capfirst }}
         </button>
-        <a href="/doctor/appointments/" class="flex-1 text-center border border-gray-300 text-gray-700 font-semibold py-3 rounded-xl hover:bg-gray-50 transition">
-          Back
-        </a>
       </div>
     </form>
   </div>
 </div>
+
+<style>
+  /* Matches the Create Account modal's refined field styling. */
+  .confirm-action-form textarea {
+    border-radius: 8px !important;
+    padding: 0.7rem 0.9rem !important;
+    font-size: 0.8125rem !important;
+  }
+</style>
 {% endblock %}

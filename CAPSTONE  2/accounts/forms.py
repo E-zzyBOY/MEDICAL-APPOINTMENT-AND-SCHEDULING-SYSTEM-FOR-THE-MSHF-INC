@@ -435,3 +435,13 @@ class DeactivateAccountForm(forms.Form):
             if not password or not self.user.check_password(password):
                 self.add_error('password', 'Incorrect password.')
         return cleaned
+
+
+class ForgotPasswordForm(forms.Form):
+    """Deliberately does no existence check against CustomUser — telling the
+    submitter whether an account exists for the email is a user-enumeration
+    leak. The view always shows the same generic message regardless."""
+    email = forms.EmailField(required=True, label='Email Address')
+
+    def clean_email(self):
+        return self.cleaned_data['email'].strip().lower()

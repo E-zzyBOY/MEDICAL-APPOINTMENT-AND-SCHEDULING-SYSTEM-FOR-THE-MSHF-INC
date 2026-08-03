@@ -274,8 +274,8 @@ class DjangoAdminSmokeTests(TestCase):
 
 class EmailVerificationTests(TestCase):
     """Self sign-ups (password here; Google covered in the social tests
-    above) are gated until the emailed confirmation link is clicked; the
-    waiting page polls and auto-advances. Staff never see the gate."""
+    above) are gated until the emailed 6-digit code is entered; the waiting
+    page polls and auto-advances. Staff never see the gate."""
 
     REGISTER_DATA = {
         'username': 'newpatient',
@@ -287,13 +287,13 @@ class EmailVerificationTests(TestCase):
     def _register(self):
         return self.client.post(reverse('accounts:register'), self.REGISTER_DATA)
 
-    def _verify_link_from_outbox(self):
+    def _code_from_outbox(self):
         from django.core import mail
         import re
         body = mail.outbox[-1].body
-        match = re.search(r'/accounts/verify-email/[^\s/]+/', body)
-        self.assertIsNotNone(match, f'No verify link found in email body:\n{body}')
-        return match.group(0)
+        match = re.search(r'\b(\d{6})\b', body)
+        self.assertIsNotNone(match, f'No 6-digit code found in email body:\n{body}')
+        return match.group(1)
 
     def test_register_sends_email_and_lands_on_waiting_page(self):
         from django.core import mail
@@ -303,7 +303,7 @@ class EmailVerificationTests(TestCase):
         self.assertFalse(user.email_verified)
         self.assertEqual(len(mail.outbox), 1)
         self.assertEqual(mail.outbox[0].to, ['newpatient@example.com'])
-        self._verify_link_from_outbox()
+        self._code_from_outbox()
 
     def test_unverified_patient_fully_blocked(self):
         self._register()
@@ -314,24 +314,17 @@ class EmailVerificationTests(TestCase):
                 msg_prefix=f'{url} should be blocked until the email is confirmed',
             )
 
-    def test_clicking_link_verifies_and_continues_to_setup(self):
+    def test_entering_code_verifies_and_continues_to_setup(self):
         self._register()
-        response = self.client.get(self._verify_link_from_outbox())
+        code = self._code_from_outbox()
+        response = self.client.post(reverse('accounts:verify_email_confirm'), {'code': code})
         self.assertRedirects(response, reverse('accounts:complete_profile'))
         user = CustomUser.objects.get(username='newpatient')
         self.assertTrue(user.email_verified)
 
-    def test_link_clicked_on_another_device_still_verifies(self):
+    def test_wrong_code_rejected(self):
         self._register()
-        link = self._verify_link_from_outbox()
-        other_device = Client()
-        response = other_device.get(link)
-        self.assertRedirects(response, reverse('accounts:login'))
-        self.assertTrue(CustomUser.objects.get(username='newpatient').email_verified)
-
-    def test_garbage_token_rejected(self):
-        self._register()
-        response = self.client.get('/accounts/verify-email/not-a-real-token/')
+        response = self.client.post(reverse('accounts:verify_email_confirm'), {'code': '000000'})
         self.assertRedirects(response, reverse('accounts:verify_email_pending'))
         self.assertFalse(CustomUser.objects.get(username='newpatient').email_verified)
 
@@ -394,6 +387,37 @@ class EmailVerificationTests(TestCase):
         self.client.post(reverse('accounts:resend_verification'))
         self.assertEqual(len(mail.outbox), 2)  # second resend inside cooldown: skipped
 
+    def test_resend_invalidates_previous_code(self):
+        self._register()
+        old_code = self._code_from_outbox()
+        self.client.post(reverse('accounts:resend_verification'))
+        new_code = self._code_from_outbox()
+        self.assertNotEqual(old_code, new_code)
+        response = self.client.post(reverse('accounts:verify_email_confirm'), {'code': old_code})
+        self.assertRedirects(response, reverse('accounts:verify_email_pending'))
+        self.assertFalse(CustomUser.objects.get(username='newpatient').email_verified)
+
+    def test_expired_code_rejected(self):
+        from django.utils import timezone
+        from datetime import timedelta
+        self._register()
+        code = self._code_from_outbox()
+        user = CustomUser.objects.get(username='newpatient')
+        user.email_otp_expires_at = timezone.now() - timedelta(seconds=1)
+        user.save(update_fields=['email_otp_expires_at'])
+        response = self.client.post(reverse('accounts:verify_email_confirm'), {'code': code})
+        self.assertRedirects(response, reverse('accounts:verify_email_pending'))
+        self.assertFalse(CustomUser.objects.get(username='newpatient').email_verified)
+
+    def test_too_many_wrong_attempts_locks_code(self):
+        from accounts.otp import MAX_OTP_ATTEMPTS
+        self._register()
+        for _ in range(MAX_OTP_ATTEMPTS):
+            self.client.post(reverse('accounts:verify_email_confirm'), {'code': '000000'})
+        code = CustomUser.objects.get(username='newpatient').email_otp
+        response = self.client.post(reverse('accounts:verify_email_confirm'), {'code': code})
+        self.assertFalse(CustomUser.objects.get(username='newpatient').email_verified)
+
     def test_staff_never_gated(self):
         CustomUser.objects.create_user(
             username='sec-unverified', password='x', role='secretary', email_verified=False,
@@ -432,6 +456,74 @@ class EmailVerificationTests(TestCase):
         self.assertNotEqual(
             response.headers.get('Location'), reverse('accounts:verify_email_pending'),
         )
+
+
+class ForgotPasswordTests(TestCase):
+    """Always shows the same generic message regardless of outcome, to
+    avoid leaking which emails have accounts."""
+
+    def _submit(self, email):
+        return self.client.post(reverse('accounts:forgot_password'), {'email': email})
+
+    def _new_password_from_outbox(self):
+        from django.core import mail
+        import re
+        body = mail.outbox[-1].body
+        match = re.search(r'New password: (\S+)', body)
+        self.assertIsNotNone(match, f'No new password found in email body:\n{body}')
+        return match.group(1)
+
+    def test_unknown_email_shows_generic_message_no_email_sent(self):
+        from django.core import mail
+        response = self._submit('nobody@example.com')
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "we've sent a new password")
+        self.assertEqual(len(mail.outbox), 0)
+
+    def test_known_email_resets_password_and_emails_it(self):
+        from django.core import mail
+        CustomUser.objects.create_user(
+            username='forgetful', password='old-password-123', email='forgetful@example.com', role='patient',
+        )
+        response = self._submit('forgetful@example.com')
+        self.assertContains(response, "we've sent a new password")
+        self.assertEqual(len(mail.outbox), 1)
+        new_password = self._new_password_from_outbox()
+        user = CustomUser.objects.get(username='forgetful')
+        self.assertTrue(user.check_password(new_password))
+        self.assertFalse(user.check_password('old-password-123'))
+
+    def test_inactive_user_not_reset(self):
+        from django.core import mail
+        CustomUser.objects.create_user(
+            username='deactivated', password='old-password-123', email='deactivated@example.com',
+            role='patient', is_active=False,
+        )
+        self._submit('deactivated@example.com')
+        self.assertEqual(len(mail.outbox), 0)
+        self.assertTrue(CustomUser.objects.get(username='deactivated').check_password('old-password-123'))
+
+    def test_shared_email_resets_both_accounts(self):
+        from django.core import mail
+        CustomUser.objects.create_user(
+            username='walkin1', password='old-1', email='shared@example.com', role='patient',
+        )
+        CustomUser.objects.create_user(
+            username='walkin2', password='old-2', email='shared@example.com', role='patient',
+        )
+        self._submit('shared@example.com')
+        self.assertEqual(len(mail.outbox), 2)
+        self.assertFalse(CustomUser.objects.get(username='walkin1').check_password('old-1'))
+        self.assertFalse(CustomUser.objects.get(username='walkin2').check_password('old-2'))
+
+    def test_repeat_submission_within_cooldown_sends_only_once(self):
+        from django.core import mail
+        CustomUser.objects.create_user(
+            username='forgetful', password='old-password-123', email='forgetful@example.com', role='patient',
+        )
+        self._submit('forgetful@example.com')
+        self._submit('forgetful@example.com')
+        self.assertEqual(len(mail.outbox), 1)
 
 
 @override_settings(**GOOGLE_CONFIGURED)

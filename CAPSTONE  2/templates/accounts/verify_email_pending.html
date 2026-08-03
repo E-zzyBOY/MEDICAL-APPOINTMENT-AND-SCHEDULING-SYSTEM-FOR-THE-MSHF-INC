@@ -13,14 +13,39 @@
     0%   { opacity: 0; translate: 0 14px; scale: 0.985; }
     100% { opacity: 1; translate: 0 0; scale: 1; }
   }
-  .ve-spinner {
-    width: 44px; height: 44px; border-radius: 9999px;
-    border: 4px solid #E5EDE2; border-top-color: #1F4D11;
-    animation: veSpin 0.9s linear infinite;
+  .ve-otp-row {
+    display: flex;
+    justify-content: center;
+    gap: 0.6rem;
   }
-  @keyframes veSpin { to { transform: rotate(360deg); } }
+  .ve-otp-box {
+    width: 3rem;
+    height: 3.5rem;
+    text-align: center;
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #1F2937;
+    background: #fff;
+    border: 1px solid #E2E8F0;
+    border-radius: 10px;
+    transition: border-color 0.2s, background-color 0.2s, box-shadow 0.2s;
+  }
+  .ve-otp-box:focus {
+    outline: none;
+    border-color: #1F4D11;
+    box-shadow: 0 0 0 3px rgba(31, 77, 17, 0.15);
+  }
+  .ve-otp-box.filled {
+    border-color: #1F4D11;
+    background: rgba(31, 77, 17, 0.08);
+    color: #1F4D11;
+  }
+  @media (max-width: 420px) {
+    .ve-otp-row { gap: 0.4rem; }
+    .ve-otp-box { width: 2.5rem; height: 3rem; font-size: 1.25rem; }
+  }
   @media (prefers-reduced-motion: reduce) {
-    .cp-card-enter, .ve-spinner { animation: none !important; }
+    .cp-card-enter { animation: none !important; }
   }
 </style>
 {% endblock %}
@@ -34,11 +59,11 @@
 
       <div class="flex flex-col items-center text-center">
         <img src="{% static 'img/mshfi-logo.jpg' %}" alt="MSHFI seal" class="w-14 h-14 rounded-full object-cover shrink-0 mb-4 shadow-soft-sm" />
-        <h1 class="text-2xl font-semibold text-ink">Confirm Your Email</h1>
+        <h1 class="text-2xl font-semibold text-ink">Enter Your Code</h1>
         <p class="text-ink-soft text-sm mt-1.5 max-w-sm">
-          We sent a confirmation link to
+          We sent a 6-digit code to
           <span class="font-semibold text-[#1F4D11]">{{ user.email }}</span>.
-          Open it from your inbox — this page will continue automatically.
+          Enter it below to continue.
         </p>
 
         {% if messages %}
@@ -51,23 +76,24 @@
         </div>
         {% endif %}
 
-        {# Polls every 5s; the server answers 204 until the link is clicked #}
-        {# (on any device), then sends HX-Redirect to continue account setup. #}
-        {# After 2 minutes the server replies 286, which stops the polling #}
-        {# and swaps this block for the timed-out message. #}
-        <div id="poll-area" class="mt-7 mb-2 flex flex-col items-center"
-             hx-get="{% url 'accounts:verify_email_status' %}"
-             hx-trigger="every 5s"
-             hx-swap="outerHTML">
-          <div class="ve-spinner" role="status" aria-label="Waiting for email confirmation"></div>
-          <p class="text-xs text-[#6B7280] mt-3">Waiting for you to click the link… (pauses after 2 minutes)</p>
-        </div>
-
-        <form method="post" action="{% url 'accounts:resend_verification' %}" class="w-full mt-5">
+        <form method="post" action="{% url 'accounts:verify_email_confirm' %}" class="w-full mt-6" id="otpForm">
           {% csrf_token %}
-          <button type="submit"
-                  class="w-full bg-[#1F4D11] hover:bg-[#183E0C] text-white font-bold uppercase tracking-wide py-3.5 px-4 rounded-xl text-sm transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5">
-            Resend Email
+          <div class="ve-otp-row" id="otpRow">
+            {% for i in "123456" %}
+            <input type="text" inputmode="numeric" maxlength="1" class="ve-otp-box" autocomplete="one-time-code" />
+            {% endfor %}
+          </div>
+          <input type="hidden" name="code" id="otpValue" />
+          <button type="submit" data-loading-text="Verifying…"
+                  class="w-full mt-4 bg-[#1F4D11] hover:bg-[#183E0C] text-white font-bold uppercase tracking-wide py-3.5 px-4 rounded-xl text-sm transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5">
+            Verify
+          </button>
+        </form>
+
+        <form method="post" action="{% url 'accounts:resend_verification' %}" class="w-full mt-3">
+          {% csrf_token %}
+          <button type="submit" class="w-full text-sm text-[#1F4D11] hover:underline py-2">
+            Resend Code
           </button>
         </form>
 
@@ -84,4 +110,49 @@
     </div>
   </div>
 </div>
+
+<script>
+(function () {
+  var boxes = Array.prototype.slice.call(document.querySelectorAll('.ve-otp-box'));
+  var hidden = document.getElementById('otpValue');
+  if (!boxes.length || !hidden) return;
+
+  function sync() {
+    hidden.value = boxes.map(function (b) { return b.value; }).join('');
+  }
+
+  boxes.forEach(function (box, i) {
+    box.addEventListener('input', function () {
+      box.value = box.value.replace(/\D/g, '').slice(-1);
+      box.classList.toggle('filled', box.value !== '');
+      sync();
+      if (box.value && i < boxes.length - 1) {
+        boxes[i + 1].focus();
+      }
+    });
+
+    box.addEventListener('keydown', function (e) {
+      if (e.key === 'Backspace' && !box.value && i > 0) {
+        boxes[i - 1].focus();
+      }
+    });
+
+    box.addEventListener('paste', function (e) {
+      var pasted = (e.clipboardData || window.clipboardData).getData('text').replace(/\D/g, '');
+      if (!pasted) return;
+      e.preventDefault();
+      var digits = pasted.slice(0, boxes.length).split('');
+      boxes.forEach(function (b, j) {
+        b.value = digits[j] || '';
+        b.classList.toggle('filled', b.value !== '');
+      });
+      sync();
+      var lastFilled = Math.min(digits.length, boxes.length) - 1;
+      boxes[Math.max(lastFilled, 0)].focus();
+    });
+  });
+
+  boxes[0].focus();
+})();
+</script>
 {% endblock %}

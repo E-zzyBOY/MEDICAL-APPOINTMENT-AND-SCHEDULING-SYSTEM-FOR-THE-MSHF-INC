@@ -59,6 +59,7 @@
                  class="w-full border border-gray-300 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500" />
         </div>
         {% for field in form %}
+        {% if field.name != 'first_name' and field.name != 'last_name' %}
         <div>
           {% if field.name != 'place_of_birth' %}<label class="block text-sm font-semibold text-gray-700 mb-1">{{ field.label }}</label>{% endif %}
           {% if field.name == 'address' %}
@@ -73,6 +74,7 @@
           {% endif %}
           {% if field.errors %}<p class="text-red-600 text-xs mt-1">{{ field.errors.0 }}</p>{% endif %}
         </div>
+        {% endif %}
         {% endfor %}
       </div>
       <script>

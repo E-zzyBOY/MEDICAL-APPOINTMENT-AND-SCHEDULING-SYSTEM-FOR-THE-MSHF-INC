@@ -5,7 +5,8 @@ from datetime import date, datetime, timedelta
 from appointments.models import Appointment, Schedule
 from records.models import VitalSign, MedicalRecords, ResultsConsultation, Prescription
 from records.views import partition_vitals
-from accounts.models import PatientProfile
+from accounts.models import PatientProfile, SecretaryProfile
+from notifications.models import Notification
 
 User = get_user_model()
 
@@ -449,3 +450,124 @@ class PatientRecordsFilterTestCase(TestCase):
         self.assertContains(response, 'Showing 3 of 3 visits')
         self.assertNotContains(response, 'Load more visits')
         self.assertEqual(response.content.count(b'Attending Doctor'), 3)
+
+
+class SecretaryAssignTimeDateNavigationTestCase(TestCase):
+    """The secretary's "Assign Appointment Time" flow must never dead-end:
+    the assign-time modal can move a Pending Assignment onto a different
+    (future) date, and can always decline/cancel the request."""
+
+    def setUp(self):
+        self.patient = User.objects.create_user(
+            username='assignpatient', email='assignpatient@test.com',
+            password='testpass123', role='patient',
+            first_name='Pia', last_name='Patient')
+        self.doctor = User.objects.create_user(
+            username='assigndoctor', email='assigndoctor@test.com',
+            password='testpass123', role='doctor',
+            first_name='Diana', last_name='Doctor')
+        self.secretary = User.objects.create_user(
+            username='assignsecretary', email='assignsecretary@test.com',
+            password='testpass123', role='secretary')
+        SecretaryProfile.objects.create(user=self.secretary, assigned_doctor=self.doctor)
+
+        self.yesterday = date.today() - timedelta(days=1)
+        self.tomorrow  = date.today() + timedelta(days=1)
+        self.day_after = date.today() + timedelta(days=2)
+
+        Schedule.objects.create(doctor=self.doctor, specific_date=self.tomorrow,
+                                start_time='09:00', end_time='12:00')
+        Schedule.objects.create(doctor=self.doctor, specific_date=self.day_after,
+                                start_time='09:00', end_time='17:00')
+
+        # The classic dead-end: requested date has already passed.
+        self.appt = Appointment.objects.create(
+            patient=self.patient, doctor=self.doctor,
+            appointment_date=self.yesterday, status='Pending Assignment',
+            reason='Follow-up')
+
+        self.client.login(username='assignsecretary', password='testpass123')
+
+    def test_occupied_times_supports_date_param(self):
+        Appointment.objects.create(
+            patient=self.patient, doctor=self.doctor,
+            appointment_date=self.day_after, appointment_time='10:00',
+            status='Scheduled')
+        url = reverse('secretary:occupied_times', kwargs={'pk': self.appt.pk})
+
+        # default: resolves to the appointment's own (past) date
+        resp = self.client.get(url)
+        self.assertEqual(resp.status_code, 200)
+        data = resp.json()
+        self.assertEqual(data['date'], self.yesterday.isoformat())
+        self.assertTrue(data['is_past'])
+        self.assertEqual(data['occupied_times'], [])
+
+        # explicit ?date= returns that date's blocks + occupancy instead
+        resp = self.client.get(url, {'date': self.day_after.isoformat()})
+        data = resp.json()
+        self.assertEqual(data['date'], self.day_after.isoformat())
+        self.assertFalse(data['is_past'])
+        self.assertTrue(data['has_schedule'])
+        self.assertIn('09:00-17:00', data['blocks'])
+        times = [o['time'] for o in data['occupied_times']]
+        self.assertIn('10:00', times)
+
+    def test_occupied_times_ignores_invalid_date(self):
+        url = reverse('secretary:occupied_times', kwargs={'pk': self.appt.pk})
+        resp = self.client.get(url, {'date': 'not-a-date'})
+        data = resp.json()
+        self.assertEqual(data['date'], self.yesterday.isoformat())
+
+    def test_assign_time_can_move_to_future_date(self):
+        url = reverse('secretary:assign_time', kwargs={'pk': self.appt.pk})
+        resp = self.client.post(url, {
+            'appointment_time': '10:30',
+            'appointment_date': self.day_after.isoformat(),
+        })
+        self.assertEqual(resp.status_code, 302)
+        self.appt.refresh_from_db()
+        self.assertEqual(self.appt.appointment_date, self.day_after)
+        self.assertEqual(self.appt.appointment_time.strftime('%H:%M'), '10:30')
+        self.assertEqual(self.appt.status, 'Scheduled')
+
+    def test_assign_time_rejects_past_date(self):
+        url = reverse('secretary:assign_time', kwargs={'pk': self.appt.pk})
+        resp = self.client.post(url, {
+            'appointment_time': '10:00',
+            'appointment_date': self.yesterday.isoformat(),
+        })
+        self.appt.refresh_from_db()
+        self.assertEqual(self.appt.status, 'Pending Assignment')
+        self.assertIsNone(self.appt.appointment_time)
+
+    def test_assign_time_validates_against_new_date_hours(self):
+        # tomorrow's working hours are 09:00–12:00, so 13:00 must be rejected
+        url = reverse('secretary:assign_time', kwargs={'pk': self.appt.pk})
+        resp = self.client.post(url, {
+            'appointment_time': '13:00',
+            'appointment_date': self.tomorrow.isoformat(),
+        })
+        self.appt.refresh_from_db()
+        self.assertEqual(self.appt.status, 'Pending Assignment')
+        self.assertIsNone(self.appt.appointment_time)
+
+    def test_assign_time_persists_date_without_posting_one(self):
+        # No date posted -> stays on the appointment's own date
+        url = reverse('secretary:assign_time', kwargs={'pk': self.appt.pk})
+        resp = self.client.post(url, {'appointment_time': '10:00'})
+        self.appt.refresh_from_db()
+        self.assertEqual(self.appt.appointment_date, self.yesterday)
+        # ...but a past date is rejected, so it stays Pending Assignment
+        self.assertEqual(self.appt.status, 'Pending Assignment')
+
+    def test_decline_pending_assignment_cancels_and_notifies_with_reason(self):
+        url = reverse('secretary:appointment_cancel', kwargs={'pk': self.appt.pk})
+        resp = self.client.post(url, {
+            'mode': 'cancel', 'reason': 'Unable to accommodate this request',
+        })
+        self.assertEqual(resp.status_code, 302)
+        self.appt.refresh_from_db()
+        self.assertEqual(self.appt.status, 'Cancelled')
+        notif = Notification.objects.filter(user=self.patient).latest('created_at')
+        self.assertIn('Unable to accommodate this request', notif.message)

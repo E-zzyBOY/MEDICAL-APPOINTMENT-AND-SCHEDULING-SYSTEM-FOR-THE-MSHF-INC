@@ -208,13 +208,26 @@ def assign_appointment_time(request, pk):
     appt = get_object_or_404(
         Appointment, pk=pk, doctor=doctor, status__in=['Pending Assignment', 'Scheduled', 'Rescheduled']
     )
-    blocks = _working_hours_for_date(appt.doctor, appt.appointment_date)
+    # The modal's date picker may have moved the appointment to a different
+    # (future) date — carry that through the whole validation so a request
+    # whose original date has already passed can still be resolved.
+    the_date = appt.appointment_date
+    if request.method == 'POST':
+        date_str = request.POST.get('appointment_date')
+        if date_str:
+            try:
+                the_date = datetime.strptime(date_str, '%Y-%m-%d').date()
+            except (ValueError, TypeError):
+                the_date = appt.appointment_date
+    blocks = _working_hours_for_date(appt.doctor, the_date)
 
     if request.method == 'POST':
         form = AssignTimeForm(request.POST)
         if form.is_valid():
             new_time = form.cleaned_data['appointment_time']
-            if not blocks:
+            if the_date < date.today():
+                messages.error(request, "You can't assign a time on a date that's already passed.")
+            elif not blocks:
                 messages.error(request, "The doctor has no working hours set for this date.")
             elif not _time_within_working_hours(new_time, blocks):
                 hours_display = ', '.join(
@@ -225,7 +238,7 @@ def assign_appointment_time(request, pk):
                 with transaction.atomic():
                     doctor_conflict = Appointment.objects.select_for_update().filter(
                         doctor=appt.doctor,
-                        appointment_date=appt.appointment_date,
+                        appointment_date=the_date,
                         appointment_time=new_time,
                         status__in=['Scheduled', 'Rescheduled'],
                     ).exclude(pk=appt.pk).exists()
@@ -236,7 +249,7 @@ def assign_appointment_time(request, pk):
                     # different doctors.
                     patient_conflict = Appointment.objects.select_for_update().filter(
                         patient=appt.patient,
-                        appointment_date=appt.appointment_date,
+                        appointment_date=the_date,
                         appointment_time=new_time,
                         status__in=['Scheduled', 'Rescheduled'],
                     ).exclude(pk=appt.pk).exists()
@@ -246,6 +259,7 @@ def assign_appointment_time(request, pk):
                     elif patient_conflict:
                         messages.error(request, 'This patient already has another appointment at that time with a different doctor. Choose a different time.')
                     else:
+                        appt.appointment_date = the_date
                         appt.appointment_time = new_time
                         appt.status = 'Scheduled'
                         appt.secretary = request.user
@@ -271,7 +285,8 @@ def assign_appointment_time(request, pk):
     else:
         form = AssignTimeForm()
 
-    context = {'appt': appt, 'form': form, 'blocks': blocks, 'title': 'Assign Appointment Time'}
+    context = {'appt': appt, 'form': form, 'blocks': blocks, 'title': 'Assign Appointment Time',
+               'selected_date': (the_date if request.method == 'POST' else appt.appointment_date)}
     if request.htmx:
         return render(request, 'secretary/_assign_time_modal.html', context)
     return render(request, 'secretary/assign_time.html', context)
@@ -415,9 +430,10 @@ def appointment_cancel(request, pk):
                     f"{appt.appointment_date.strftime('%B %d, %Y')} was marked as No-Show.")
             messages.success(request, 'Appointment marked as No-Show.')
         else:
+            reason_note = f" Reason: {reason}" if reason.strip() else ''
             _notify(appt.patient,
                     f"Your appointment with Dr. {appt.doctor.get_full_name()} on "
-                    f"{appt.appointment_date.strftime('%B %d, %Y')} was cancelled.")
+                    f"{appt.appointment_date.strftime('%B %d, %Y')} was cancelled.{reason_note}")
             messages.success(request, 'Appointment cancelled and patient notified.')
         if request.htmx:
             response = render(request, 'secretary/_appointment_action_modal.html', {'appointment': appt, 'action': 'cancel', 'mode': mode})
@@ -692,16 +708,31 @@ def secretary_notifications(request):
 
 @role_required('secretary')
 def get_occupied_times(request, pk):
-    """API endpoint returning occupied appointment times for a doctor on a specific date.
-    Returns JSON with: {'occupied_times': [{'time': 'HH:MM', 'patient': 'Name', 'status': 'Scheduled'}], ...}"""
+    """API endpoint returning occupied appointment times for a doctor on a
+    specific date. Accepts an optional '?date=YYYY-MM-DD' to look up a date
+    other than the appointment's currently-requested one (used by the date
+    picker the assign-time modal now offers). Returns JSON with:
+    {'occupied_times': [{'time': 'HH:MM', 'patient': 'Name', 'status': ...}],
+     'patient_conflicts': [...], 'blocks': ['HH:MM-HH:MM', ...],
+     'is_past': bool, 'has_schedule': bool, 'date': 'YYYY-MM-DD'}"""
     doctor = _assigned_doctor(request.user)
     appt = get_object_or_404(
         Appointment, pk=pk, doctor=doctor, status__in=['Pending Assignment', 'Scheduled', 'Rescheduled']
     )
 
+    # Resolve the date being inspected: explicit ?date= param, else the
+    # appointment's current date. Invalid input falls back to the default.
+    the_date = appt.appointment_date
+    date_param = request.GET.get('date')
+    if date_param:
+        try:
+            the_date = datetime.strptime(date_param, '%Y-%m-%d').date()
+        except (ValueError, TypeError):
+            the_date = appt.appointment_date
+
     occupied = Appointment.objects.filter(
         doctor=appt.doctor,
-        appointment_date=appt.appointment_date,
+        appointment_date=the_date,
         appointment_time__isnull=False,
         status__in=['Scheduled', 'Rescheduled', 'Confirmed'],
     ).exclude(pk=appt.pk).select_related('patient').values_list(
@@ -723,7 +754,7 @@ def get_occupied_times(request, pk):
     # slot grid can flag the conflict before the form is ever submitted.
     patient_conflicts = Appointment.objects.filter(
         patient=appt.patient,
-        appointment_date=appt.appointment_date,
+        appointment_date=the_date,
         appointment_time__isnull=False,
         status__in=['Scheduled', 'Rescheduled'],
     ).exclude(pk=appt.pk).exclude(doctor=appt.doctor).select_related('doctor').values_list(
@@ -740,8 +771,15 @@ def get_occupied_times(request, pk):
         for time, first_name, last_name, status in patient_conflicts
     ]
 
+    blocks = _working_hours_for_date(appt.doctor, the_date)
     return JsonResponse({
         'occupied_times': occupied_list,
         'patient_conflicts': patient_conflict_list,
+        'blocks': [
+            f"{s.strftime('%H:%M')}-{e.strftime('%H:%M')}" for s, e in blocks
+        ],
+        'is_past': the_date < date.today(),
+        'has_schedule': bool(blocks),
+        'date': the_date.strftime('%Y-%m-%d'),
         'appointment_id': pk,
     })

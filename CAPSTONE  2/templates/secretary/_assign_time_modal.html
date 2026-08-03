@@ -1,4 +1,4 @@
-{# Assign-time modal — unified visual time-slot grid #}
+{# Assign-time modal — unified visual time-slot grid with in-modal date navigation #}
 <div id="modal-overlay" class="fixed inset-0 bg-black/50 z-40 transition-opacity opacity-0" style="transition-duration:300ms;" role="dialog" aria-modal="true" aria-labelledby="modal-title" tabindex="-1">
   <div class="fixed inset-0 z-40 overflow-y-auto flex items-end md:items-center justify-center">
     <div class="modal-panel w-full h-full md:!h-auto md:w-full max-w-2xl md:mx-4 md:my-8 translate-y-full md:!translate-y-0 transition-transform" style="transition-duration:300ms;">
@@ -22,26 +22,39 @@
           <div class="bg-gray-50 rounded-2xl p-4 text-sm space-y-2">
             <div class="flex justify-between"><span class="text-gray-500">Patient</span><span class="font-semibold text-gray-800">{{ appt.patient.get_full_name }}</span></div>
             <div class="flex justify-between"><span class="text-gray-500">Doctor</span><span class="font-semibold text-gray-800">Dr. {{ appt.doctor.get_full_name }}</span></div>
-            <div class="flex justify-between"><span class="text-gray-500">Date</span><span class="font-semibold text-gray-800">{{ appt.appointment_date|date:"l, F j, Y" }}</span></div>
+            <div class="flex justify-between"><span class="text-gray-500">Requested date</span><span class="font-semibold text-gray-800">{{ appt.appointment_date|date:"l, F j, Y" }}</span></div>
             {% if appt.reason %}<div class="flex justify-between"><span class="text-gray-500">Reason</span><span class="font-medium text-gray-700 text-right max-w-[60%]">{{ appt.reason }}</span></div>{% endif %}
           </div>
 
-          <!-- Working hours banner -->
-          {% if blocks %}
-          <div class="flex items-center gap-2 bg-purple-50 border border-purple-200 rounded-xl px-4 py-2.5 text-sm text-purple-700">
-            <svg class="w-4 h-4 shrink-0 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-            <span><strong>Working hours:</strong>
-              {% for start, end in blocks %}{{ start|time:"g:i A" }} – {{ end|time:"g:i A" }}{% if not forloop.last %}&nbsp;&nbsp;·&nbsp;&nbsp;{% endif %}{% endfor %}
-            </span>
+          <!-- Date picker — switch the date being assigned to without closing the modal -->
+          <div class="bg-purple-50 border border-purple-200 rounded-xl px-4 py-3 flex flex-wrap items-center gap-3">
+            <div class="flex items-center gap-2 text-sm text-purple-800 shrink-0">
+              <svg class="w-4 h-4 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+              <label for="datePickerInput" class="font-semibold whitespace-nowrap">Assign for date:</label>
+            </div>
+            <input type="date" id="datePickerInput" min="{% now 'Y-m-d' %}"
+                   value="{% if selected_date %}{{ selected_date|date:'Y-m-d' }}{% else %}{{ appt.appointment_date|date:'Y-m-d' }}{% endif %}"
+                   class="flex-1 min-w-[180px] border border-purple-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400 bg-white" />
+            <p class="w-full text-xs text-purple-600/80">If the requested date has passed, pick a new date below — availability refreshes automatically.</p>
           </div>
-          {% else %}
-          <div class="bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm text-amber-800 flex items-center gap-2">
-            <svg class="w-4 h-4 shrink-0 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-            The doctor has <strong>no working hours set</strong> for this date. Add a schedule slot first.
-          </div>
-          {% endif %}
 
-          {% if blocks %}
+          <!-- Working hours banner — updated client-side when the date changes -->
+          <div id="workingHoursBanner">
+            {% if blocks %}
+            <div class="flex items-center gap-2 bg-purple-50 border border-purple-200 rounded-xl px-4 py-2.5 text-sm text-purple-700">
+              <svg class="w-4 h-4 shrink-0 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+              <span><strong>Working hours:</strong>
+                {% for start, end in blocks %}{{ start|time:"g:i A" }} – {{ end|time:"g:i A" }}{% if not forloop.last %}&nbsp;&nbsp;·&nbsp;&nbsp;{% endif %}{% endfor %}
+              </span>
+            </div>
+            {% else %}
+            <div class="bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm text-amber-800 flex items-center gap-2">
+              <svg class="w-4 h-4 shrink-0 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+              The doctor has <strong>no working hours set</strong> for this date. Add a schedule slot first.
+            </div>
+            {% endif %}
+          </div>
+
           <!-- Legend -->
           <div class="flex items-center gap-4 text-xs text-gray-500 flex-wrap">
             <span class="flex items-center gap-1.5"><span class="inline-block w-3 h-3 rounded-full bg-green-400"></span> Available</span>
@@ -63,9 +76,8 @@
 
           <!-- Empty state: no slots available -->
           <div id="slotEmptyState" class="hidden bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm text-amber-800 text-center">
-            All time slots for this date are occupied. Please choose a different date.
+            No available time slots for this date. Pick a different date above, or decline the request below.
           </div>
-          {% endif %}
 
           <!-- Form -->
           <form method="post" action="{% url 'secretary:assign_time' pk=appt.pk %}"
@@ -80,9 +92,11 @@
             </div>
             {% endif %}
 
-            <!-- Hidden input driven by slot clicks -->
+            <!-- Hidden inputs driven by slot clicks / date picker -->
             <input type="hidden" id="appointmentTimeInput" name="appointment_time"
                    value="{{ form.appointment_time.value|default:'' }}" />
+            <input type="hidden" id="appointmentDateInput" name="appointment_date"
+                   value="{% if selected_date %}{{ selected_date|date:'Y-m-d' }}{% else %}{{ appt.appointment_date|date:'Y-m-d' }}{% endif %}" />
 
             <!-- Selected time display -->
             <div id="selectedTimeDisplay" class="hidden bg-purple-50 border border-purple-200 rounded-xl px-4 py-3 text-sm flex items-center justify-between">
@@ -117,11 +131,38 @@
                       class="flex-1 bg-purple-600 text-white font-semibold py-3 rounded-xl hover:bg-purple-700 transition disabled:opacity-40 disabled:cursor-not-allowed">
                 Confirm Time
               </button>
+              <button type="button" id="declineToggleBtn" onclick="toggleDecline(true)"
+                      class="flex-1 border-2 border-red-200 text-red-600 font-semibold py-3 rounded-xl hover:bg-red-50 transition">
+                Decline Request
+              </button>
               <button type="button" onclick="closeModal()" class="flex-1 border border-gray-200 text-gray-700 font-semibold py-3 rounded-xl hover:bg-gray-50 transition">
                 Cancel
               </button>
             </div>
           </form>
+
+          <!-- Decline confirmation panel (outside the main form to avoid nested forms) -->
+          <div id="declinePanel" class="hidden bg-red-50 border border-red-200 rounded-xl p-4 space-y-3">
+            <p class="text-sm text-red-700 font-medium">Cancel this request and notify the patient?</p>
+            <p class="text-xs text-red-600/80">The appointment will be marked as Cancelled and the patient will be notified. This cannot be undone.</p>
+            <form method="post" action="{% url 'secretary:appointment_cancel' pk=appt.pk %}"
+                  hx-post="{% url 'secretary:appointment_cancel' pk=appt.pk %}"
+                  hx-target="#modal-root" hx-swap="innerHTML" class="space-y-3">
+              {% csrf_token %}
+              <input type="hidden" name="mode" value="cancel" />
+              <textarea name="reason" rows="2" id="declineReasonInput"
+                        class="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-red-400"
+                        placeholder="Reason for the patient (optional) — e.g. Unable to accommodate this request, please contact the clinic to rebook."></textarea>
+              <div class="flex gap-3">
+                <button type="submit" class="flex-1 bg-red-600 text-white font-semibold py-3 rounded-xl hover:bg-red-700 transition">
+                  Confirm Decline
+                </button>
+                <button type="button" onclick="toggleDecline(false)" class="flex-1 border border-gray-300 text-gray-700 font-semibold py-3 rounded-xl hover:bg-gray-50 transition">
+                  Keep Working
+                </button>
+              </div>
+            </form>
+          </div>
 
         </div><!-- /body -->
       </div>
@@ -198,14 +239,18 @@
 
 <script>
 (function () {
-  const APPT_ID    = '{{ appt.pk }}';
-  const APPT_DATE  = '{{ appt.appointment_date|date:"Y-m-d" }}';
-  const BLOCKS_RAW = `{% for start, end in blocks %}{{ start|time:"H:i" }}-{{ end|time:"H:i" }}{% if not forloop.last %},{% endif %}{% endfor %}`;
+  const APPT_ID     = '{{ appt.pk }}';
+  const INIT_DATE   = '{% if selected_date %}{{ selected_date|date:"Y-m-d" }}{% else %}{{ appt.appointment_date|date:"Y-m-d" }}{% endif %}';
+  const BLOCKS_RAW  = `{% for start, end in blocks %}{{ start|time:"H:i" }}-{{ end|time:"H:i" }}{% if not forloop.last %},{% endif %}{% endfor %}`;
 
-  let occupiedMap  = {}; // "HH:MM" -> { time_display, patient }
-  let conflictMap  = {}; // "HH:MM" -> { time_display, doctor } — this patient booked elsewhere
-  let selectedTime = null;
-  let slotsReady   = false;
+  let occupiedMap   = {}; // "HH:MM" -> { time_display, patient }
+  let conflictMap   = {}; // "HH:MM" -> { time_display, doctor } — this patient booked elsewhere
+  let selectedTime  = null;
+  let slotsReady    = false;
+
+  let currentDate      = INIT_DATE;
+  let currentBlocksRaw = BLOCKS_RAW;   // "HH:MM-HH:MM,HH:MM-HH:MM"
+  let currentIsPast    = false;
 
   /* ── helpers ─────────────────────────────────────── */
   function toMin(t) {
@@ -221,23 +266,23 @@
     const hr   = h % 12 || 12;
     return `${hr}:${String(m).padStart(2,'0')} ${ampm}`;
   }
-
-  function isToday() {
-    const today = new Date();
-    const d = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
-    return d === APPT_DATE;
+  function todayStr() {
+    const n = new Date();
+    return `${n.getFullYear()}-${String(n.getMonth()+1).padStart(2,'0')}-${String(n.getDate()).padStart(2,'0')}`;
   }
+  function isToday()   { return todayStr() === currentDate; }
   function nowMinutes() {
     const n = new Date();
     return n.getHours() * 60 + n.getMinutes();
   }
 
-  /* ── generate slots from blocks ─────────────────── */
+  /* ── generate slots from the current date's blocks ── */
   function getSlots() {
-    if (!BLOCKS_RAW.trim()) return [];
+    if (!currentBlocksRaw.trim()) return [];
     const slots = [];
-    BLOCKS_RAW.split(',').forEach(block => {
+    currentBlocksRaw.split(',').forEach(block => {
       const [s, e] = block.trim().split('-');
+      if (!s || !e) return;
       for (let m = toMin(s); m < toMin(e); m += 30) {
         slots.push(fromMin(m));
       }
@@ -245,17 +290,82 @@
     return slots;
   }
 
-  /* ── fetch occupied ──────────────────────────────── */
-  function fetchOccupied() {
-    return fetch(`/secretary/appointments/${APPT_ID}/occupied-times/`)
+  /* ── working-hours banner ────────────────────────── */
+  function updateWorkingHoursBanner(hasSchedule, blocks) {
+    const el = document.getElementById('workingHoursBanner');
+    if (!el) return;
+    if (hasSchedule) {
+      const hours = blocks.map(b => {
+        const [s, e] = b.split('-');
+        return `${to12(s)} – ${to12(e)}`;
+      }).join('&nbsp;&nbsp;·&nbsp;&nbsp;');
+      el.innerHTML =
+        `<div class="flex items-center gap-2 bg-purple-50 border border-purple-200 rounded-xl px-4 py-2.5 text-sm text-purple-700">` +
+          `<svg class="w-4 h-4 shrink-0 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>` +
+          `<span><strong>Working hours:</strong> ${hours}</span>` +
+        `</div>`;
+    } else {
+      el.innerHTML =
+        `<div class="bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm text-amber-800 flex items-center gap-2">` +
+          `<svg class="w-4 h-4 shrink-0 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>` +
+          `The doctor has <strong>no working hours set</strong> for this date. Add a schedule slot first.` +
+        `</div>`;
+    }
+  }
+
+  /* ── fetch availability for a given date ─────────── */
+  function fetchAvailability(date) {
+    const grid    = document.getElementById('slotGrid');
+    const loading = document.getElementById('slotLoadingState');
+    const empty   = document.getElementById('slotEmptyState');
+    if (grid) grid.classList.add('hidden');
+    if (empty) empty.classList.add('hidden');
+    if (loading) loading.classList.remove('hidden');
+
+    // reset stale maps so old data never flashes
+    occupiedMap = {};
+    conflictMap = {};
+
+    const url = `/secretary/appointments/${APPT_ID}/occupied-times/?date=${encodeURIComponent(date)}`;
+    return fetch(url)
       .then(r => r.json())
       .then(data => {
+        currentDate      = data.date || date;
+        currentBlocksRaw = (data.blocks || []).join(',');
+        currentIsPast    = !!data.is_past;
         occupiedMap = {};
         conflictMap = {};
-        data.occupied_times.forEach(t => { occupiedMap[t.time] = t; });
+        (data.occupied_times || []).forEach(t => { occupiedMap[t.time] = t; });
         (data.patient_conflicts || []).forEach(t => { conflictMap[t.time] = t; });
+
+        const dateInput   = document.getElementById('datePickerInput');
+        const hiddenDate  = document.getElementById('appointmentDateInput');
+        if (dateInput)  dateInput.value  = currentDate;
+        if (hiddenDate) hiddenDate.value = currentDate;
+
+        updateWorkingHoursBanner(data.has_schedule, data.blocks || []);
+
+        // a date change invalidates any previously selected time
+        selectedTime = null;
+        const timeInput = document.getElementById('appointmentTimeInput');
+        if (timeInput) timeInput.value = '';
+        const manual = document.getElementById('manualTimeInput');
+        if (manual) manual.value = '';
+        const display = document.getElementById('selectedTimeDisplay');
+        if (display) display.classList.add('hidden');
+        const btn = document.getElementById('confirmTimeBtn');
+        if (btn) btn.disabled = true;
+        const err = document.getElementById('timeValidationError');
+        if (err) err.classList.add('hidden');
+
+        renderGrid();
       })
-      .catch(() => { occupiedMap = {}; conflictMap = {}; });
+      .catch(() => {
+        // fetch failed — restore a usable (if stale) state
+        if (loading) loading.classList.add('hidden');
+        if (grid) grid.classList.remove('hidden');
+        renderGrid();
+      });
   }
 
   /* ── render grid ─────────────────────────────────── */
@@ -270,11 +380,16 @@
 
     if (!slots.length) {
       grid.classList.add('hidden');
-      if (empty) empty.classList.remove('hidden');
+      if (empty) {
+        empty.textContent = currentIsPast
+          ? 'This date has already passed. Pick a future date above, or decline the request below.'
+          : 'No available time slots for this date. Pick a different date above, or decline the request below.';
+        empty.classList.remove('hidden');
+      }
       return;
     }
 
-    const now      = isToday() ? nowMinutes() : -1;
+    const now      = isToday() ? nowMinutes() : (currentIsPast ? Number.MAX_SAFE_INTEGER : -1);
     let hasAvail   = false;
     grid.innerHTML = '';
 
@@ -351,14 +466,11 @@
   function selectTime(time) {
     selectedTime = time;
 
-    // hidden input for form
     document.getElementById('appointmentTimeInput').value = time;
 
-    // sync manual input if open
     const manual = document.getElementById('manualTimeInput');
     if (manual) manual.value = time;
 
-    // update selected display
     const display = document.getElementById('selectedTimeDisplay');
     const label   = document.getElementById('selectedTimeLabel');
     if (display && label) {
@@ -366,15 +478,12 @@
       display.classList.remove('hidden');
     }
 
-    // enable confirm button
     const btn = document.getElementById('confirmTimeBtn');
     if (btn) btn.disabled = false;
 
-    // hide validation error
     const err = document.getElementById('timeValidationError');
     if (err) err.classList.add('hidden');
 
-    // re-render to update selected ring
     renderGrid();
   }
 
@@ -390,11 +499,26 @@
     renderGrid();
   };
 
+  /* ── decline panel toggle ───────────────────────── */
+  window.toggleDecline = function (open) {
+    const panel = document.getElementById('declinePanel');
+    const toggleBtn = document.getElementById('declineToggleBtn');
+    if (!panel) return;
+    if (open) {
+      panel.classList.remove('hidden');
+      if (toggleBtn) toggleBtn.classList.add('hidden');
+      const reason = document.getElementById('declineReasonInput');
+      if (reason) reason.focus();
+    } else {
+      panel.classList.add('hidden');
+      if (toggleBtn) toggleBtn.classList.remove('hidden');
+    }
+  };
+
   /* ── manual input sync ──────────────────────────── */
   window.onManualTimeInput = function (val) {
     if (!val) { clearSelectedTime(); return; }
 
-    // Snap to nearest 30-min slot in working hours
     document.getElementById('appointmentTimeInput').value = val;
 
     const err  = document.getElementById('timeValidationError');
@@ -422,24 +546,40 @@
 
   /* ── init ────────────────────────────────────────── */
   function init() {
-    // Show loading skeleton while fetching
+    const dateInput  = document.getElementById('datePickerInput');
+    const hiddenDate = document.getElementById('appointmentDateInput');
+    if (dateInput)  dateInput.value  = INIT_DATE;
+    if (hiddenDate) hiddenDate.value = INIT_DATE;
+
+    dateInput.addEventListener('change', function () {
+      if (this.value) fetchAvailability(this.value);
+    });
+
+    const existingVal = document.getElementById('appointmentTimeInput').value;
+
     if (BLOCKS_RAW.trim()) {
-      fetchOccupied().then(renderGrid);
+      fetchAvailability(INIT_DATE).then(() => {
+        if (existingVal) {
+          selectedTime = existingVal;
+          const btn = document.getElementById('confirmTimeBtn');
+          if (btn) btn.disabled = false;
+          const display = document.getElementById('selectedTimeDisplay');
+          const lbl     = document.getElementById('selectedTimeLabel');
+          if (display && lbl) { lbl.textContent = to12(existingVal); display.classList.remove('hidden'); }
+        }
+      });
     } else {
-      // No blocks — hide loading skeleton immediately
       const loading = document.getElementById('slotLoadingState');
       if (loading) loading.classList.add('hidden');
-    }
-
-    // Re-enable submit button if form already has a valid value (e.g. re-open after error)
-    const existingVal = document.getElementById('appointmentTimeInput').value;
-    if (existingVal) {
-      selectedTime = existingVal;
-      const btn = document.getElementById('confirmTimeBtn');
-      if (btn) btn.disabled = false;
-      const display = document.getElementById('selectedTimeDisplay');
-      const lbl     = document.getElementById('selectedTimeLabel');
-      if (display && lbl) { lbl.textContent = to12(existingVal); display.classList.remove('hidden'); }
+      updateWorkingHoursBanner(false, []);
+      if (existingVal) {
+        selectedTime = existingVal;
+        const btn = document.getElementById('confirmTimeBtn');
+        if (btn) btn.disabled = false;
+        const display = document.getElementById('selectedTimeDisplay');
+        const lbl     = document.getElementById('selectedTimeLabel');
+        if (display && lbl) { lbl.textContent = to12(existingVal); display.classList.remove('hidden'); }
+      }
     }
   }
 

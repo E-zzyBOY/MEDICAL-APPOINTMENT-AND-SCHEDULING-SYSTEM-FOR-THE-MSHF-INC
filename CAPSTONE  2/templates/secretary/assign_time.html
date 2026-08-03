@@ -18,26 +18,39 @@
     <div class="bg-gray-50 rounded-2xl p-4 text-sm space-y-2">
       <div class="flex justify-between"><span class="text-gray-500">Patient</span><span class="font-semibold">{{ appt.patient.get_full_name }}</span></div>
       <div class="flex justify-between"><span class="text-gray-500">Doctor</span><span class="font-semibold">Dr. {{ appt.doctor.get_full_name }}</span></div>
-      <div class="flex justify-between"><span class="text-gray-500">Date</span><span class="font-semibold">{{ appt.appointment_date|date:"l, F j, Y" }}</span></div>
+      <div class="flex justify-between"><span class="text-gray-500">Requested date</span><span class="font-semibold">{{ appt.appointment_date|date:"l, F j, Y" }}</span></div>
       {% if appt.reason %}<div class="flex justify-between"><span class="text-gray-500">Reason</span><span class="font-medium text-right max-w-[60%]">{{ appt.reason }}</span></div>{% endif %}
     </div>
 
-    <!-- Working hours -->
-    {% if blocks %}
-    <div class="flex items-center gap-2 bg-purple-50 border border-purple-200 rounded-xl px-4 py-2.5 text-sm text-purple-700">
-      <svg class="w-4 h-4 shrink-0 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-      <span><strong>Working hours:</strong>
-        {% for start, end in blocks %}{{ start|time:"g:i A" }} – {{ end|time:"g:i A" }}{% if not forloop.last %}&nbsp;&nbsp;·&nbsp;&nbsp;{% endif %}{% endfor %}
-      </span>
+    <!-- Date picker — switch the date being assigned to without restarting -->
+    <div class="bg-purple-50 border border-purple-200 rounded-xl px-4 py-3 flex flex-wrap items-center gap-3">
+      <div class="flex items-center gap-2 text-sm text-purple-800 shrink-0">
+        <svg class="w-4 h-4 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+        <label for="datePickerInput" class="font-semibold whitespace-nowrap">Assign for date:</label>
+      </div>
+      <input type="date" id="datePickerInput" min="{% now 'Y-m-d' %}"
+             value="{% if selected_date %}{{ selected_date|date:'Y-m-d' }}{% else %}{{ appt.appointment_date|date:'Y-m-d' }}{% endif %}"
+             class="flex-1 min-w-[180px] border border-purple-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400 bg-white" />
+      <p class="w-full text-xs text-purple-600/80">If the requested date has passed, pick a new date below — availability refreshes automatically.</p>
     </div>
-    {% else %}
-    <div class="bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm text-amber-800 flex items-center gap-2">
-      <svg class="w-4 h-4 shrink-0 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-      The doctor has <strong>no working hours set</strong> for this date.
-    </div>
-    {% endif %}
 
-    {% if blocks %}
+    <!-- Working hours -->
+    <div id="workingHoursBanner">
+      {% if blocks %}
+      <div class="flex items-center gap-2 bg-purple-50 border border-purple-200 rounded-xl px-4 py-2.5 text-sm text-purple-700">
+        <svg class="w-4 h-4 shrink-0 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+        <span><strong>Working hours:</strong>
+          {% for start, end in blocks %}{{ start|time:"g:i A" }} – {{ end|time:"g:i A" }}{% if not forloop.last %}&nbsp;&nbsp;·&nbsp;&nbsp;{% endif %}{% endfor %}
+        </span>
+      </div>
+      {% else %}
+      <div class="bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm text-amber-800 flex items-center gap-2">
+        <svg class="w-4 h-4 shrink-0 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        The doctor has <strong>no working hours set</strong> for this date.
+      </div>
+      {% endif %}
+    </div>
+
     <!-- Legend -->
     <div class="flex items-center gap-4 text-xs text-gray-500 flex-wrap">
       <span class="flex items-center gap-1.5"><span class="inline-block w-3 h-3 rounded-full bg-green-400"></span> Available</span>
@@ -54,14 +67,15 @@
     <!-- Slot grid -->
     <div id="slotGrid" class="grid grid-cols-3 sm:grid-cols-4 gap-2 hidden"></div>
     <div id="slotEmptyState" class="hidden bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm text-amber-800 text-center">
-      All time slots for this date are occupied.
+      No available time slots for this date. Pick a different date above, or decline the request below.
     </div>
-    {% endif %}
 
     <!-- Form -->
     <form method="post" class="space-y-4">
       {% csrf_token %}
       <input type="hidden" id="appointmentTimeInput" name="appointment_time" value="{{ form.appointment_time.value|default:'' }}" />
+      <input type="hidden" id="appointmentDateInput" name="appointment_date"
+             value="{% if selected_date %}{{ selected_date|date:'Y-m-d' }}{% else %}{{ appt.appointment_date|date:'Y-m-d' }}{% endif %}" />
 
       <!-- Selected display -->
       <div id="selectedTimeDisplay" class="hidden bg-purple-50 border border-purple-200 rounded-xl px-4 py-3 text-sm flex items-center justify-between">
@@ -82,6 +96,7 @@
           <input type="time" id="manualTimeInput" value="{{ form.appointment_time.value|default:'' }}"
                  class="border border-gray-300 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400 w-full"
                  oninput="onManualTimeInput(this.value)" />
+          <p class="text-xs text-gray-400 mt-1">The backend will still validate this against working hours and existing bookings.</p>
         </div>
       </details>
 
@@ -92,6 +107,10 @@
                 class="flex-1 bg-purple-600 text-white font-semibold py-3 rounded-xl hover:bg-purple-700 transition disabled:opacity-40 disabled:cursor-not-allowed">
           Confirm Time
         </button>
+        <a href="{% url 'secretary:appointment_cancel' pk=appt.pk %}?mode=cancel"
+           class="flex-1 text-center border-2 border-red-200 text-red-600 font-semibold py-3 rounded-xl hover:bg-red-50 transition">
+          Decline Request
+        </a>
         <a href="{% url 'secretary:appointment_list' %}"
            class="flex-1 text-center border border-gray-200 text-gray-700 font-semibold py-3 rounded-xl hover:bg-gray-50 transition">
           Cancel
@@ -115,33 +134,95 @@
 <script>
 (function () {
   const APPT_ID    = '{{ appt.pk }}';
-  const APPT_DATE  = '{{ appt.appointment_date|date:"Y-m-d" }}';
+  const INIT_DATE  = '{% if selected_date %}{{ selected_date|date:"Y-m-d" }}{% else %}{{ appt.appointment_date|date:"Y-m-d" }}{% endif %}';
   const BLOCKS_RAW = `{% for start, end in blocks %}{{ start|time:"H:i" }}-{{ end|time:"H:i" }}{% if not forloop.last %},{% endif %}{% endfor %}`;
-  let occupiedMap={}, selectedTime=null;
+
+  let occupiedMap = {}, conflictMap = {}, selectedTime = null;
+  let currentDate = INIT_DATE, currentBlocksRaw = BLOCKS_RAW, currentIsPast = false;
 
   function toMin(t){const[h,m]=t.split(':').map(Number);return h*60+m;}
   function fromMin(m){return`${String(Math.floor(m/60)).padStart(2,'0')}:${String(m%60).padStart(2,'0')}`;}
   function to12(t){const[h,m]=t.split(':').map(Number);const ap=h<12?'AM':'PM';const hr=h%12||12;return`${hr}:${String(m).padStart(2,'0')} ${ap}`;}
-  function isToday(){const n=new Date();return`${n.getFullYear()}-${String(n.getMonth()+1).padStart(2,'0')}-${String(n.getDate()).padStart(2,'0')}`===APPT_DATE;}
+  function todayStr(){const n=new Date();return`${n.getFullYear()}-${String(n.getMonth()+1).padStart(2,'0')}-${String(n.getDate()).padStart(2,'0')}`;}
+  function isToday(){return todayStr()===currentDate;}
   function nowMin(){const n=new Date();return n.getHours()*60+n.getMinutes();}
 
-  function getSlots(){if(!BLOCKS_RAW.trim())return[];const s=[];BLOCKS_RAW.split(',').forEach(b=>{const[st,en]=b.trim().split('-');for(let m=toMin(st);m<toMin(en);m+=30)s.push(fromMin(m));});return s;}
+  function getSlots(){
+    if(!currentBlocksRaw.trim())return[];
+    const s=[];
+    currentBlocksRaw.split(',').forEach(b=>{
+      const[s,e]=b.trim().split('-');
+      if(!s||!e)return;
+      for(let m=toMin(s);m<toMin(e);m+=30)s.push(fromMin(m));
+    });
+    return s;
+  }
 
-  function fetchOccupied(){return fetch(`/secretary/appointments/${APPT_ID}/occupied-times/`).then(r=>r.json()).then(d=>{occupiedMap={};d.occupied_times.forEach(t=>{occupiedMap[t.time]=t;});}).catch(()=>{occupiedMap={};});}
+  function updateWorkingHoursBanner(hasSchedule, blocks){
+    const el=document.getElementById('workingHoursBanner');
+    if(!el)return;
+    if(hasSchedule){
+      const hours=blocks.map(b=>{const[s,e]=b.split('-');return`${to12(s)} – ${to12(e)}`;}).join('&nbsp;&nbsp;·&nbsp;&nbsp;');
+      el.innerHTML=`<div class="flex items-center gap-2 bg-purple-50 border border-purple-200 rounded-xl px-4 py-2.5 text-sm text-purple-700"><svg class="w-4 h-4 shrink-0 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg><span><strong>Working hours:</strong> ${hours}</span></div>`;
+    }else{
+      el.innerHTML=`<div class="bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm text-amber-800 flex items-center gap-2"><svg class="w-4 h-4 shrink-0 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>The doctor has <strong>no working hours set</strong> for this date.</div>`;
+    }
+  }
+
+  function fetchAvailability(date){
+    const grid=document.getElementById('slotGrid'),loading=document.getElementById('slotLoadingState'),empty=document.getElementById('slotEmptyState');
+    if(grid)grid.classList.add('hidden');
+    if(empty)empty.classList.add('hidden');
+    if(loading)loading.classList.remove('hidden');
+    occupiedMap={};conflictMap={};
+    return fetch(`/secretary/appointments/${APPT_ID}/occupied-times/?date=${encodeURIComponent(date)}`)
+      .then(r=>r.json())
+      .then(d=>{
+        currentDate=d.date||date;
+        currentBlocksRaw=(d.blocks||[]).join(',');
+        currentIsPast=!!d.is_past;
+        occupiedMap={};conflictMap={};
+        (d.occupied_times||[]).forEach(t=>{occupiedMap[t.time]=t;});
+        (d.patient_conflicts||[]).forEach(t=>{conflictMap[t.time]=t;});
+        const di=document.getElementById('datePickerInput'),hd=document.getElementById('appointmentDateInput');
+        if(di)di.value=currentDate;
+        if(hd)hd.value=currentDate;
+        updateWorkingHoursBanner(d.has_schedule,d.blocks||[]);
+        selectedTime=null;
+        const ti=document.getElementById('appointmentTimeInput');if(ti)ti.value='';
+        const m=document.getElementById('manualTimeInput');if(m)m.value='';
+        const dp=document.getElementById('selectedTimeDisplay');if(dp)dp.classList.add('hidden');
+        const b=document.getElementById('confirmTimeBtn');if(b)b.disabled=true;
+        const e=document.getElementById('timeValidationError');if(e)e.classList.add('hidden');
+        renderGrid();
+      })
+      .catch(()=>{if(loading)loading.classList.add('hidden');if(grid)grid.classList.remove('hidden');renderGrid();});
+  }
 
   function renderGrid(){
     const slots=getSlots(),grid=document.getElementById('slotGrid');
     const loading=document.getElementById('slotLoadingState'),empty=document.getElementById('slotEmptyState');
     if(!grid)return;if(loading)loading.classList.add('hidden');
-    if(!slots.length){grid.classList.add('hidden');if(empty)empty.classList.remove('hidden');return;}
-    const now=isToday()?nowMin():-1;let hasAvail=false;grid.innerHTML='';
+    if(!slots.length){
+      grid.classList.add('hidden');
+      if(empty){
+        empty.textContent=currentIsPast
+          ? 'This date has already passed. Pick a future date above, or decline the request below.'
+          : 'No available time slots for this date. Pick a different date above, or decline the request below.';
+        empty.classList.remove('hidden');
+      }
+      return;
+    }
+    const now=isToday()?nowMin():(currentIsPast?Number.MAX_SAFE_INTEGER:-1);
+    let hasAvail=false;grid.innerHTML='';
     slots.forEach(time=>{
       const btn=document.createElement('button');btn.type='button';btn.classList.add('slot-btn');
       const label=document.createElement('span');label.classList.add('slot-label');label.textContent=to12(time);
       const sub=document.createElement('span');sub.classList.add('slot-sub');
-      const isPast=now>=0&&toMin(time)<=now,isOcc=!!occupiedMap[time];
+      const isPast=now>=0&&toMin(time)<=now,isOcc=!!occupiedMap[time],isConflict=!!conflictMap[time];
       if(isPast){btn.classList.add('past');btn.disabled=true;sub.textContent='Past';}
       else if(isOcc){btn.classList.add('occupied');btn.disabled=true;sub.textContent=occupiedMap[time].patient;btn.title=`Occupied — ${occupiedMap[time].patient}`;}
+      else if(isConflict){btn.classList.add('occupied');btn.disabled=true;sub.textContent='Conflict — Already Booked';btn.title=`This patient is already booked with ${conflictMap[time].doctor} at this time`;}
       else{btn.classList.add('available');hasAvail=true;sub.textContent='Available';btn.addEventListener('click',()=>selectTime(time));}
       if(time===selectedTime)btn.classList.add('selected');
       btn.appendChild(label);btn.appendChild(sub);grid.appendChild(btn);
@@ -152,28 +233,44 @@
   function selectTime(time){
     selectedTime=time;document.getElementById('appointmentTimeInput').value=time;
     const m=document.getElementById('manualTimeInput');if(m)m.value=time;
-    const d=document.getElementById('selectedTimeDisplay'),l=document.getElementById('selectedTimeLabel');if(d&&l){l.textContent=to12(time);d.classList.remove('hidden');}
+    const d=document.getElementById('selectedTimeDisplay'),l=document.getElementById('selectedTimeLabel');
+    if(d&&l){l.textContent=to12(time);d.classList.remove('hidden');}
     const b=document.getElementById('confirmTimeBtn');if(b)b.disabled=false;
     const e=document.getElementById('timeValidationError');if(e)e.classList.add('hidden');
     renderGrid();
   }
 
-  window.clearSelectedTime=function(){selectedTime=null;document.getElementById('appointmentTimeInput').value='';
+  window.clearSelectedTime=function(){
+    selectedTime=null;document.getElementById('appointmentTimeInput').value='';
     const m=document.getElementById('manualTimeInput');if(m)m.value='';
     const d=document.getElementById('selectedTimeDisplay');if(d)d.classList.add('hidden');
-    const b=document.getElementById('confirmTimeBtn');if(b)b.disabled=true;renderGrid();};
+    const b=document.getElementById('confirmTimeBtn');if(b)b.disabled=true;renderGrid();
+  };
 
   window.onManualTimeInput=function(val){
-    if(!val){clearSelectedTime();return;}document.getElementById('appointmentTimeInput').value=val;
+    if(!val){clearSelectedTime();return;}
+    document.getElementById('appointmentTimeInput').value=val;
     const err=document.getElementById('timeValidationError'),btn=document.getElementById('confirmTimeBtn');
-    if(occupiedMap[val]){if(err){err.textContent=`⚠ This time is occupied by ${occupiedMap[val].patient}.`;err.classList.remove('hidden');}if(btn)btn.disabled=true;selectedTime=null;renderGrid();}
+    if(occupiedMap[val]){if(err){err.textContent=`⚠ This time is occupied by ${occupiedMap[val].patient}. Choose another slot.`;err.classList.remove('hidden');}if(btn)btn.disabled=true;selectedTime=null;renderGrid();}
+    else if(conflictMap[val]){if(err){err.textContent=`⚠ Not available — this patient already has an appointment with ${conflictMap[val].doctor} at ${conflictMap[val].time_display}. Choose another slot.`;err.classList.remove('hidden');}if(btn)btn.disabled=true;selectedTime=null;renderGrid();}
     else{if(err)err.classList.add('hidden');if(btn)btn.disabled=false;selectedTime=val;const d=document.getElementById('selectedTimeDisplay'),l=document.getElementById('selectedTimeLabel');if(d&&l){l.textContent=to12(val);d.classList.remove('hidden');}renderGrid();}
   };
 
   function init(){
-    if(BLOCKS_RAW.trim()){fetchOccupied().then(renderGrid);}else{const l=document.getElementById('slotLoadingState');if(l)l.classList.add('hidden');}
+    const di=document.getElementById('datePickerInput'),hd=document.getElementById('appointmentDateInput');
+    if(di)di.value=INIT_DATE;
+    if(hd)hd.value=INIT_DATE;
+    if(di)di.addEventListener('change',function(){if(this.value)fetchAvailability(this.value);});
     const ex=document.getElementById('appointmentTimeInput').value;
-    if(ex){selectedTime=ex;const b=document.getElementById('confirmTimeBtn');if(b)b.disabled=false;const d=document.getElementById('selectedTimeDisplay'),l=document.getElementById('selectedTimeLabel');if(d&&l){l.textContent=to12(ex);d.classList.remove('hidden');}}
+    if(BLOCKS_RAW.trim()){
+      fetchAvailability(INIT_DATE).then(()=>{
+        if(ex){selectedTime=ex;const b=document.getElementById('confirmTimeBtn');if(b)b.disabled=false;const d=document.getElementById('selectedTimeDisplay'),l=document.getElementById('selectedTimeLabel');if(d&&l){l.textContent=to12(ex);d.classList.remove('hidden');}}
+      });
+    }else{
+      const l=document.getElementById('slotLoadingState');if(l)l.classList.add('hidden');
+      updateWorkingHoursBanner(false,[]);
+      if(ex){selectedTime=ex;const b=document.getElementById('confirmTimeBtn');if(b)b.disabled=false;const d=document.getElementById('selectedTimeDisplay'),l=document.getElementById('selectedTimeLabel');if(d&&l){l.textContent=to12(ex);d.classList.remove('hidden');}}
+    }
   }
   document.addEventListener('DOMContentLoaded',init);
 })();

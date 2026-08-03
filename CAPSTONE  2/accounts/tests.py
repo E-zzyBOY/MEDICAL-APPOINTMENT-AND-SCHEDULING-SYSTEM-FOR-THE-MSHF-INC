@@ -170,9 +170,9 @@ class SocialCallbackTests(SocialLoginTestBase):
         self._callback()
         self.assertTrue(CustomUser.objects.filter(username='google-juan-delacruz-2').exists())
 
-    def test_staff_email_match_refused_not_linked(self):
-        staff = CustomUser.objects.create_user(
-            username='sec1', password='x', role='secretary', email=GOOGLE_PROFILE['email'],
+    def test_admin_email_match_refused_not_linked(self):
+        admin = CustomUser.objects.create_user(
+            username='admin1', password='x', role='admin', email=GOOGLE_PROFILE['email'],
         )
         response = self._callback()
         self.assertRedirects(response, reverse('accounts:login'))
@@ -180,6 +180,33 @@ class SocialCallbackTests(SocialLoginTestBase):
         self.assertFalse(SocialAccount.objects.exists())
         # And no shadow patient account was created either.
         self.assertEqual(CustomUser.objects.count(), 1)
+
+    def test_doctor_email_match_auto_links_and_logs_in(self):
+        doctor = CustomUser.objects.create_user(
+            username='doc1', password='real-password-123', role='doctor', email=GOOGLE_PROFILE['email'],
+        )
+        response = self._callback()
+        self.assertEqual(response['Location'], '/doctor/')
+        self.assertEqual(self._logged_in_user(), doctor)
+        link = SocialAccount.objects.get(user=doctor)
+        self.assertEqual(link.provider_user_id, GOOGLE_PROFILE['provider_user_id'])
+        self.assertEqual(CustomUser.objects.count(), 1)
+        # Linking must not touch their existing password.
+        doctor.refresh_from_db()
+        self.assertTrue(doctor.check_password('real-password-123'))
+
+    def test_secretary_email_match_auto_links_and_logs_in(self):
+        secretary = CustomUser.objects.create_user(
+            username='sec1', password='real-password-123', role='secretary', email=GOOGLE_PROFILE['email'],
+        )
+        response = self._callback()
+        self.assertEqual(response['Location'], '/secretary/')
+        self.assertEqual(self._logged_in_user(), secretary)
+        link = SocialAccount.objects.get(user=secretary)
+        self.assertEqual(link.provider_user_id, GOOGLE_PROFILE['provider_user_id'])
+        self.assertEqual(CustomUser.objects.count(), 1)
+        secretary.refresh_from_db()
+        self.assertTrue(secretary.check_password('real-password-123'))
 
     def test_existing_patient_email_match_auto_linked(self):
         patient = CustomUser.objects.create_user(

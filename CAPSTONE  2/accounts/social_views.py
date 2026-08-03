@@ -1,13 +1,15 @@
-"""Sign in / sign up with Google (patients only).
+"""Sign in / sign up with Google.
 
 Server-side Authorization Code flow: /social/<provider>/start/ sends the
 browser to the provider's consent screen, /social/<provider>/callback/
 receives the one-time code and turns it into a logged-in session.
 
-Hard rule enforced here: social login can only ever create or log into
-PATIENT accounts. Doctor/secretary/admin accounts are created by admins and
-must keep using username/password — even a perfect verified-email match on a
-staff account is refused rather than linked.
+Social login can create a PATIENT account, or log into an existing
+PATIENT/DOCTOR/SECRETARY account whose verified email matches (doctors and
+secretaries never get a new account created this way — only linked to the
+one admin already created for them). Admin accounts are never reachable via
+social login and must keep using username/password — even a perfect
+verified-email match on an admin account is refused rather than linked.
 """
 from django.conf import settings
 from django.contrib import messages
@@ -121,8 +123,8 @@ def social_callback(request, provider):
         return redirect('accounts:login')
     if matches:
         user = matches[0]
-        if user.role != 'patient':
-            # Staff accounts are never reachable via social login, even on
+        if user.role == 'admin':
+            # Admin accounts are never reachable via social login, even on
             # a perfect verified-email match.
             messages.error(
                 request,

@@ -131,8 +131,8 @@ class SocialAccount(models.Model):
     'facebook' is reserved for when Meta app review is sorted out). Login
     matching is ALWAYS by (provider, provider_user_id) — the provider's own
     stable subject ID — never by email, since emails can change hands or be
-    recycled on the provider's side. Only patient accounts ever get linked;
-    staff must keep using username/password."""
+    recycled on the provider's side. Patient, doctor, and secretary accounts
+    can all be linked; admin accounts must keep using username/password."""
     PROVIDER_CHOICES = [
         ('google',   'Google'),
         ('facebook', 'Facebook'),

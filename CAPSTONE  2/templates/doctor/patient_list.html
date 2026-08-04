@@ -21,7 +21,11 @@
               class="cursor-pointer hover:bg-brand-50/60 transition-colors">
             <td class="px-5 py-4 font-medium text-gray-800">
               <div class="flex items-center gap-3">
+                {% if patient.profile_picture %}
+                <img src="{{ patient.profile_picture.url }}" alt="" class="size-9 shrink-0 rounded-full object-cover">
+                {% else %}
                 <span class="flex size-9 shrink-0 items-center justify-center rounded-full bg-brand-100 text-brand-700 font-semibold text-xs">{{ patient.first_name.0 }}{{ patient.last_name.0 }}</span>
+                {% endif %}
                 <span class="hover:underline">{{ patient.get_full_name }}</span>
               </div>
             </td>
@@ -42,7 +46,11 @@
     <div hx-get="{% url 'doctor:patient_quickview' patient_id=patient.pk %}" hx-target="#modal-root" hx-swap="innerHTML"
          class="border border-gray-200 rounded-2xl p-4 bg-white shadow-soft-sm cursor-pointer">
       <div class="flex items-center gap-3">
+        {% if patient.profile_picture %}
+        <img src="{{ patient.profile_picture.url }}" alt="" class="size-10 shrink-0 rounded-full object-cover">
+        {% else %}
         <span class="flex size-10 shrink-0 items-center justify-center rounded-full bg-brand-100 text-brand-700 font-semibold text-sm">{{ patient.first_name.0 }}{{ patient.last_name.0 }}</span>
+        {% endif %}
         <div class="min-w-0 flex-1">
           <p class="font-medium text-gray-800 text-sm truncate">{{ patient.get_full_name }}</p>
           <p class="text-xs text-gray-400 truncate">{{ patient.email }}</p>

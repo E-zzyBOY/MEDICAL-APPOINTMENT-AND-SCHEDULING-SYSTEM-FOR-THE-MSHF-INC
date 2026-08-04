@@ -23,18 +23,115 @@
           {% if pic_form.profile_picture.errors %}<p class="text-red-600 text-xs mt-1">{{ pic_form.profile_picture.errors.0 }}</p>{% endif %}
         </div>
       </div>
+
+      <div id="crop-overlay" class="hidden fixed inset-0 z-[100] bg-black/60 flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-xl w-full max-w-md p-6">
+          <h2 class="text-lg font-semibold text-gray-800 mb-1">Crop Photo</h2>
+          <p class="text-xs text-gray-500 mb-4">Drag to reposition, use the corners to zoom, then confirm.</p>
+          <div class="h-80 bg-gray-100 rounded-xl overflow-hidden">
+            <img id="crop-image" class="max-w-full block" alt="">
+          </div>
+          <div class="flex gap-3 pt-4">
+            <button type="button" id="crop-confirm-btn"
+                    class="px-6 py-2.5 bg-brand-600 text-white font-semibold rounded-xl hover:bg-brand-700 transition text-sm">
+              Use Photo
+            </button>
+            <button type="button" id="crop-cancel-btn"
+                    class="px-6 py-2.5 border border-gray-300 text-gray-700 font-semibold rounded-xl hover:bg-gray-50 transition text-sm">
+              Cancel
+            </button>
+          </div>
+        </div>
+      </div>
+
       <script>
         (function () {
           var input = document.getElementById('id_profile_picture');
           var preview = document.getElementById('profile-pic-preview');
           var clearBox = document.getElementById('profile_picture-clear_id');
+          var overlay = document.getElementById('crop-overlay');
+          var cropImage = document.getElementById('crop-image');
+          var confirmBtn = document.getElementById('crop-confirm-btn');
+          var cancelBtn = document.getElementById('crop-cancel-btn');
           if (!input || !preview) return;
+
+          // The profile-edit modal panel uses a CSS transform, which turns
+          // "position: fixed" descendants into ones confined to the modal's
+          // own box instead of the full viewport. Re-parent the overlay to
+          // <body> so it always covers the whole screen, and drop any stale
+          // copy left behind by a previous open of the modal.
+          if (overlay) {
+            document.querySelectorAll('#crop-overlay').forEach(function (el) {
+              if (el !== overlay) el.remove();
+            });
+            document.body.appendChild(overlay);
+          }
+
+          var cropperLibPromise = null;
+          function loadCropperLib() {
+            if (cropperLibPromise) return cropperLibPromise;
+            cropperLibPromise = new Promise(function (resolve, reject) {
+              if (window.Cropper) return resolve();
+              var css = document.createElement('link');
+              css.rel = 'stylesheet';
+              css.href = 'https://cdn.jsdelivr.net/npm/cropperjs@1.6.2/dist/cropper.min.css';
+              document.head.appendChild(css);
+              var script = document.createElement('script');
+              script.src = 'https://cdn.jsdelivr.net/npm/cropperjs@1.6.2/dist/cropper.min.js';
+              script.onload = resolve;
+              script.onerror = reject;
+              document.head.appendChild(script);
+            });
+            return cropperLibPromise;
+          }
+
+          var cropper = null;
+          function closeCropOverlay() {
+            if (cropper) { cropper.destroy(); cropper = null; }
+            overlay.classList.add('hidden');
+          }
 
           input.addEventListener('change', function () {
             var file = input.files && input.files[0];
             if (!file) return;
-            if (clearBox) clearBox.checked = false;
-            preview.src = URL.createObjectURL(file);
+
+            loadCropperLib().then(function () {
+              var reader = new FileReader();
+              reader.onload = function (e) {
+                cropImage.src = e.target.result;
+                overlay.classList.remove('hidden');
+                if (cropper) cropper.destroy();
+                cropper = new Cropper(cropImage, {
+                  aspectRatio: 1,
+                  viewMode: 1,
+                  autoCropArea: 1,
+                  background: false,
+                });
+              };
+              reader.readAsDataURL(file);
+            }).catch(function () {
+              // Cropper failed to load (e.g. offline) — fall back to using the photo as-is.
+              if (clearBox) clearBox.checked = false;
+              preview.src = URL.createObjectURL(file);
+            });
+          });
+
+          confirmBtn.addEventListener('click', function () {
+            if (!cropper) return;
+            cropper.getCroppedCanvas({ width: 512, height: 512 }).toBlob(function (blob) {
+              var file = new File([blob], 'profile.jpg', { type: 'image/jpeg' });
+              var dataTransfer = new DataTransfer();
+              dataTransfer.items.add(file);
+              input.files = dataTransfer.files;
+              if (clearBox) clearBox.checked = false;
+              preview.src = URL.createObjectURL(file);
+              closeCropOverlay();
+            }, 'image/jpeg', 0.9);
+          });
+
+          cancelBtn.addEventListener('click', function () {
+            input.value = '';
+            closeCropOverlay();
           });
 
           if (clearBox) {

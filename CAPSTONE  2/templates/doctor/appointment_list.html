@@ -73,7 +73,11 @@
     <div hx-get="{% url 'doctor:appointment_detail' pk=appt.pk %}" hx-target="#modal-root" hx-swap="innerHTML" class="border border-gray-200 rounded-2xl p-4 bg-white shadow-soft-sm cursor-pointer active:bg-gray-50">
       <div class="flex items-start justify-between gap-3">
         <a hx-get="{% url 'doctor:appointment_detail' pk=appt.pk %}" hx-target="#modal-root" hx-swap="innerHTML" class="flex items-center gap-3 min-w-0">
+          {% if not pd and appt.patient.profile_picture %}
+          <img src="{{ appt.patient.profile_picture.url }}" alt="" class="size-10 shrink-0 rounded-full object-cover">
+          {% else %}
           <span class="flex size-10 shrink-0 items-center justify-center rounded-full bg-brand-100 text-brand-700 font-semibold text-sm">{% if pd %}{{ pd.first_name.0 }}{{ pd.last_name.0 }}{% else %}{{ appt.patient.first_name.0 }}{{ appt.patient.last_name.0 }}{% endif %}</span>
+          {% endif %}
           <span class="font-medium text-gray-800 text-sm truncate">{% if pd %}{{ pd.first_name }} {{ pd.last_name }}{% else %}{{ appt.patient.get_full_name }}{% endif %}</span>
         </a>
         <span class="shrink-0 inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-semibold

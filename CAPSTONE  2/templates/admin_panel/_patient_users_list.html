@@ -19,7 +19,11 @@
         <tr hx-get="{% url 'admin_panel:user_detail' pk=user.pk %}" hx-target="#modal-root" hx-swap="innerHTML" class="cursor-pointer hover:bg-brand-50/60 transition-colors">
           <td class="px-5 py-4 font-medium text-gray-800">
             <div class="flex items-center gap-3">
+              {% if user.profile_picture %}
+              <img src="{{ user.profile_picture.url }}" alt="" class="size-9 shrink-0 rounded-full object-cover">
+              {% else %}
               <span class="flex size-9 shrink-0 items-center justify-center rounded-full bg-blue-100 text-blue-700 font-semibold text-xs">{{ user.first_name.0 }}{{ user.last_name.0 }}</span>
+              {% endif %}
               <span class="hover:underline">{{ user.get_full_name|default:user.username }}</span>
             </div>
           </td>

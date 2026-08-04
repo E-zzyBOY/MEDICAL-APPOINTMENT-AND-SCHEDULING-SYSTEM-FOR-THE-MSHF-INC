@@ -5,9 +5,13 @@
 <div class="max-w-3xl space-y-4">
   <div class="bg-white rounded-2xl shadow-soft p-6">
     <div class="flex items-center gap-4 mb-6">
+      {% if patient.profile_picture %}
+      <img src="{{ patient.profile_picture.url }}" alt="" class="w-12 h-12 rounded-full object-cover">
+      {% else %}
       <div class="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
         <span class="text-green-600 font-semibold text-lg">{{ patient.first_name.0 }}{{ patient.last_name.0 }}</span>
       </div>
+      {% endif %}
       <div>
         <p class="font-semibold text-gray-800 text-lg">{{ patient.get_full_name }}</p>
         <p class="text-gray-500 text-sm">{{ patient.email }}</p>

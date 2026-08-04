@@ -10,7 +10,7 @@ from django.http import HttpResponse
 from .forms import (
     PatientRegistrationForm, PatientOnboardingForm, PatientProfileEditForm, DoctorProfileEditForm,
     SecretaryProfileEditForm, ProfilePictureForm, EmailNotificationSettingsForm, DeactivateAccountForm,
-    ForgotPasswordForm,
+    ForgotPasswordForm, SetCredentialsForm,
 )
 from .models import CustomUser, PatientProfile, DoctorProfile, SecretaryProfile
 from .decorators import role_required
@@ -306,12 +306,47 @@ def profile_edit_view(request):
 
 
 @role_required('patient')
+def set_credentials_view(request):
+    """Mandatory stop between email verification and Complete Your Profile
+    for patients who signed up via Google (social_views.py's Case C leaves
+    them with set_unusable_password() and an auto-generated username, so
+    there's no username/password combo that works on a device where
+    they're not already signed into that Google account). Deliberately has
+    no skip link — complete_profile_view's gate below is what funnels every
+    onboarding path through here exactly once."""
+    if request.user.has_usable_password():
+        # Already done (or a password-signup patient who should never see
+        # this at all) — nothing to collect.
+        return redirect('accounts:complete_profile')
+
+    form = SetCredentialsForm(request.POST or None, instance=request.user)
+    if request.method == 'POST' and form.is_valid():
+        user = form.save()
+        # Mirrors password_change_view: set_password() rotates the session
+        # auth hash, so without this the user gets logged out mid-onboarding
+        # right after typing their new password in.
+        update_session_auth_hash(request, user)
+        log_activity(request, 'password_change', user=user)
+        send_password_changed_email(user)
+        messages.success(request, 'Your username and password are set.')
+        return redirect('accounts:complete_profile')
+    return render(request, 'accounts/set_credentials.html', {'form': form})
+
+
+@role_required('patient')
 def complete_profile_view(request):
     """Shown right after a brand-new patient account is created (regular
     sign-up or first-time Google sign-in) to collect Name and Address —
     the info that used to be gathered at sign-up time, now collected right
     after instead so the sign-up form itself can stay to just Username /
     Email / Password."""
+    if not request.user.has_usable_password():
+        # Google sign-up who hasn't set real credentials yet — finish that
+        # first. Covers every path that lands here (OTP gate on/off, the
+        # htmx OTP-status redirect); password-signup patients already have
+        # a usable password and fall straight through.
+        return redirect('accounts:set_credentials')
+
     profile = _get_profile(request.user)
     if profile is None:
         return redirect('patient:dashboard')

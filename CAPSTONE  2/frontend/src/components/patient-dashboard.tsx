@@ -176,7 +176,7 @@ function FeaturedDoctorCard({ doc }: { doc: DoctorCard }) {
 					<img
 						src={doc.photoUrl}
 						alt={doc.name}
-						className="h-full w-full object-cover"
+						className="h-full w-full object-contain"
 					/>
 				) : (
 					<span className="flex h-full w-full items-center justify-center">

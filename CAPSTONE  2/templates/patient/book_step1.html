@@ -57,7 +57,7 @@
            style="background-image: radial-gradient(rgba(24,62,12,0.10) 1.5px, transparent 1.5px); background-size: 14px 14px;"
            hx-get="{% url 'patient:doctor_profile' doctor_id=doctor.pk %}" hx-target="#modal-root" hx-swap="innerHTML">
         {% if doctor.profile_picture %}
-        <img src="{{ doctor.profile_picture.url }}" class="h-full w-full object-cover object-top" alt="">
+        <img src="{{ doctor.profile_picture.url }}" class="h-full w-full object-contain" alt="">
         {% else %}
         <span class="flex h-full w-full items-center justify-center">
           <span class="text-[#1F4D11] font-semibold text-3xl">{{ doctor.first_name.0 }}{{ doctor.last_name.0 }}</span>

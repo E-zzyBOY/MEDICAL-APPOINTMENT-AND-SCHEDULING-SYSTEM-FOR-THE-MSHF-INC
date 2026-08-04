@@ -160,10 +160,22 @@ class SocialCallbackTests(SocialLoginTestBase):
         self._callback()
         self.client.logout()
         response = self._callback(state='secondvisit')
-        self.assertEqual(response['Location'], '/patient/')
+        # Still hasn't set a local username/password (never finished
+        # set_credentials), so a returning Google login sends them back to
+        # finish that instead of straight to the dashboard.
+        self.assertEqual(response['Location'], reverse('accounts:set_credentials'))
         self.assertEqual(CustomUser.objects.filter(username__startswith='google-').count(), 1)
         self.assertEqual(SocialAccount.objects.count(), 1)
         self.assertIsNotNone(self._logged_in_user())
+
+    def test_returning_user_with_credentials_set_goes_to_dashboard(self):
+        self._callback()
+        user = self._logged_in_user()
+        user.set_password('a-real-password-123')
+        user.save()
+        self.client.logout()
+        response = self._callback(state='secondvisit')
+        self.assertEqual(response['Location'], '/patient/')
 
     def test_username_collision_gets_numeric_suffix(self):
         CustomUser.objects.create_user(username='google-juan-delacruz', password='x', role='patient')
@@ -284,6 +296,94 @@ class SocialCallbackTests(SocialLoginTestBase):
         response = self._callback(state='afterdeactivation')
         self.assertRedirects(response, reverse('accounts:login'))
         self.assertIsNone(self._logged_in_user())
+
+
+@override_settings(**GOOGLE_CONFIGURED, EMAIL_VERIFICATION_REQUIRED=False)
+class SetCredentialsTests(SocialLoginTestBase):
+    """A Google sign-up (set_unusable_password(), auto-generated username)
+    must set a real username/password before reaching Complete Your
+    Profile — otherwise they have no way to log in from a device where
+    they aren't already signed into that Google account. Gate is off here
+    so these tests don't also have to thread the OTP step."""
+
+    def _google_signup(self):
+        self._callback()
+        return self._logged_in_user()
+
+    def test_google_signup_is_redirected_to_set_credentials(self):
+        self._google_signup()
+        response = self.client.get(reverse('accounts:complete_profile'))
+        self.assertRedirects(response, reverse('accounts:set_credentials'))
+
+    def test_password_signup_never_sees_set_credentials(self):
+        CustomUser.objects.create_user(
+            username='pwuser', password='a-real-password-123', role='patient', email_verified=True,
+        )
+        PatientProfile.objects.create(user=CustomUser.objects.get(username='pwuser'))
+        self.client.login(username='pwuser', password='a-real-password-123')
+        response = self.client.get(reverse('accounts:complete_profile'))
+        self.assertEqual(response.status_code, 200)
+
+    def test_set_credentials_success_updates_username_and_password(self):
+        user = self._google_signup()
+        old_username = user.username
+        response = self.client.post(reverse('accounts:set_credentials'), {
+            'username': 'juandelacruz',
+            'new_password1': 'a-much-better-password-99',
+            'new_password2': 'a-much-better-password-99',
+        })
+        self.assertRedirects(response, reverse('accounts:complete_profile'))
+        user.refresh_from_db()
+        self.assertEqual(user.username, 'juandelacruz')
+        self.assertNotEqual(user.username, old_username)
+        self.assertTrue(user.has_usable_password())
+        self.assertTrue(user.check_password('a-much-better-password-99'))
+        # Session survives the password change (update_session_auth_hash) —
+        # still logged in as the same user, not bounced to login.
+        self.assertEqual(self._logged_in_user(), user)
+
+    def test_set_credentials_rejects_mismatched_passwords(self):
+        self._google_signup()
+        response = self.client.post(reverse('accounts:set_credentials'), {
+            'username': 'juandelacruz',
+            'new_password1': 'a-much-better-password-99',
+            'new_password2': 'does-not-match-111',
+        })
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(CustomUser.objects.get(username__startswith='google-').has_usable_password())
+
+    def test_set_credentials_rejects_taken_username(self):
+        CustomUser.objects.create_user(username='taken', password='x', role='patient')
+        self._google_signup()
+        response = self.client.post(reverse('accounts:set_credentials'), {
+            'username': 'taken',
+            'new_password1': 'a-much-better-password-99',
+            'new_password2': 'a-much-better-password-99',
+        })
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(CustomUser.objects.get(username__startswith='google-').has_usable_password())
+
+    def test_set_credentials_rejects_password_too_similar_to_new_username(self):
+        self._google_signup()
+        response = self.client.post(reverse('accounts:set_credentials'), {
+            'username': 'greenvalley123',
+            'new_password1': 'greenvalley123',
+            'new_password2': 'greenvalley123',
+        })
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(CustomUser.objects.get(username__startswith='google-').has_usable_password())
+
+    def test_already_has_password_skips_set_credentials(self):
+        user = self._google_signup()
+        user.set_password('already-set-123')
+        user.save()
+        # Setting the password directly (bypassing the view) rotates the
+        # session auth hash, so re-login to keep the test client's session
+        # valid — same reason set_credentials_view itself must call
+        # update_session_auth_hash after form.save().
+        self.client.login(username=user.username, password='already-set-123')
+        response = self.client.get(reverse('accounts:set_credentials'))
+        self.assertRedirects(response, reverse('accounts:complete_profile'))
 
 
 class DjangoAdminSmokeTests(TestCase):

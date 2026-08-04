@@ -77,10 +77,10 @@
 
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
-            <input type="text" name="contact_number"
+            <input type="tel" name="contact_number" inputmode="numeric" pattern="[0-9]{11}"
                    value="{{ form.contact_number.value|default:'' }}"
                    class="w-full bg-[#F3F4F8] border-0 rounded-xl px-4 py-3.5 text-sm text-[#1F2937] placeholder-[#6B7280] focus:outline-none focus:ring-2 focus:ring-[#1F4D11]/20"
-                   placeholder="Contact Number" />
+                   placeholder="09XXXXXXXXX" />
             {% if form.contact_number.errors %}<p class="text-[#DC2626] text-xs mt-1 ml-1">{{ form.contact_number.errors.0 }}</p>{% endif %}
           </div>
           <div>
@@ -119,4 +119,14 @@
     </div>
   </div>
 </div>
+
+<script>
+  (function () {
+    var input = document.querySelector('input[name="contact_number"]');
+    if (!input) return;
+    input.addEventListener('input', function () {
+      input.value = input.value.replace(/\D/g, '').slice(0, 11);
+    });
+  })();
+</script>
 {% endblock %}

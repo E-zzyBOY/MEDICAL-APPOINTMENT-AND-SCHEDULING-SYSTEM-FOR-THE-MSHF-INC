@@ -32,7 +32,7 @@ export function OurDoctors({
 								<img
 									src={doc.photoUrl}
 									alt={doc.name}
-									className="h-full w-full object-cover"
+									className="h-full w-full object-contain"
 								/>
 							) : (
 								<Stethoscope className="size-8 text-[#1F4D11]" />

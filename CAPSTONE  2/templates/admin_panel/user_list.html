@@ -37,7 +37,7 @@
       <!-- Photo top area — same size as the patient "Featured Doctors" card -->
       <div class="relative h-40 md:h-44 flex items-center justify-center overflow-hidden {% if user.role == 'doctor' %}bg-brand-100{% else %}bg-purple-100{% endif %}">
         {% if user.profile_picture %}
-        <img src="{{ user.profile_picture.url }}" alt="" class="h-full w-full object-cover">
+        <img src="{{ user.profile_picture.url }}" alt="" class="h-full w-full object-contain">
         {% elif user.role == 'doctor' %}
         <svg class="w-12 h-12 text-brand-500" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
           <path d="M4.8 2.3A.3.3 0 1 0 5 2H4a2 2 0 0 0-2 2v5a6 6 0 0 0 6 6a6 6 0 0 0 6-6V4a2 2 0 0 0-2-2h-1a.2.2 0 1 0 .3.3"/>

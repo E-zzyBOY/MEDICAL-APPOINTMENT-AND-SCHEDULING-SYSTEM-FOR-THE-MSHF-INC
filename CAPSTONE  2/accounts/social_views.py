@@ -184,4 +184,11 @@ def _log_in(request, user, redirect_target=None):
     login(request, user, backend=AUTH_BACKEND)
     if redirect_target:
         return redirect(redirect_target)
+    if user.role == 'patient' and not user.has_usable_password():
+        # A returning/linking Google sign-in (Case A/B above) for a patient
+        # who never finished the set-credentials step — e.g. they closed
+        # the tab mid-onboarding. Send them back to finish it instead of
+        # straight to the dashboard, otherwise they can be stuck without
+        # working credentials indefinitely.
+        return redirect('accounts:set_credentials')
     return _role_redirect(user)

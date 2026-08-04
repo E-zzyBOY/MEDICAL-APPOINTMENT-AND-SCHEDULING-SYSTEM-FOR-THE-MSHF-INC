@@ -1,6 +1,7 @@
 from datetime import date
 from django import forms
 from django.contrib.auth.forms import UserCreationForm
+from django.contrib.auth import password_validation
 import re
 from .models import CustomUser, PatientProfile, DoctorProfile, SecretaryProfile, SPECIALIZATION_CHOICES
 from .validators import validate_ph_mobile_number, normalize_ph_mobile_number
@@ -177,6 +178,10 @@ class PatientProfileEditForm(forms.ModelForm):
         widgets = {
             'date_of_birth': forms.DateInput(attrs={'type': 'date'}),
             'address': forms.Textarea(attrs={'rows': 3}),
+            'contact_number': forms.TextInput(attrs={
+                'type': 'tel', 'inputmode': 'numeric', 'pattern': '[0-9]{11}',
+                'placeholder': '09XXXXXXXXX', 'autocomplete': 'off',
+            }),
         }
 
 
@@ -212,6 +217,13 @@ class PatientProfileEditForm(forms.ModelForm):
         if age < 16:
             raise forms.ValidationError('You must be at least 16 years old to have an account.')
         return dob
+
+    def clean_contact_number(self):
+        value = self.cleaned_data.get('contact_number', '').strip()
+        if not value:
+            return value
+        validate_ph_mobile_number(value)
+        return normalize_ph_mobile_number(value)
 
     def clean_emergency_contact_number(self):
         number = self.cleaned_data.get('emergency_contact_number', '').strip()
@@ -258,6 +270,75 @@ class PatientOnboardingForm(PatientProfileEditForm):
         self.fields['address'].required = True
 
 
+class SetCredentialsForm(forms.ModelForm):
+    """Mandatory stop for Google sign-ups between email verification and
+    Complete Your Profile. social_views.py's Case C leaves a brand-new
+    account with user.set_unusable_password() and an auto-generated
+    'google-first-last' username — with no password ever set, there is no
+    username/password combo that works on a device where the user isn't
+    already signed into that Google account. This form lets them pick a
+    memorable username (pre-filled with the auto-generated one) and set a
+    real password."""
+    new_password1 = forms.CharField(
+        label='New password', strip=False,
+        widget=forms.PasswordInput(attrs={'autocomplete': 'new-password'}),
+    )
+    new_password2 = forms.CharField(
+        label='Confirm new password', strip=False,
+        widget=forms.PasswordInput(attrs={'autocomplete': 'new-password'}),
+    )
+
+    class Meta:
+        model  = CustomUser
+        fields = ['username']
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['username'].widget.attrs['autocomplete'] = 'off'
+
+    def clean_username(self):
+        # ModelForm's own validate_unique() already catches an exact
+        # duplicate; this also catches a case-only collision ('Juan' vs
+        # 'juan'), which validate_unique's exact-match query would miss on
+        # a case-sensitive collation.
+        username = self.cleaned_data['username'].strip()
+        if CustomUser.objects.filter(username__iexact=username).exclude(pk=self.instance.pk).exists():
+            raise forms.ValidationError('That username is already taken.')
+        return username
+
+    def clean(self):
+        cleaned = super().clean()
+        password1 = cleaned.get('new_password1')
+        password2 = cleaned.get('new_password2')
+        if password1 and password2 and password1 != password2:
+            self.add_error('new_password2', "The two password fields didn't match.")
+        elif password2:
+            # self.instance still carries the OLD auto-generated username at
+            # this point — ModelForm only copies cleaned_data onto the
+            # instance later, in _post_clean(). Validate against a
+            # throwaway user carrying the NEW username instead, so
+            # UserAttributeSimilarityValidator actually checks the password
+            # against the username the user is about to have.
+            probe = CustomUser(
+                username=cleaned.get('username') or self.instance.username,
+                email=self.instance.email,
+                first_name=self.instance.first_name,
+                last_name=self.instance.last_name,
+            )
+            try:
+                password_validation.validate_password(password2, probe)
+            except forms.ValidationError as exc:
+                self.add_error('new_password2', exc)
+        return cleaned
+
+    def save(self, commit=True):
+        user = super().save(commit=False)
+        user.set_password(self.cleaned_data['new_password2'])
+        if commit:
+            user.save()
+        return user
+
+
 class DoctorProfileEditForm(forms.ModelForm):
     class Meta:
         model  = DoctorProfile
@@ -271,6 +352,19 @@ class SecretaryProfileEditForm(forms.ModelForm):
     class Meta:
         model  = SecretaryProfile
         fields = ['contact_number', 'employee_id']
+        widgets = {
+            'contact_number': forms.TextInput(attrs={
+                'type': 'tel', 'inputmode': 'numeric', 'pattern': '[0-9]{11}',
+                'placeholder': '09XXXXXXXXX', 'autocomplete': 'off',
+            }),
+        }
+
+    def clean_contact_number(self):
+        value = self.cleaned_data.get('contact_number', '').strip()
+        if not value:
+            return value
+        validate_ph_mobile_number(value)
+        return normalize_ph_mobile_number(value)
 
 
 class DoctorCreationForm(UserCreationForm):
@@ -319,7 +413,13 @@ class SecretaryCreationForm(UserCreationForm):
         required=True, label='Email (must be a Gmail address)',
         help_text='Used to send this secretary appointment notifications.',
     )
-    contact_number  = forms.CharField(max_length=20, required=False, label='Contact Number')
+    contact_number  = forms.CharField(
+        max_length=20, required=False, label='Contact Number',
+        widget=forms.TextInput(attrs={
+            'type': 'tel', 'inputmode': 'numeric', 'pattern': '[0-9]{11}',
+            'placeholder': '09XXXXXXXXX', 'autocomplete': 'off',
+        }),
+    )
     employee_id     = forms.CharField(max_length=30, required=False, label='Employee/Staff ID')
     assigned_doctor = forms.ModelChoiceField(
         queryset=CustomUser.objects.filter(role='doctor'),
@@ -347,6 +447,13 @@ class SecretaryCreationForm(UserCreationForm):
         if not email.lower().endswith('@gmail.com'):
             raise forms.ValidationError('Must be a Gmail address (used to send appointment notifications).')
         return email
+
+    def clean_contact_number(self):
+        value = self.cleaned_data.get('contact_number', '').strip()
+        if not value:
+            return value
+        validate_ph_mobile_number(value)
+        return normalize_ph_mobile_number(value)
 
     def clean_date_assigned(self):
         # Belt-and-suspenders: the widget's min/max only guard the picker

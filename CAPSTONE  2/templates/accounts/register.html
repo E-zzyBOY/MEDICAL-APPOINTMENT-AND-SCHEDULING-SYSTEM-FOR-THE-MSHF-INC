@@ -158,7 +158,7 @@
   .auth-shell[data-active="register"] .auth-photo-dots span:nth-child(2) { width: 26px; background: #fff; }
   .auth-shell[data-active="forgot"]   .auth-photo-dots span:nth-child(3) { width: 26px; background: #fff; }
 
-  .auth-brand { color: #1F4D11; font-weight: 700; font-size: 1.25rem; letter-spacing: 0.2px; }
+  .auth-brand { color: #1F4D11; font-weight: 700; font-size: 0.9375rem; line-height: 1.3; letter-spacing: 0.1px; }
   .auth-footer { color: #94A3B8; font-size: 11px; }
 
   .google-btn {
@@ -208,9 +208,9 @@
 
       <!-- ============ Left: form column ============ -->
       <div class="auth-left">
-        <div class="flex items-center gap-2.5">
-          <img src="{% static 'img/mshfi-logo.jpg' %}" alt="MSHFI seal" class="w-9 h-9 rounded-full object-cover shrink-0" />
-          <span class="auth-brand">MSHFI</span>
+        <div class="flex items-start gap-2.5">
+          <img src="{% static 'img/mshfi-logo.jpg' %}" alt="Mindalano Specialist Hospital Foundation Inc. seal" class="w-9 h-9 rounded-full object-cover shrink-0" />
+          <span class="auth-brand">Mindalano Specialist<br>Hospital Foundation Inc.</span>
         </div>
 
         <div class="auth-forms">
@@ -438,7 +438,7 @@
           </div>
         </div>
 
-        <p class="auth-footer">&copy; {% now "Y" %} MSHFI. All Rights Reserved</p>
+        <p class="auth-footer">&copy; {% now "Y" %} Mindalano Specialist Hospital Foundation Inc. All Rights Reserved</p>
       </div>
 
       <!-- ============ Right: photo panel ============ -->

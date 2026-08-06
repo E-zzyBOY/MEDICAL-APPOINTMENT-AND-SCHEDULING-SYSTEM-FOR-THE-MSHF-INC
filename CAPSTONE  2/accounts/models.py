@@ -170,6 +170,70 @@ class SecretaryProfile(models.Model):
         return f"Secretary: {self.user.get_full_name()}"
 
 
+class SecretaryCoverage(models.Model):
+    """A secretary temporarily covering an EXTRA doctor (on top of her
+    primary SecretaryProfile.assigned_doctor) — the on-leave scenario:
+    when a colleague is absent, another secretary is assigned here so
+    that doctor's appointments never go unmanaged. Created by an admin
+    or by a secretary handing over her own doctor; removed manually when
+    the absent secretary returns (no auto-expiry by design)."""
+    secretary  = models.ForeignKey(
+        CustomUser, on_delete=models.CASCADE,
+        related_name='coverage_assignments',
+        limit_choices_to={'role': 'secretary'},
+    )
+    doctor     = models.ForeignKey(
+        CustomUser, on_delete=models.CASCADE,
+        related_name='covering_secretaries',
+        limit_choices_to={'role': 'doctor'},
+    )
+    created_by = models.ForeignKey(
+        CustomUser, null=True, blank=True, on_delete=models.SET_NULL,
+        related_name='+',
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('secretary', 'doctor')
+
+    def __str__(self):
+        return f"{self.secretary.get_full_name()} covering Dr. {self.doctor.get_full_name()}"
+
+
+# Session key holding the secretary's currently selected doctor id (the
+# top-bar switcher). Lives here so views and the context processor share it.
+SECRETARY_ACTIVE_DOCTOR_SESSION_KEY = 'secretary_active_doctor_id'
+
+
+def doctors_for_secretary(user):
+    """Every doctor this secretary may manage: her primary assigned doctor
+    first, then any doctors she's covering (deduped, so covering her own
+    primary doctor never lists him twice)."""
+    doctors = []
+    profile = getattr(user, 'secretary_profile', None)
+    if profile and profile.assigned_doctor:
+        doctors.append(profile.assigned_doctor)
+    for coverage in user.coverage_assignments.select_related('doctor').all():
+        if coverage.doctor and coverage.doctor not in doctors:
+            doctors.append(coverage.doctor)
+    return doctors
+
+
+def staff_users_for_doctor(doctor):
+    """The doctor plus every secretary who currently manages them — primary
+    assignees AND covering secretaries. Single source of truth for the
+    notification/email fan-outs in notifications/email_utils.py,
+    doctor_views.py and patient_views.py."""
+    users = [doctor]
+    for secretary_profile in doctor.assigned_secretaries.select_related('user').all():
+        if secretary_profile.user and secretary_profile.user not in users:
+            users.append(secretary_profile.user)
+    for coverage in doctor.covering_secretaries.select_related('secretary').all():
+        if coverage.secretary and coverage.secretary not in users:
+            users.append(coverage.secretary)
+    return users
+
+
 class ActivityLog(models.Model):
     """Security audit trail: one row per auth event, written by the
     receivers in accounts/signals.py and by IdleTimeoutMiddleware."""

@@ -5,8 +5,8 @@ from django.http import JsonResponse, HttpResponse, HttpResponseNotAllowed
 from django.urls import reverse
 from datetime import date, timedelta
 from accounts.decorators import role_required
-from accounts.models import CustomUser, PatientProfile, DoctorProfile, SecretaryProfile
-from accounts.forms import DoctorCreationForm, SecretaryCreationForm, UserEditForm
+from accounts.models import CustomUser, PatientProfile, DoctorProfile, SecretaryProfile, SecretaryCoverage
+from accounts.forms import DoctorCreationForm, SecretaryCreationForm, UserEditForm, SecretaryAssignmentForm
 from appointments.models import Appointment, TIME_NULLS_FIRST
 from appointments.forms import AdminAppointmentEditForm
 from feedback.models import Feedback
@@ -190,9 +190,17 @@ def user_detail(request, pk):
     from accounts.views import _get_profile
     detail_user = get_object_or_404(CustomUser, pk=pk)
     profile = _get_profile(detail_user)
-    return render(request, 'admin_panel/_user_detail_modal.html', {
+    context = {
         'detail_user': detail_user, 'profile': profile, 'title': 'User Details',
-    })
+    }
+    if detail_user.role == 'secretary':
+        # Coverage management: extra doctors this secretary temporarily
+        # handles (on top of their primary assigned doctor).
+        context['coverages'] = SecretaryCoverage.objects.filter(
+            secretary=detail_user).select_related('doctor')
+        context['coverage_doctor_choices'] = CustomUser.objects.filter(
+            role='doctor', is_active=True).order_by('first_name', 'last_name')
+    return render(request, 'admin_panel/_user_detail_modal.html', context)
 
 
 @role_required('admin')
@@ -221,17 +229,34 @@ def user_create(request):
 def user_edit(request, pk):
     user = get_object_or_404(CustomUser, pk=pk)
     form = UserEditForm(request.POST or None, instance=user)
-    if request.method == 'POST' and form.is_valid():
+    # Secretaries additionally get their PRIMARY assigned doctor editable
+    # here — the create form only sets it once, and reassignment ("overwrite
+    # to other doctor") previously had no admin-panel path at all.
+    assignment_form = None
+    old_doctor_id = None
+    if user.role == 'secretary':
+        profile, _ = SecretaryProfile.objects.get_or_create(user=user)
+        old_doctor_id = profile.assigned_doctor_id
+        assignment_form = SecretaryAssignmentForm(request.POST or None, instance=profile)
+    context = {'form': form, 'assignment_form': assignment_form, 'edited_user': user}
+    if request.method == 'POST' and form.is_valid() and (assignment_form is None or assignment_form.is_valid()):
         form.save()
+        if assignment_form is not None:
+            updated_profile = assignment_form.save()
+            if updated_profile.assigned_doctor_id != old_doctor_id and updated_profile.assigned_doctor:
+                Notification.objects.create(
+                    user=user,
+                    message=f"You are now assigned to Dr. {updated_profile.assigned_doctor.get_full_name()}.",
+                )
         messages.success(request, 'User updated.')
         if request.htmx:
-            response = render(request, 'admin_panel/_user_edit_modal.html', {'form': form, 'edited_user': user})
+            response = render(request, 'admin_panel/_user_edit_modal.html', context)
             response['HX-Redirect'] = '/admin-panel/users/'
             return response
         return redirect('admin_panel:user_list')
     if request.htmx:
-        return render(request, 'admin_panel/_user_edit_modal.html', {'form': form, 'edited_user': user})
-    return render(request, 'admin_panel/user_edit.html', {'form': form, 'edited_user': user})
+        return render(request, 'admin_panel/_user_edit_modal.html', context)
+    return render(request, 'admin_panel/user_edit.html', context)
 
 
 @role_required('admin')
@@ -248,6 +273,64 @@ def user_toggle_active(request, pk):
             return response
         return redirect('admin_panel:user_list')
     return HttpResponseNotAllowed(['POST'])
+
+
+def _users_redirect(request):
+    """Shared post-action redirect for the user-management modals."""
+    if request.htmx:
+        response = HttpResponse('')
+        response['HX-Redirect'] = '/admin-panel/users/'
+        return response
+    return redirect('admin_panel:user_list')
+
+
+@role_required('admin')
+def coverage_add(request, user_id):
+    """Admin assigns a secretary to COVER an extra doctor (the on-leave
+    scenario) — on top of, not instead of, their primary assigned doctor."""
+    if request.method != 'POST':
+        return HttpResponseNotAllowed(['POST'])
+    secretary = get_object_or_404(CustomUser, pk=user_id, role='secretary')
+    doctor = CustomUser.objects.filter(role='doctor', is_active=True,
+                                       pk=request.POST.get('doctor_id')).first()
+    profile = getattr(secretary, 'secretary_profile', None)
+    if not doctor:
+        messages.error(request, 'Select a doctor for this secretary to cover.')
+    elif profile and profile.assigned_doctor_id == doctor.pk:
+        messages.info(request, f'{secretary.get_full_name()} is already primarily assigned to Dr. {doctor.get_full_name()}.')
+    else:
+        coverage, created = SecretaryCoverage.objects.get_or_create(
+            secretary=secretary, doctor=doctor,
+            defaults={'created_by': request.user},
+        )
+        if created:
+            Notification.objects.create(user=secretary, message=(
+                f"You are now covering Dr. {doctor.get_full_name()}'s appointments "
+                f"(assigned by admin). Use the doctor switcher in your top bar to manage them."
+            ))
+            Notification.objects.create(user=doctor, message=(
+                f"{secretary.get_full_name()} will also manage your appointments (coverage assigned by admin)."
+            ))
+            messages.success(request, f'{secretary.get_full_name()} now covers Dr. {doctor.get_full_name()}.')
+        else:
+            messages.info(request, f'{secretary.get_full_name()} already covers Dr. {doctor.get_full_name()}.')
+    return _users_redirect(request)
+
+
+@role_required('admin')
+def coverage_remove(request, pk):
+    """Admin ends a coverage (e.g. the absent secretary is back)."""
+    if request.method != 'POST':
+        return HttpResponseNotAllowed(['POST'])
+    coverage = get_object_or_404(SecretaryCoverage, pk=pk)
+    secretary, doctor = coverage.secretary, coverage.doctor
+    coverage.delete()
+    Notification.objects.create(
+        user=secretary,
+        message=f"You are no longer covering Dr. {doctor.get_full_name()}'s appointments.",
+    )
+    messages.success(request, f'{secretary.get_full_name()} no longer covers Dr. {doctor.get_full_name()}.')
+    return _users_redirect(request)
 
 
 @role_required('admin')

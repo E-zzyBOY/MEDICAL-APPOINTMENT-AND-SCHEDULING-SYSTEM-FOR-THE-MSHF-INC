@@ -5,7 +5,11 @@ from datetime import date, datetime, timedelta
 from appointments.models import Appointment, Schedule
 from records.models import VitalSign, MedicalRecords, ResultsConsultation, Prescription
 from records.views import partition_vitals
-from accounts.models import PatientProfile, SecretaryProfile
+from accounts.models import (
+    PatientProfile, SecretaryProfile, SecretaryCoverage,
+    doctors_for_secretary, staff_users_for_doctor,
+    SECRETARY_ACTIVE_DOCTOR_SESSION_KEY,
+)
 from notifications.models import Notification
 
 User = get_user_model()
@@ -749,3 +753,133 @@ class SecretaryScheduleManagementTestCase(TestCase):
         })
         self.assertEqual(resp.status_code, 200)
         self.assertEqual(Schedule.objects.count(), before)
+
+
+class SecretaryCoverageTestCase(TestCase):
+    """One secretary can cover another doctor while a colleague is on
+    leave: coverage rows grant access, the top-bar switcher picks which
+    doctor the secretary pages operate on, and notification fan-outs
+    include covering secretaries."""
+
+    def setUp(self):
+        self.doctor_a = User.objects.create_user(
+            username='covdoctora', email='covdoctora@test.com',
+            password='testpass123', role='doctor', first_name='Alice', last_name='Cruz')
+        self.doctor_b = User.objects.create_user(
+            username='covdoctorb', email='covdoctorb@test.com',
+            password='testpass123', role='doctor', first_name='Ben', last_name='Reyes')
+        self.sec_a = User.objects.create_user(
+            username='covseca', email='covseca@test.com',
+            password='testpass123', role='secretary', first_name='Ana', last_name='Santos')
+        self.sec_b = User.objects.create_user(
+            username='covsecb', email='covsecb@test.com',
+            password='testpass123', role='secretary', first_name='Bea', last_name='Lopez')
+        SecretaryProfile.objects.create(user=self.sec_a, assigned_doctor=self.doctor_a)
+        SecretaryProfile.objects.create(user=self.sec_b, assigned_doctor=self.doctor_b)
+
+        self.patient_a = User.objects.create_user(
+            username='covpatienta', email='covpatienta@test.com',
+            password='testpass123', role='patient', first_name='Pia', last_name='Aquino')
+        self.appt_a = Appointment.objects.create(
+            patient=self.patient_a, doctor=self.doctor_a,
+            appointment_date=date.today() + timedelta(days=1),
+            status='Pending Assignment', reason='Check-up')
+
+    def _cover(self):
+        return SecretaryCoverage.objects.create(
+            secretary=self.sec_b, doctor=self.doctor_a, created_by=self.sec_a)
+
+    def test_covering_secretary_sees_covered_doctor_after_switch(self):
+        self._cover()
+        self.client.login(username='covsecb', password='testpass123')
+        # Default: her own primary doctor — doctor A's appointment invisible.
+        resp = self.client.get(reverse('secretary:appointment_list'))
+        self.assertNotContains(resp, 'Pia Aquino')
+        # Switch to the covered doctor.
+        resp = self.client.post(reverse('secretary:switch_doctor'), {
+            'doctor_id': self.doctor_a.pk,
+            'next': reverse('secretary:appointment_list'),
+        })
+        self.assertEqual(resp.status_code, 302)
+        resp = self.client.get(reverse('secretary:appointment_list'))
+        self.assertContains(resp, 'Pia Aquino')
+
+    def test_switch_rejects_doctor_outside_allowed_set(self):
+        # No coverage: doctor A is not in secretary B's set.
+        self.client.login(username='covsecb', password='testpass123')
+        self.client.post(reverse('secretary:switch_doctor'), {'doctor_id': self.doctor_a.pk})
+        self.assertNotIn(SECRETARY_ACTIVE_DOCTOR_SESSION_KEY, self.client.session)
+        resp = self.client.get(reverse('secretary:appointment_list'))
+        self.assertNotContains(resp, 'Pia Aquino')
+
+    def test_removing_coverage_revokes_access_immediately(self):
+        coverage = self._cover()
+        self.client.login(username='covsecb', password='testpass123')
+        self.client.post(reverse('secretary:switch_doctor'), {'doctor_id': self.doctor_a.pk})
+        coverage.delete()
+        # Stale session id is re-validated on every request → falls back
+        # to her primary doctor.
+        resp = self.client.get(reverse('secretary:appointment_list'))
+        self.assertNotContains(resp, 'Pia Aquino')
+
+    def test_secretary_handover_creates_coverage_for_own_doctor_only(self):
+        self.client.login(username='covseca', password='testpass123')
+        resp = self.client.post(reverse('secretary:coverage_add'), {
+            'secretary_id': self.sec_b.pk,
+        })
+        self.assertEqual(resp.status_code, 302)
+        # Handover always targets HER primary doctor (doctor A).
+        self.assertTrue(SecretaryCoverage.objects.filter(
+            secretary=self.sec_b, doctor=self.doctor_a).exists())
+        self.assertTrue(Notification.objects.filter(
+            user=self.sec_b, message__icontains='covering').exists())
+
+    def test_coverage_remove_requires_involvement(self):
+        coverage = self._cover()
+        outsider = User.objects.create_user(
+            username='covsecc', email='covsecc@test.com',
+            password='testpass123', role='secretary')
+        SecretaryProfile.objects.create(user=outsider, assigned_doctor=self.doctor_b)
+        self.client.login(username='covsecc', password='testpass123')
+        self.client.post(reverse('secretary:coverage_remove', kwargs={'pk': coverage.pk}))
+        self.assertTrue(SecretaryCoverage.objects.filter(pk=coverage.pk).exists())
+        # The handing-over secretary (her doctor is the covered one) CAN end it.
+        self.client.login(username='covseca', password='testpass123')
+        self.client.post(reverse('secretary:coverage_remove', kwargs={'pk': coverage.pk}))
+        self.assertFalse(SecretaryCoverage.objects.filter(pk=coverage.pk).exists())
+
+    def test_staff_fanout_includes_covering_secretary(self):
+        self._cover()
+        users = staff_users_for_doctor(self.doctor_a)
+        self.assertIn(self.doctor_a, users)
+        self.assertIn(self.sec_a, users)   # primary
+        self.assertIn(self.sec_b, users)   # covering
+        self.assertEqual(doctors_for_secretary(self.sec_b), [self.doctor_b, self.doctor_a])
+
+    def test_admin_can_add_and_remove_coverage(self):
+        admin = User.objects.create_user(
+            username='covadmin', email='covadmin@test.com',
+            password='testpass123', role='admin')
+        self.client.login(username='covadmin', password='testpass123')
+        resp = self.client.post(
+            reverse('admin_panel:coverage_add', kwargs={'user_id': self.sec_b.pk}),
+            {'doctor_id': self.doctor_a.pk})
+        self.assertEqual(resp.status_code, 302)
+        coverage = SecretaryCoverage.objects.get(secretary=self.sec_b, doctor=self.doctor_a)
+        self.client.post(reverse('admin_panel:coverage_remove', kwargs={'pk': coverage.pk}))
+        self.assertFalse(SecretaryCoverage.objects.filter(pk=coverage.pk).exists())
+
+    def test_admin_can_reassign_primary_doctor(self):
+        admin = User.objects.create_user(
+            username='covadmin2', email='covadmin2@test.com',
+            password='testpass123', role='admin')
+        self.client.login(username='covadmin2', password='testpass123')
+        resp = self.client.post(
+            reverse('admin_panel:user_edit', kwargs={'pk': self.sec_b.pk}), {
+                'first_name': 'Bea', 'last_name': 'Lopez',
+                'email': 'covsecb@test.com', 'is_active': 'on',
+                'assigned_doctor': self.doctor_a.pk,
+            })
+        self.assertEqual(resp.status_code, 302)
+        self.sec_b.secretary_profile.refresh_from_db()
+        self.assertEqual(self.sec_b.secretary_profile.assigned_doctor, self.doctor_a)

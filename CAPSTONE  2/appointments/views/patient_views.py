@@ -25,12 +25,12 @@ def _notify(user, message):
 
 def _notify_assigned_secretaries_and_doctor(doctor, message):
     """A new pending-time appointment needs action from whoever gets to it
-    first — the doctor or any secretary assigned to them — so both get
-    notified rather than just one."""
-    _notify(doctor, message)
-    for secretary_profile in doctor.assigned_secretaries.select_related('user').all():
-        if secretary_profile.user:
-            _notify(secretary_profile.user, message)
+    first — the doctor or any secretary who currently manages them
+    (primary assignees AND covering secretaries) — so all get notified
+    rather than just one."""
+    from accounts.models import staff_users_for_doctor
+    for staff_user in staff_users_for_doctor(doctor):
+        _notify(staff_user, message)
 
 
 def _compute_month_availability(doctor, year, month):

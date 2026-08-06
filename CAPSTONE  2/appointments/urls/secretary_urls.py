@@ -29,4 +29,7 @@ urlpatterns = [
     path('patients/<int:patient_id>/quickview/',     v.patient_quickview,         name='patient_quickview'),
     path('patients/<int:patient_id>/records/',       v.secretary_patient_records, name='patient_records'),
     path('notifications/',                           v.secretary_notifications,   name='notifications'),
+    path('switch-doctor/',                           v.switch_doctor,             name='switch_doctor'),
+    path('coverage/add/',                            v.coverage_add,              name='coverage_add'),
+    path('coverage/<int:pk>/remove/',                v.coverage_remove,           name='coverage_remove'),
 ]

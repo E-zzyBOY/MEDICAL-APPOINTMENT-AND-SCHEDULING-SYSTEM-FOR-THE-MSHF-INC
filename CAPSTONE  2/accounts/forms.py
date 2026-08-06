@@ -482,6 +482,16 @@ class UserEditForm(forms.ModelForm):
         fields = ['first_name', 'last_name', 'email', 'is_active']
 
 
+class SecretaryAssignmentForm(forms.ModelForm):
+    """Admin-side: change a secretary's PRIMARY assigned doctor after
+    creation. SecretaryCreationForm only sets it once at create time;
+    this is the reassignment path shown inside the admin Edit User modal.
+    (Temporary extra doctors are handled by SecretaryCoverage instead.)"""
+    class Meta:
+        model  = SecretaryProfile
+        fields = ['assigned_doctor']
+
+
 class EmailNotificationSettingsForm(forms.ModelForm):
     class Meta:
         model  = CustomUser

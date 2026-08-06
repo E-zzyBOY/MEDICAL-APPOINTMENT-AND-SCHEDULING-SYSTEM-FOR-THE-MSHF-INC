@@ -225,14 +225,13 @@ def send_reminder_email(appointment):
 
 
 def _staff_recipients(doctor):
-    """The doctor plus every secretary assigned to them — mirrors
-    _notify_assigned_secretaries_and_doctor() in appointments/views/patient_views.py,
-    which fans the equivalent in-app Notification out to the same set."""
-    recipients = [doctor]
-    for secretary_profile in doctor.assigned_secretaries.select_related('user').all():
-        if secretary_profile.user:
-            recipients.append(secretary_profile.user)
-    return recipients
+    """The doctor plus every secretary who currently manages them —
+    primary assignees AND covering secretaries (see
+    accounts.models.staff_users_for_doctor). Mirrors the in-app
+    Notification fan-outs in doctor_views.py / patient_views.py, which use
+    the same helper."""
+    from accounts.models import staff_users_for_doctor
+    return staff_users_for_doctor(doctor)
 
 
 def _send_staff_email(appointment, subject, template, ctx=None):

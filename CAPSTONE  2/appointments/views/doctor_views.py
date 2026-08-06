@@ -41,12 +41,13 @@ def _parse_int(value, default=None):
 
 
 def _notify_assigned_secretaries(doctor, message):
-    """Notifies every secretary assigned to this doctor — a doctor can in
-    principle have more than one, so this fans out to all of them rather
-    than assuming a single secretary."""
-    for secretary_profile in doctor.assigned_secretaries.select_related('user').all():
-        if secretary_profile.user:
-            _notify(secretary_profile.user, message)
+    """Notifies every secretary who currently manages this doctor —
+    primary assignees AND covering secretaries (the on-leave scenario;
+    see accounts.models.SecretaryCoverage)."""
+    from accounts.models import staff_users_for_doctor
+    for staff_user in staff_users_for_doctor(doctor):
+        if staff_user != doctor:
+            _notify(staff_user, message)
 
 
 def _format_date_str(selected_date_str):

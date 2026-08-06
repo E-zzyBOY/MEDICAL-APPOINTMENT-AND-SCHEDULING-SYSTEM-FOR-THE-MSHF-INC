@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
-from .models import CustomUser, PatientProfile, DoctorProfile, SecretaryProfile, ActivityLog
+from .models import CustomUser, PatientProfile, DoctorProfile, SecretaryProfile, SecretaryCoverage, ActivityLog
 
 
 @admin.register(CustomUser)
@@ -28,6 +28,11 @@ class DoctorProfileAdmin(admin.ModelAdmin):
 @admin.register(SecretaryProfile)
 class SecretaryProfileAdmin(admin.ModelAdmin):
     list_display = ['user', 'assigned_doctor', 'date_assigned']
+
+
+@admin.register(SecretaryCoverage)
+class SecretaryCoverageAdmin(admin.ModelAdmin):
+    list_display = ['secretary', 'doctor', 'created_by', 'created_at']
 
 
 @admin.register(ActivityLog)

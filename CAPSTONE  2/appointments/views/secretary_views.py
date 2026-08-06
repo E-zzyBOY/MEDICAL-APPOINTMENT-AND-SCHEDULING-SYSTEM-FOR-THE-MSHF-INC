@@ -1,6 +1,7 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.template.loader import render_to_string
 from django.urls import reverse
+from django.utils.http import url_has_allowed_host_and_scheme
 from django.contrib import messages
 from django.http import JsonResponse, HttpResponse, HttpResponseNotAllowed
 from django.db import transaction
@@ -9,7 +10,10 @@ from django.db.models import Q, Count, Case, When, Value, IntegerField, F, DateF
 from accounts.decorators import role_required
 from appointments.models import Appointment, Schedule, TIME_NULLS_FIRST
 from appointments.forms import AssignTimeForm, ScheduleForm
-from accounts.models import CustomUser, PatientProfile
+from accounts.models import (
+    CustomUser, PatientProfile, SecretaryCoverage, doctors_for_secretary,
+    SECRETARY_ACTIVE_DOCTOR_SESSION_KEY,
+)
 from notifications.email_utils import (
     send_cancellation_email, send_time_assigned_email, send_booking_confirmation_email,
     send_reminder_email
@@ -21,13 +25,35 @@ def _notify(user, message):
     Notification.objects.create(user=user, message=message)
 
 
+ACTIVE_DOCTOR_SESSION_KEY = SECRETARY_ACTIVE_DOCTOR_SESSION_KEY
+
+
 def _assigned_doctor(user):
+    """The secretary's PRIMARY doctor (SecretaryProfile.assigned_doctor).
+    Coverage management uses this; day-to-day views use _active_doctor."""
     profile = getattr(user, 'secretary_profile', None)
     return profile.assigned_doctor if profile else None
 
 
+def _active_doctor(request):
+    """The doctor this secretary is currently working as: her primary
+    assigned doctor, unless she used the top-bar switcher to select one of
+    the doctors she's covering (see accounts.models.SecretaryCoverage).
+    The session selection is re-validated against her allowed set on every
+    request, so removing a coverage instantly revokes the access."""
+    doctors = doctors_for_secretary(request.user)
+    if not doctors:
+        return None
+    selected_id = request.session.get(ACTIVE_DOCTOR_SESSION_KEY)
+    if selected_id:
+        for d in doctors:
+            if d.pk == selected_id:
+                return d
+    return doctors[0]
+
+
 def _build_secretary_dashboard_data(request):
-    doctor = _assigned_doctor(request.user)
+    doctor = _active_doctor(request)
     today_appts = Appointment.objects.filter(
         doctor=doctor,
         appointment_date=date.today(),
@@ -94,7 +120,7 @@ def secretary_dashboard_data(request):
 
 @role_required('secretary')
 def secretary_appointment_list(request):
-    doctor = _assigned_doctor(request.user)
+    doctor = _active_doctor(request)
     status_filter = request.GET.get('status', 'Pending Assignment')
     date_filter   = request.GET.get('date', '')
     qs = Appointment.objects.filter(doctor=doctor).select_related('patient', 'doctor', 'patient_details') if doctor else Appointment.objects.none()
@@ -149,7 +175,7 @@ def secretary_appointment_list(request):
 
 @role_required('secretary')
 def appointment_detail(request, pk):
-    doctor = _assigned_doctor(request.user)
+    doctor = _active_doctor(request)
     appt = get_object_or_404(Appointment.objects.select_related('patient', 'doctor', 'patient_details'), pk=pk, doctor=doctor)
     return render(request, 'secretary/_appointment_detail_modal.html', {
         'appt': appt, 'title': 'Appointment Details', 'today': date.today(),
@@ -161,7 +187,7 @@ def resend_reminder(request, pk):
     """Lets the secretary manually re-send the day-before reminder email to
     the patient on demand, instead of only ever firing automatically from
     the send_appointment_reminders cron job."""
-    doctor = _assigned_doctor(request.user)
+    doctor = _active_doctor(request)
     appt = get_object_or_404(Appointment, pk=pk, doctor=doctor)
     if request.method == 'POST':
         if not appt.can_resend_reminder:
@@ -205,7 +231,7 @@ def assign_appointment_time(request, pk):
     falls within the doctor's working hours that day and doesn't conflict
     with another appointment, the same two things doctor_views' version of
     this action checks — both staff roles can do this."""
-    doctor = _assigned_doctor(request.user)
+    doctor = _active_doctor(request)
     appt = get_object_or_404(
         Appointment, pk=pk, doctor=doctor, status__in=['Pending Assignment', 'Scheduled', 'Rescheduled']
     )
@@ -298,7 +324,7 @@ def appointment_reschedule(request, pk):
     """Secretary reschedules a Scheduled appointment to a new date.
     This proactively changes the appointment date/time without requiring
     patient approval, different from patient-initiated reschedule requests."""
-    doctor = _assigned_doctor(request.user)
+    doctor = _active_doctor(request)
     appt = get_object_or_404(
         Appointment, pk=pk, status__in=['Scheduled', 'Rescheduled'], doctor=doctor
     )
@@ -381,7 +407,7 @@ def appointment_confirm(request, pk):
     This action is only available for 'Scheduled' appointments and moves
     the status to 'Confirmed', signalling that the patient is present,
     vital signs assessment can begin, and the doctor consultation can proceed."""
-    doctor = _assigned_doctor(request.user)
+    doctor = _active_doctor(request)
     appt = get_object_or_404(Appointment, pk=pk, status='Scheduled', doctor=doctor)
     if request.method == 'POST':
         appt.status = 'Confirmed'
@@ -409,7 +435,7 @@ def appointment_confirm(request, pk):
 
 @role_required('secretary')
 def appointment_cancel(request, pk):
-    doctor = _assigned_doctor(request.user)
+    doctor = _active_doctor(request)
     appt = get_object_or_404(
         Appointment, pk=pk, status__in=['Pending Assignment', 'Scheduled'], doctor=doctor
     )
@@ -452,7 +478,7 @@ def appointment_cancel(request, pk):
 def appointment_complete(request, pk):
     """Secretary marks a Confirmed appointment as Completed after the
     consultation has finished. Only valid from 'Confirmed' status."""
-    doctor = _assigned_doctor(request.user)
+    doctor = _active_doctor(request)
     appt = get_object_or_404(Appointment, pk=pk, status='Confirmed', doctor=doctor)
     if request.method == 'POST':
         appt.status = 'Completed'
@@ -482,7 +508,7 @@ def appointment_reschedule_approve(request, pk):
     becomes the appointment's date and status moves to
     'Pending Assignment' for someone to assign a time next."""
 
-    doctor = _assigned_doctor(request.user)
+    doctor = _active_doctor(request)
     appt = get_object_or_404(Appointment, pk=pk, status='Pending Reschedule', doctor=doctor)
     if request.method == 'POST':
         appt.appointment_date = appt.requested_date
@@ -521,7 +547,7 @@ def appointment_reschedule_approve(request, pk):
 def appointment_reschedule_reject(request, pk):
     """Secretary rejects a patient's pending reschedule request: the
     appointment reverts to its original date/time/status, unchanged."""
-    doctor = _assigned_doctor(request.user)
+    doctor = _active_doctor(request)
     appt = get_object_or_404(Appointment, pk=pk, status='Pending Reschedule', doctor=doctor)
     if request.method == 'POST':
         reason = request.POST.get('reason', '')
@@ -568,7 +594,7 @@ def vitals_add(request, patient_id):
     appointment_param = request.GET.get('appointment')
     if appointment_param:
         appt = Appointment.objects.filter(
-            pk=appointment_param, patient=patient, doctor=_assigned_doctor(request.user)
+            pk=appointment_param, patient=patient, doctor=_active_doctor(request)
         ).first()
         if appt:
             initial['appointment'] = appt
@@ -576,7 +602,7 @@ def vitals_add(request, patient_id):
 
     form = VitalSignForm(request.POST or None, initial=initial)
     form.fields['appointment'].queryset = Appointment.objects.filter(
-        patient=patient, doctor=_assigned_doctor(request.user)
+        patient=patient, doctor=_active_doctor(request)
     ).order_by('-appointment_date')
     if request.method == 'POST' and form.is_valid():
         vital = form.save(commit=False)
@@ -617,13 +643,28 @@ def _schedule_calendar_context(doctor, year=None, month=None):
 
 @role_required('secretary')
 def view_all_schedules(request):
-    doctor = _assigned_doctor(request.user)
+    doctor = _active_doctor(request)
     schedules = Schedule.objects.filter(doctor=doctor).order_by('specific_date', 'start_time') if doctor else Schedule.objects.none()
     context = {'schedules': schedules, 'doctor': doctor}
     context.update(_schedule_calendar_context(doctor))
     # Seed the Selected Day panel with today so the page opens with
     # today's slots (and the add-slot controls) already visible.
     context.update(_day_panel_context(doctor, date.today()))
+    # Coverage section on the profile card: colleagues she can hand her
+    # doctor to, plus every active coverage that involves her (she covers
+    # someone, or someone covers HER doctor).
+    my_doctor = _assigned_doctor(request.user)
+    involvement = Q(secretary=request.user)
+    if my_doctor:
+        involvement |= Q(doctor=my_doctor)
+    context.update({
+        'primary_doctor': my_doctor,
+        'colleagues': CustomUser.objects.filter(role='secretary', is_active=True)
+                                        .exclude(pk=request.user.pk)
+                                        .order_by('first_name', 'last_name'),
+        'coverages': SecretaryCoverage.objects.filter(involvement)
+                                              .select_related('secretary', 'doctor'),
+    })
     return render(request, 'secretary/schedules.html', context)
 
 
@@ -651,7 +692,7 @@ def schedule_grid_partial(request):
     """htmx endpoint: re-render the availability calendar. Month view
     navigates with ?year=&month= (Prev/Next a month at a time); week and
     day views (?view=week|day) anchor on ?date= instead."""
-    doctor = _assigned_doctor(request.user)
+    doctor = _active_doctor(request)
     from appointments.views.doctor_views import _resolve_grid_view
     view = _resolve_grid_view(request.GET.get('view'))
     if view != 'month':
@@ -725,7 +766,7 @@ def schedule_day_panel(request):
     day's slots with add/edit/remove controls. ?view= records which
     calendar view the click came from (month/week/day)."""
     from appointments.views.doctor_views import _resolve_grid_view
-    doctor = _assigned_doctor(request.user)
+    doctor = _active_doctor(request)
     the_date = _panel_date(request.GET.get('date'))
     grid_view = _resolve_grid_view(request.GET.get('view'))
     return _render_day_panel(request, doctor, the_date, grid_view=grid_view)
@@ -740,7 +781,7 @@ def schedule_slot_add(request):
     if request.method != 'POST':
         return HttpResponseNotAllowed(['POST'])
     from appointments.views.doctor_views import _resolve_grid_view
-    doctor = _assigned_doctor(request.user)
+    doctor = _active_doctor(request)
     the_date = _panel_date(request.POST.get('specific_date'))
     grid_view = _resolve_grid_view(request.POST.get('grid_view'))
     if not doctor:
@@ -777,7 +818,7 @@ def schedule_slot_edit(request, pk):
     slots. The date stays fixed (hidden field) — the panel is always
     scoped to one selected day."""
     from appointments.views.doctor_views import _resolve_grid_view
-    doctor = _assigned_doctor(request.user)
+    doctor = _active_doctor(request)
     slot = get_object_or_404(Schedule, pk=pk, doctor=doctor)
     if request.method == 'POST':
         grid_view = _resolve_grid_view(request.POST.get('grid_view'))
@@ -819,7 +860,7 @@ def schedule_slot_delete(request, pk):
     """Secretary removes one of the assigned doctor's schedule slots
     (confirmation happens client-side via hx-confirm)."""
     from appointments.views.doctor_views import _resolve_grid_view
-    doctor = _assigned_doctor(request.user)
+    doctor = _active_doctor(request)
     slot = get_object_or_404(Schedule, pk=pk, doctor=doctor)
     if request.method != 'POST':
         return HttpResponseNotAllowed(['POST'])
@@ -838,20 +879,20 @@ def schedule_slot_delete(request, pk):
     )
 
 
-def _accessible_patient_ids(secretary):
+def _accessible_patient_ids(request):
     """Patients the secretary may see: only those who have (or had) an
-    appointment with the secretary's assigned doctor."""
-    doctor = _assigned_doctor(secretary)
+    appointment with the doctor she's currently working as."""
+    doctor = _active_doctor(request)
     if not doctor:
         return Appointment.objects.none().values_list('patient_id', flat=True)
     return Appointment.objects.filter(doctor=doctor).values_list('patient_id', flat=True).distinct()
 
 
 def _get_accessible_patient_or_deny(request, patient_id):
-    """Fetch a patient only if they belong to the secretary's assigned
+    """Fetch a patient only if they belong to the secretary's active
     doctor; otherwise return None (caller redirects with an error)."""
     patient = get_object_or_404(CustomUser, pk=patient_id, role='patient')
-    if patient.pk not in set(_accessible_patient_ids(request.user)):
+    if patient.pk not in set(_accessible_patient_ids(request)):
         messages.error(request, 'You do not have access to this patient.')
         return None
     return patient
@@ -860,7 +901,7 @@ def _get_accessible_patient_or_deny(request, patient_id):
 @role_required('secretary')
 def secretary_patient_list(request):
     search = request.GET.get('q', '')
-    patients = CustomUser.objects.filter(role='patient', pk__in=_accessible_patient_ids(request.user))
+    patients = CustomUser.objects.filter(role='patient', pk__in=_accessible_patient_ids(request))
     if search:
         patients = patients.filter(
             Q(first_name__icontains=search) | Q(last_name__icontains=search)
@@ -914,7 +955,7 @@ def get_occupied_times(request, pk):
     {'occupied_times': [{'time': 'HH:MM', 'patient': 'Name', 'status': ...}],
      'patient_conflicts': [...], 'blocks': ['HH:MM-HH:MM', ...],
      'is_past': bool, 'has_schedule': bool, 'date': 'YYYY-MM-DD'}"""
-    doctor = _assigned_doctor(request.user)
+    doctor = _active_doctor(request)
     appt = get_object_or_404(
         Appointment, pk=pk, doctor=doctor, status__in=['Pending Assignment', 'Scheduled', 'Rescheduled']
     )
@@ -982,3 +1023,89 @@ def get_occupied_times(request, pk):
         'date': the_date.strftime('%Y-%m-%d'),
         'appointment_id': pk,
     })
+
+
+@role_required('secretary')
+def switch_doctor(request):
+    """Top-bar doctor switcher: sets which of the secretary's doctors
+    (primary + covered) her pages currently operate on. The selection only
+    sticks if the doctor is actually in her allowed set."""
+    if request.method != 'POST':
+        return HttpResponseNotAllowed(['POST'])
+    try:
+        doctor_id = int(request.POST.get('doctor_id', ''))
+    except (TypeError, ValueError):
+        doctor_id = None
+    if doctor_id in {d.pk for d in doctors_for_secretary(request.user)}:
+        request.session[ACTIVE_DOCTOR_SESSION_KEY] = doctor_id
+    else:
+        messages.error(request, "You can only switch to a doctor you're assigned to or covering.")
+    next_url = request.POST.get('next', '')
+    if not url_has_allowed_host_and_scheme(next_url, allowed_hosts={request.get_host()}):
+        next_url = reverse('secretary:dashboard')
+    return redirect(next_url)
+
+
+@role_required('secretary')
+def coverage_add(request):
+    """Secretary hands her OWN primary doctor over to a colleague (e.g.
+    before going on leave), so the colleague temporarily manages that
+    doctor too. Admins have their own unrestricted endpoint in
+    admin_views.coverage_add."""
+    if request.method != 'POST':
+        return HttpResponseNotAllowed(['POST'])
+    my_doctor = _assigned_doctor(request.user)
+    if not my_doctor:
+        messages.error(request, 'You have no assigned doctor to hand over.')
+        return redirect('secretary:schedule_view')
+    colleague = CustomUser.objects.filter(
+        role='secretary', is_active=True, pk=request.POST.get('secretary_id'),
+    ).exclude(pk=request.user.pk).first()
+    if not colleague:
+        messages.error(request, 'Please select a valid colleague to cover your doctor.')
+        return redirect('secretary:schedule_view')
+    if _assigned_doctor(colleague) == my_doctor:
+        messages.info(request, f'{colleague.get_full_name()} is already assigned to Dr. {my_doctor.get_full_name()}.')
+        return redirect('secretary:schedule_view')
+    coverage, created = SecretaryCoverage.objects.get_or_create(
+        secretary=colleague, doctor=my_doctor,
+        defaults={'created_by': request.user},
+    )
+    if created:
+        _notify(colleague, (
+            f"You are now covering Dr. {my_doctor.get_full_name()}'s appointments "
+            f"(handed over by {request.user.get_full_name()}). Use the doctor "
+            f"switcher in your top bar to manage them."
+        ))
+        _notify(my_doctor, (
+            f"{colleague.get_full_name()} will also manage your appointments "
+            f"while {request.user.get_full_name()} is away."
+        ))
+        messages.success(request, f'Dr. {my_doctor.get_full_name()} is now also covered by {colleague.get_full_name()}.')
+    else:
+        messages.info(request, f'{colleague.get_full_name()} is already covering Dr. {my_doctor.get_full_name()}.')
+    return redirect('secretary:schedule_view')
+
+
+@role_required('secretary')
+def coverage_remove(request, pk):
+    """Ends a coverage the secretary is involved in: either she is the one
+    covering, or the covered doctor is her own primary doctor."""
+    if request.method != 'POST':
+        return HttpResponseNotAllowed(['POST'])
+    coverage = get_object_or_404(SecretaryCoverage, pk=pk)
+    my_doctor = _assigned_doctor(request.user)
+    involves_me = (
+        coverage.secretary_id == request.user.pk
+        or (my_doctor is not None and coverage.doctor_id == my_doctor.pk)
+    )
+    if not involves_me:
+        messages.error(request, 'You can only end coverage that involves you or your doctor.')
+        return redirect('secretary:schedule_view')
+    covering_secretary, covered_doctor = coverage.secretary, coverage.doctor
+    coverage.delete()
+    if covering_secretary != request.user:
+        _notify(covering_secretary, f"You are no longer covering Dr. {covered_doctor.get_full_name()}'s appointments.")
+    _notify(covered_doctor, f"{covering_secretary.get_full_name()} no longer covers your appointments.")
+    messages.success(request, f'{covering_secretary.get_full_name()} no longer covers Dr. {covered_doctor.get_full_name()}.')
+    return redirect('secretary:schedule_view')

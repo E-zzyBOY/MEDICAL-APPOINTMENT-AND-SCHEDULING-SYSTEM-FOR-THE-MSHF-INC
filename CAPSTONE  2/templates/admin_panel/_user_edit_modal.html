@@ -35,6 +35,14 @@
               {% if field.errors %}<p class="text-[#DC2626] text-xs mt-1">{{ field.errors.0 }}</p>{% endif %}
             </div>
             {% endfor %}
+            {% if assignment_form %}
+            <div>
+              <label class="block text-sm font-semibold text-gray-700 mb-1">Assigned Doctor</label>
+              {{ assignment_form.assigned_doctor }}
+              <p class="text-gray-400 text-xs mt-1 ml-0.5">The doctor this secretary primarily manages. Use the Coverage section on the user's details to add temporary extra doctors instead.</p>
+              {% if assignment_form.assigned_doctor.errors %}<p class="text-[#DC2626] text-xs mt-1">{{ assignment_form.assigned_doctor.errors.0 }}</p>{% endif %}
+            </div>
+            {% endif %}
           </div>
           <div class="px-6 py-4 border-t border-gray-200 flex-shrink-0">
             <div class="flex gap-3">

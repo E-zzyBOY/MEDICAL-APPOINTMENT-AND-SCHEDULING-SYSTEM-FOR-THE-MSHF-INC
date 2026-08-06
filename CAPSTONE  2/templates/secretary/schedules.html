@@ -57,6 +57,37 @@
         <p class="text-sm text-gray-400 mt-1 break-all">{{ doctor.email }}</p>
       </div>
     </div>
+
+    <!-- Coverage: hand the doctor over to a colleague during a leave, and
+         see/end every coverage involving this secretary or her doctor. -->
+    <div class="mt-6 pt-5 border-t border-gray-100 text-left">
+      <p class="font-semibold text-ink text-sm mb-1">Coverage</p>
+      <p class="text-xs text-gray-400 mb-3">Going on leave? Hand your doctor over to a colleague so appointments stay managed.</p>
+      {% for c in coverages %}
+      <div class="flex items-center gap-2 bg-softgray/60 rounded-lg px-3 py-2 mb-2">
+        <span class="text-xs text-gray-600 flex-1">
+          {% if c.secretary == request.user %}You cover <strong>Dr. {{ c.doctor.get_full_name }}</strong>{% else %}<strong>{{ c.secretary.get_full_name }}</strong> covers Dr. {{ c.doctor.get_full_name }}{% endif %}
+        </span>
+        <form method="post" action="{% url 'secretary:coverage_remove' pk=c.pk %}" onsubmit="return confirm('End this coverage?');">
+          {% csrf_token %}
+          <button type="submit" class="text-[11px] font-medium text-red-500 hover:text-red-700 cursor-pointer">End</button>
+        </form>
+      </div>
+      {% endfor %}
+      {% if primary_doctor and colleagues %}
+      <form method="post" action="{% url 'secretary:coverage_add' %}" class="flex items-center gap-2 mt-2">
+        {% csrf_token %}
+        <select name="secretary_id" required
+                class="flex-1 min-w-0 text-xs border border-gray-200 rounded-lg px-2 py-2 bg-white">
+          <option value="">Hand over to&hellip;</option>
+          {% for s in colleagues %}
+          <option value="{{ s.pk }}">{{ s.get_full_name|default:s.username }}</option>
+          {% endfor %}
+        </select>
+        <button type="submit" class="shrink-0 text-xs font-medium bg-brand-500 hover:bg-brand-600 text-white rounded-lg px-3 py-2 transition cursor-pointer">Assign</button>
+      </form>
+      {% endif %}
+    </div>
   </div>
 
   <!-- Big calendar -->

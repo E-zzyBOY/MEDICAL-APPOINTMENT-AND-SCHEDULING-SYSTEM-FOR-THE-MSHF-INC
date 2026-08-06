@@ -371,7 +371,7 @@ class DoctorCreationForm(UserCreationForm):
     first_name     = forms.CharField(max_length=150, required=True)
     last_name      = forms.CharField(max_length=150, required=True)
     email          = forms.EmailField(
-        required=True, label='Email (must be a Gmail address)',
+        required=True, label='Email Address',
         help_text='Used to send this doctor appointment notifications.',
     )
     # Dropdown fed by the same master list as the patient "Browse by
@@ -384,12 +384,6 @@ class DoctorCreationForm(UserCreationForm):
     class Meta:
         model  = CustomUser
         fields = ['username', 'first_name', 'last_name', 'email', 'password1', 'password2']
-
-    def clean_email(self):
-        email = self.cleaned_data['email']
-        if not email.lower().endswith('@gmail.com'):
-            raise forms.ValidationError('Must be a Gmail address (used to send appointment notifications).')
-        return email
 
     def save(self, commit=True):
         user = super().save(commit=False)
@@ -410,7 +404,7 @@ class SecretaryCreationForm(UserCreationForm):
     first_name      = forms.CharField(max_length=150, required=True)
     last_name       = forms.CharField(max_length=150, required=True)
     email           = forms.EmailField(
-        required=True, label='Email (must be a Gmail address)',
+        required=True, label='Email Address',
         help_text='Used to send this secretary appointment notifications.',
     )
     contact_number  = forms.CharField(
@@ -441,12 +435,6 @@ class SecretaryCreationForm(UserCreationForm):
         # not a same-visit reading — it just needs to be a real, 4-digit year.
         self.fields['date_assigned'].widget.attrs['min'] = date(DATE_ASSIGNED_MIN_YEAR, 1, 1).isoformat()
         self.fields['date_assigned'].widget.attrs['max'] = date.today().isoformat()
-
-    def clean_email(self):
-        email = self.cleaned_data['email']
-        if not email.lower().endswith('@gmail.com'):
-            raise forms.ValidationError('Must be a Gmail address (used to send appointment notifications).')
-        return email
 
     def clean_contact_number(self):
         value = self.cleaned_data.get('contact_number', '').strip()

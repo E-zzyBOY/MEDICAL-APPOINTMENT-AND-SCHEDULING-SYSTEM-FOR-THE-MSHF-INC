@@ -1,4 +1,5 @@
 from django.shortcuts import render, redirect, get_object_or_404
+from django.template.loader import render_to_string
 from django.urls import reverse
 from django.contrib import messages
 from django.http import JsonResponse, HttpResponse, HttpResponseNotAllowed
@@ -7,7 +8,7 @@ from datetime import date, datetime, timedelta
 from django.db.models import Q, Count, Case, When, Value, IntegerField, F, DateField
 from accounts.decorators import role_required
 from appointments.models import Appointment, Schedule, TIME_NULLS_FIRST
-from appointments.forms import AssignTimeForm
+from appointments.forms import AssignTimeForm, ScheduleForm
 from accounts.models import CustomUser, PatientProfile
 from notifications.email_utils import (
     send_cancellation_email, send_time_assigned_email, send_booking_confirmation_email,
@@ -620,14 +621,42 @@ def view_all_schedules(request):
     schedules = Schedule.objects.filter(doctor=doctor).order_by('specific_date', 'start_time') if doctor else Schedule.objects.none()
     context = {'schedules': schedules, 'doctor': doctor}
     context.update(_schedule_calendar_context(doctor))
+    # Seed the Selected Day panel with today so the page opens with
+    # today's slots (and the add-slot controls) already visible.
+    context.update(_day_panel_context(doctor, date.today()))
     return render(request, 'secretary/schedules.html', context)
+
+
+def _grid_html_for_view(request, doctor, view, anchor, oob=False):
+    """Render the secretary's availability calendar in the requested view
+    ('month', 'week' or 'day' — context builders shared with the doctor's
+    calendar). `oob=True` marks the widget for an htmx out-of-band swap,
+    used to refresh whichever view is on screen after a slot change."""
+    from appointments.views.doctor_views import _week_grid_context, _day_grid_context
+    context = {'doctor': doctor, 'oob': oob}
+    if view == 'week':
+        context.update(_week_grid_context(doctor, anchor) if doctor else {'view': 'week', 'week_days': []})
+        template = 'secretary/_schedule_grid_week.html'
+    elif view == 'day':
+        context.update(_day_grid_context(doctor, anchor) if doctor else {'view': 'day', 'day_slots': []})
+        template = 'secretary/_schedule_grid_day.html'
+    else:
+        context.update(_schedule_calendar_context(doctor, anchor.year, anchor.month))
+        template = 'secretary/_schedule_grid_readonly.html'
+    return render_to_string(template, context, request=request)
 
 
 @role_required('secretary')
 def schedule_grid_partial(request):
-    """htmx endpoint: re-render the read-only availability calendar for
-    a different month (Prev / Next navigation)."""
+    """htmx endpoint: re-render the availability calendar. Month view
+    navigates with ?year=&month= (Prev/Next a month at a time); week and
+    day views (?view=week|day) anchor on ?date= instead."""
     doctor = _assigned_doctor(request.user)
+    from appointments.views.doctor_views import _resolve_grid_view
+    view = _resolve_grid_view(request.GET.get('view'))
+    if view != 'month':
+        anchor = _panel_date(request.GET.get('date'))
+        return HttpResponse(_grid_html_for_view(request, doctor, view, anchor))
     try:
         year = int(request.GET.get('year'))
         month = int(request.GET.get('month'))
@@ -637,6 +666,176 @@ def schedule_grid_partial(request):
     context = {'doctor': doctor}
     context.update(_schedule_calendar_context(doctor, year, month))
     return render(request, 'secretary/_schedule_grid_readonly.html', context)
+
+
+def _panel_date(raw):
+    """Resolve the day-panel's ?date=/POSTed date to a real date, falling
+    back to today for anything missing or malformed."""
+    if raw:
+        try:
+            return datetime.strptime(raw, '%Y-%m-%d').date()
+        except ValueError:
+            pass
+    return date.today()
+
+
+def _day_panel_context(doctor, the_date, *, add_form=None, edit_form=None,
+                       edit_pk=None, panel_message='', grid_view='month'):
+    """Context for the manage-capable Selected Day panel on the secretary's
+    Doctor Profile & Schedule page. Mirrors the doctor's own day-detail
+    sidebar but acts on the ASSIGNED doctor's slots. `grid_view` records
+    which calendar view (month/week/day) the panel was opened from, so a
+    slot change can refresh that same view."""
+    from appointments.views.doctor_views import _format_date_str
+    return {
+        'doctor': doctor,
+        'panel_date_iso': the_date.isoformat(),
+        'panel_date_display': _format_date_str(the_date.isoformat()),
+        'panel_slots': list(
+            Schedule.objects.filter(doctor=doctor, specific_date=the_date).order_by('start_time')
+        ) if doctor else [],
+        'panel_is_past': the_date < date.today(),
+        'add_form': add_form or ScheduleForm(initial={'specific_date': the_date}),
+        'edit_form': edit_form,
+        'edit_pk': edit_pk,
+        'panel_message': panel_message,
+        'grid_view': grid_view,
+    }
+
+
+def _render_day_panel(request, doctor, the_date, *, with_grid_oob=False,
+                      grid_view='month', **panel_kwargs):
+    """Render the Selected Day panel; after a successful add/edit/delete the
+    calendar grid is stale too, so ride an out-of-band swap of the grid —
+    in whichever view is currently on screen — along in the same response
+    (same trick the doctor's schedule page uses for its sidebar)."""
+    panel_html = render_to_string(
+        'secretary/_schedule_day_panel.html',
+        _day_panel_context(doctor, the_date, grid_view=grid_view, **panel_kwargs),
+        request=request,
+    )
+    if with_grid_oob:
+        panel_html += _grid_html_for_view(request, doctor, grid_view, the_date, oob=True)
+    return HttpResponse(panel_html)
+
+
+@role_required('secretary')
+def schedule_day_panel(request):
+    """htmx endpoint: clicking a day on the availability calendar loads that
+    day's slots with add/edit/remove controls. ?view= records which
+    calendar view the click came from (month/week/day)."""
+    from appointments.views.doctor_views import _resolve_grid_view
+    doctor = _assigned_doctor(request.user)
+    the_date = _panel_date(request.GET.get('date'))
+    grid_view = _resolve_grid_view(request.GET.get('view'))
+    return _render_day_panel(request, doctor, the_date, grid_view=grid_view)
+
+
+@role_required('secretary')
+def schedule_slot_add(request):
+    """Secretary adds a schedule slot to the ASSIGNED doctor's calendar.
+    Same validation as the doctor's own Add Slot: ScheduleForm (end after
+    start, no past dates) plus an overlap check against that day's
+    existing slots."""
+    if request.method != 'POST':
+        return HttpResponseNotAllowed(['POST'])
+    from appointments.views.doctor_views import _resolve_grid_view
+    doctor = _assigned_doctor(request.user)
+    the_date = _panel_date(request.POST.get('specific_date'))
+    grid_view = _resolve_grid_view(request.POST.get('grid_view'))
+    if not doctor:
+        return _render_day_panel(request, doctor, the_date, grid_view=grid_view)
+    form = ScheduleForm(request.POST)
+    if form.is_valid():
+        new_slot = form.save(commit=False)
+        overlap = Schedule.objects.filter(
+            doctor=doctor, specific_date=new_slot.specific_date,
+            start_time__lt=new_slot.end_time, end_time__gt=new_slot.start_time,
+        ).exists()
+        if overlap:
+            form.add_error(None, 'This overlaps with an existing time slot on that date.')
+        else:
+            new_slot.doctor = doctor
+            new_slot.save()
+            _notify(
+                doctor,
+                f"{request.user.get_full_name()} (secretary) added a schedule slot for you on "
+                f"{new_slot.specific_date.strftime('%b %d, %Y')} "
+                f"({new_slot.start_time.strftime('%I:%M %p')}–{new_slot.end_time.strftime('%I:%M %p')})."
+            )
+            return _render_day_panel(
+                request, doctor, new_slot.specific_date, with_grid_oob=True,
+                panel_message='Time slot added.', grid_view=grid_view,
+            )
+        the_date = new_slot.specific_date
+    return _render_day_panel(request, doctor, the_date, add_form=form, grid_view=grid_view)
+
+
+@role_required('secretary')
+def schedule_slot_edit(request, pk):
+    """Secretary changes the time of one of the assigned doctor's existing
+    slots. The date stays fixed (hidden field) — the panel is always
+    scoped to one selected day."""
+    from appointments.views.doctor_views import _resolve_grid_view
+    doctor = _assigned_doctor(request.user)
+    slot = get_object_or_404(Schedule, pk=pk, doctor=doctor)
+    if request.method == 'POST':
+        grid_view = _resolve_grid_view(request.POST.get('grid_view'))
+        form = ScheduleForm(request.POST, instance=slot)
+        if form.is_valid():
+            updated = form.save(commit=False)
+            overlap = Schedule.objects.filter(
+                doctor=doctor, specific_date=updated.specific_date,
+                start_time__lt=updated.end_time, end_time__gt=updated.start_time,
+            ).exclude(pk=pk).exists()
+            if overlap:
+                form.add_error(None, 'This overlaps with an existing time slot on that date.')
+            else:
+                old_start, old_end = slot.start_time, slot.end_time
+                updated.save()
+                _notify(
+                    doctor,
+                    f"{request.user.get_full_name()} (secretary) updated your schedule slot on "
+                    f"{updated.specific_date.strftime('%b %d, %Y')}: "
+                    f"{old_start.strftime('%I:%M %p')}–{old_end.strftime('%I:%M %p')} is now "
+                    f"{updated.start_time.strftime('%I:%M %p')}–{updated.end_time.strftime('%I:%M %p')}."
+                )
+                return _render_day_panel(
+                    request, doctor, updated.specific_date, with_grid_oob=True,
+                    panel_message='Time slot updated.', grid_view=grid_view,
+                )
+        return _render_day_panel(request, doctor, slot.specific_date,
+                                 edit_form=form, edit_pk=pk, grid_view=grid_view)
+    # GET: re-render the panel with this slot's row swapped for an inline
+    # edit form.
+    grid_view = _resolve_grid_view(request.GET.get('view'))
+    form = ScheduleForm(instance=slot)
+    return _render_day_panel(request, doctor, slot.specific_date,
+                             edit_form=form, edit_pk=pk, grid_view=grid_view)
+
+
+@role_required('secretary')
+def schedule_slot_delete(request, pk):
+    """Secretary removes one of the assigned doctor's schedule slots
+    (confirmation happens client-side via hx-confirm)."""
+    from appointments.views.doctor_views import _resolve_grid_view
+    doctor = _assigned_doctor(request.user)
+    slot = get_object_or_404(Schedule, pk=pk, doctor=doctor)
+    if request.method != 'POST':
+        return HttpResponseNotAllowed(['POST'])
+    grid_view = _resolve_grid_view(request.POST.get('grid_view'))
+    removed_date, removed_start, removed_end = slot.specific_date, slot.start_time, slot.end_time
+    slot.delete()
+    _notify(
+        doctor,
+        f"{request.user.get_full_name()} (secretary) removed your schedule slot on "
+        f"{removed_date.strftime('%b %d, %Y')} "
+        f"({removed_start.strftime('%I:%M %p')}–{removed_end.strftime('%I:%M %p')})."
+    )
+    return _render_day_panel(
+        request, doctor, removed_date, with_grid_oob=True,
+        panel_message='Time slot removed.', grid_view=grid_view,
+    )
 
 
 def _accessible_patient_ids(secretary):

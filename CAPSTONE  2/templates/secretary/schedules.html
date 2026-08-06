@@ -64,53 +64,25 @@
     {% include "secretary/_schedule_grid_readonly.html" %}
   </div>
 
-  <!-- Selected day details -->
-  <div id="day-details" class="area-details bg-white rounded-2xl shadow-soft p-6">
-    <p class="font-semibold text-ink text-base mb-1">Selected Day</p>
-    <p id="day-details-date" class="text-sm text-gray-500 mb-4">Click a day on the calendar to view its availability.</p>
-    <div id="day-details-slots" class="space-y-2"></div>
-  </div>
+  <!-- Selected day details: server-rendered panel with add/edit/remove
+       controls for the assigned doctor's slots. Clicking a calendar day
+       swaps in that day's panel via htmx (see _schedule_grid_readonly.html). -->
+  {% include "secretary/_schedule_day_panel.html" %}
 
 </div>
 
 <script>
 (function () {
-  // Delegated so it keeps working after htmx swaps the calendar (Prev/Next).
+  // Highlight the clicked day. Delegated so it keeps working after htmx
+  // swaps the calendar (Prev/Next or the post-save out-of-band refresh);
+  // the panel content itself is loaded server-side via the cell's hx-get.
   document.addEventListener('click', function (e) {
     var cell = e.target.closest('[data-day-cell]');
     if (!cell) return;
-
-    var dateLabel = cell.getAttribute('data-day-label') || '';
-    try {
-      var d = new Date(dateLabel + 'T00:00:00');
-      dateLabel = d.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-    } catch (err) {}
-    var slotsRaw  = cell.getAttribute('data-day-slots') || '';
-    var dateEl    = document.getElementById('day-details-date');
-    var slotsEl   = document.getElementById('day-details-slots');
-    if (!dateEl || !slotsEl) return;
-
-    // highlight the selected cell
     document.querySelectorAll('[data-day-cell].ring-2').forEach(function (el) {
       el.classList.remove('ring-2', 'ring-brand-400');
     });
     cell.classList.add('ring-2', 'ring-brand-400');
-
-    dateEl.textContent = dateLabel;
-    slotsEl.innerHTML = '';
-
-    if (!slotsRaw) {
-      slotsEl.innerHTML = '<p class="text-sm text-gray-400 italic">No availability set for this day.</p>';
-      return;
-    }
-    slotsRaw.split('|').forEach(function (slot) {
-      var div = document.createElement('div');
-      div.className = 'flex items-center gap-2 bg-green-50 border border-green-200 rounded-lg px-3 py-2';
-      div.innerHTML = '<span class="size-2 rounded-full bg-green-500 shrink-0"></span>' +
-                      '<span class="text-sm font-medium text-green-800"></span>';
-      div.querySelector('span:last-child').textContent = slot;
-      slotsEl.appendChild(div);
-    });
   });
 })();
 </script>

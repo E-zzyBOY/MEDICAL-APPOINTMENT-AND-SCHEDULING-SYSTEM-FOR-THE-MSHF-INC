@@ -1,0 +1,86 @@
+{% comment %}
+Week view of the doctor's desktop schedule widget: one Monday-to-Sunday
+strip for the week containing the selected day. Same interactions as the
+month grid — clicking a day re-renders the widget with that day selected
+and out-of-band-updates the sidebar panel; Prev/Next move a week at a
+time. Every slot is listed (no +N-more truncation — a single row has
+the room).
+{% endcomment %}
+<div id="schedule-grid-widget" class="hidden md:block flex-1 min-w-0 md:max-w-[820px] bg-white rounded-2xl border border-gray-200 shadow-soft-sm overflow-hidden">
+  <!-- Header: title + week nav + view toggle + Add Slot -->
+  <div class="flex items-center justify-between px-6 py-5 border-b border-gray-100 gap-4">
+    <div class="flex items-center gap-6 min-w-0">
+      <p class="font-semibold text-ink text-base whitespace-nowrap">Your Availability</p>
+      <div class="flex items-center gap-4">
+        <button type="button"
+                hx-get="{% url 'doctor:schedule_grid_partial' %}?view=week&date={{ prev_anchor }}"
+                hx-target="#schedule-grid-widget" hx-swap="outerHTML"
+                class="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-softgray text-ink-soft text-sm font-medium hover:bg-gray-200 transition cursor-pointer">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+          Prev
+        </button>
+        <p class="font-semibold text-ink text-sm w-44 text-center whitespace-nowrap">{{ range_display }}</p>
+        <button type="button"
+                hx-get="{% url 'doctor:schedule_grid_partial' %}?view=week&date={{ next_anchor }}"
+                hx-target="#schedule-grid-widget" hx-swap="outerHTML"
+                class="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-softgray text-ink-soft text-sm font-medium hover:bg-gray-200 transition cursor-pointer">
+          Next
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+        </button>
+      </div>
+    </div>
+    <div class="flex items-center gap-3 shrink-0">
+      {% include "doctor/_schedule_view_toggle.html" with view='week' %}
+      <a hx-get="{% url 'doctor:schedule_add' %}?date={{ selected_date }}"
+         hx-target="#modal-root" hx-swap="innerHTML"
+         class="shrink-0 whitespace-nowrap text-center px-4 py-2 bg-green-600 text-white rounded-xl text-sm font-medium hover:bg-green-700 transition cursor-pointer">
+        + Add Slot
+      </a>
+    </div>
+  </div>
+
+  <!-- One-week strip -->
+  <div class="grid grid-cols-7">
+    {% for cell in week_days %}
+      {% if cell.status == 'past' %}
+      <div class="border-r border-b border-gray-100 min-h-[180px] p-2 pt-1.5 last:border-r-0 bg-white">
+        <p class="text-[11px] font-semibold text-gray-300 tracking-wider text-center">{{ cell.weekday }}</p>
+        <span class="mt-1 flex items-center justify-center size-6 mx-auto rounded-full text-[13px] font-semibold text-gray-300">{{ cell.day }}</span>
+      </div>
+      {% else %}
+      <button type="button"
+              hx-get="{% url 'doctor:schedule_grid_partial' %}?view=week&date={{ cell.date }}"
+              hx-target="#schedule-grid-widget" hx-swap="outerHTML"
+              class="text-left border-r border-b last:border-r-0 min-h-[180px] p-2 pt-1.5 transition cursor-pointer
+                {% if cell.date == selected_date %}border-brand-400 bg-brand-50 ring-2 ring-inset ring-brand-400
+                {% elif cell.date == today_iso %}border-brand-300 bg-brand-50/50 ring-1 ring-inset ring-brand-200
+                {% elif cell.status == 'has_slots' %}border-gray-100 bg-green-50/40 hover:bg-green-50
+                {% else %}border-gray-100 hover:bg-softgray/60{% endif %}">
+        <p class="text-[11px] font-semibold tracking-wider text-center {% if cell.date == selected_date %}text-brand-600{% else %}text-gray-400{% endif %}">{{ cell.weekday }}</p>
+        <span class="mt-1 flex items-center justify-center size-6 mx-auto rounded-full text-[13px] font-semibold
+          {% if cell.date == selected_date %}bg-brand-500 text-white
+          {% elif cell.date == today_iso %}bg-brand-100 text-brand-700
+          {% else %}text-gray-800{% endif %}">
+          {{ cell.day }}
+        </span>
+        {% if cell.slots %}
+        <div class="mt-2 space-y-1">
+          {% for s in cell.slots %}
+          <div class="rounded-md px-1.5 py-0.5 {% if s.is_expired %}bg-gray-50 border border-gray-200{% else %}bg-white border border-green-200{% endif %}">
+            <p class="text-[11px] font-medium leading-tight truncate {% if s.is_expired %}text-gray-400{% else %}text-green-700{% endif %}">{{ s.start_time|time:"g:iA" }}&ndash;{{ s.end_time|time:"g:iA" }}</p>
+          </div>
+          {% endfor %}
+        </div>
+        {% endif %}
+      </button>
+      {% endif %}
+    {% endfor %}
+  </div>
+
+  <!-- Legend -->
+  <div class="flex items-center gap-4 px-6 py-3 border-t border-gray-100 text-[11px] text-gray-500">
+    <span class="flex items-center gap-1.5"><span class="size-2.5 rounded-full bg-green-100 border border-green-300"></span> Has slot(s)</span>
+    <span class="flex items-center gap-1.5"><span class="size-2.5 rounded-full bg-brand-100 border border-brand-300"></span> Today</span>
+    <span class="flex items-center gap-1.5"><span class="size-2.5 rounded-full bg-brand-500"></span> Selected — shown in the panel</span>
+  </div>
+</div>

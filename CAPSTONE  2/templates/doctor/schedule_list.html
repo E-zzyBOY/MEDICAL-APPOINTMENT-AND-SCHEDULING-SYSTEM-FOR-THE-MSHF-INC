@@ -17,7 +17,13 @@
        click opens a modal) + a static "Today's Schedule" sidebar that
        doesn't change as you browse other months. -->
   <div class="hidden md:flex items-start gap-5">
-    {% include "doctor/_schedule_grid_desktop.html" with calendar_weeks=calendar_weeks_with_slots %}
+    {% if view == 'week' %}
+      {% include "doctor/_schedule_grid_week.html" %}
+    {% elif view == 'day' %}
+      {% include "doctor/_schedule_grid_day.html" %}
+    {% else %}
+      {% include "doctor/_schedule_grid_desktop.html" with calendar_weeks=calendar_weeks_with_slots %}
+    {% endif %}
     {% include "doctor/_schedule_selected_day_panel.html" %}
   </div>
 

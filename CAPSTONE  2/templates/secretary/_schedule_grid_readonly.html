@@ -1,10 +1,12 @@
 {% comment %}
-Read-only month calendar for the secretary's "Doctor Profile & Schedule"
-page. Mirrors the doctor UI's grid calendar (weekday header, inline time
-slots per day, today highlight, legend) but with no add/edit actions.
-Prev / Next re-render this widget via htmx.
+Month calendar for the secretary's "Doctor Profile & Schedule" page.
+Mirrors the doctor UI's grid calendar (weekday header, inline time slots
+per day, today highlight, legend). Clicking a day loads that day's
+manage-capable panel (add/edit/remove slots) into #day-details via htmx.
+Prev / Next re-render this widget via htmx; after a slot change the panel
+response swaps a fresh copy of this grid back in out-of-band ('oob').
 {% endcomment %}
-<div id="secretary-schedule-grid" class="bg-white rounded-2xl border border-gray-200 shadow-soft-sm overflow-hidden">
+<div id="secretary-schedule-grid" {% if oob %}hx-swap-oob="true"{% endif %} class="bg-white rounded-2xl border border-gray-200 shadow-soft-sm overflow-hidden">
   <!-- Header: title + month nav -->
   <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between px-4 md:px-6 py-4 md:py-5 border-b border-gray-100 gap-3">
     <p class="font-semibold text-ink text-base whitespace-nowrap">Upcoming Availability</p>
@@ -24,6 +26,7 @@ Prev / Next re-render this widget via htmx.
         Next
         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
       </button>
+      {% include "secretary/_schedule_view_toggle.html" with view='month' anchor=today_iso %}
     </div>
   </div>
 
@@ -51,7 +54,8 @@ Prev / Next re-render this widget via htmx.
         {% else %}
         <div data-day-cell
              data-day-label="{{ cell.date }}"
-             data-day-slots="{% for s in cell.all_slots %}{{ s.start_time|time:'g:i A' }} &ndash; {{ s.end_time|time:'g:i A' }}{% if not forloop.last %}|{% endif %}{% endfor %}"
+             hx-get="{% url 'secretary:schedule_day_panel' %}?date={{ cell.date }}"
+             hx-target="#day-details" hx-swap="outerHTML"
              class="cursor-pointer hover:bg-brand-50/60 transition border-r border-b last:border-r-0 min-h-[64px] md:min-h-[90px] p-1.5 md:p-2 pt-1.5
               {% if cell.date == today_iso %}border-brand-300 bg-brand-50/50 ring-1 ring-inset ring-brand-200
               {% elif cell.status == 'has_slots' %}border-gray-100 bg-green-50/40

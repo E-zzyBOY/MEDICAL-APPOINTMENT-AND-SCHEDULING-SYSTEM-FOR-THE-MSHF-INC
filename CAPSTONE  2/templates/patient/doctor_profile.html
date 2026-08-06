@@ -27,7 +27,10 @@
         {% endif %}
       </div>
       <p class="font-semibold text-[#1F2937] text-xl">Dr. {{ doctor.get_full_name }}</p>
-      <p class="text-sm font-medium text-[#183E0C] mb-3">{{ doctor.doctor_profile.specialization|default:"General Medicine" }}</p>
+      <p class="text-sm font-medium text-[#183E0C]{% if not doctor.doctor_profile.license_number %} mb-3{% endif %}">{{ doctor.doctor_profile.specialization|default:"General Medicine" }}</p>
+      {% if doctor.doctor_profile.license_number %}
+      <p class="text-xs text-[#6B7280] mt-0.5 mb-3">License No. {{ doctor.doctor_profile.license_number }}</p>
+      {% endif %}
       <div class="flex items-center gap-3 text-sm">
 
         <span class="text-[#4B5563]">{{ doctor.doctor_profile.years_of_experience|default:"—" }}{% if doctor.doctor_profile.years_of_experience %}+ Years Experience{% else %} Experience{% endif %}</span>

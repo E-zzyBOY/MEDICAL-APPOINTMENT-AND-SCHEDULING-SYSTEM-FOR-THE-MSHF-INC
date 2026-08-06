@@ -31,11 +31,14 @@ below it, untouched (see schedule_list.html).
         </button>
       </div>
     </div>
-    <a hx-get="{% url 'doctor:schedule_add' %}?date={{ selected_date }}"
-       hx-target="#modal-root" hx-swap="innerHTML"
-       class="shrink-0 whitespace-nowrap text-center px-4 py-2 bg-green-600 text-white rounded-xl text-sm font-medium hover:bg-green-700 transition cursor-pointer">
-      + Add Slot
-    </a>
+    <div class="flex items-center gap-3 shrink-0">
+      {% include "doctor/_schedule_view_toggle.html" with view='month' %}
+      <a hx-get="{% url 'doctor:schedule_add' %}?date={{ selected_date }}"
+         hx-target="#modal-root" hx-swap="innerHTML"
+         class="shrink-0 whitespace-nowrap text-center px-4 py-2 bg-green-600 text-white rounded-xl text-sm font-medium hover:bg-green-700 transition cursor-pointer">
+        + Add Slot
+      </a>
+    </div>
   </div>
 
   <!-- Weekday header -->

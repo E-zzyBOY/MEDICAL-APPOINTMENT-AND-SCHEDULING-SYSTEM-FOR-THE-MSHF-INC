@@ -173,6 +173,70 @@ def _compute_schedule_month_with_slots(doctor, year, month):
     return weeks
 
 
+def _week_grid_context(doctor, anchor):
+    """Context for the Week calendar view: one Monday-to-Sunday strip of
+    day-cells for the week containing `anchor` (which is also the selected
+    day). Cells carry the FULL slot list — a single week row has room to
+    show every slot without the month grid's +N-more truncation. Shared by
+    the doctor and secretary calendars."""
+    today = date.today()
+    week_start = anchor - timedelta(days=anchor.weekday())
+    week_end   = week_start + timedelta(days=6)
+    slots_by_date = {}
+    for s in Schedule.objects.filter(
+        doctor=doctor, specific_date__gte=week_start, specific_date__lte=week_end,
+    ).order_by('specific_date', 'start_time'):
+        slots_by_date.setdefault(s.specific_date, []).append(s)
+    days = []
+    for i in range(7):
+        d = week_start + timedelta(days=i)
+        day_slots = slots_by_date.get(d, [])
+        if d < today:
+            status = 'past'
+        elif day_slots:
+            status = 'has_slots'
+        else:
+            status = 'open'
+        days.append({
+            'day': d.day, 'date': d.isoformat(),
+            'weekday': d.strftime('%a').upper(),
+            'status': status, 'slots': day_slots,
+        })
+    return {
+        'view': 'week',
+        'week_days': days,
+        'range_display': f"{week_start.strftime('%b %d')} – {week_end.strftime('%b %d, %Y')}",
+        'prev_anchor': (week_start - timedelta(days=7)).isoformat(),
+        'next_anchor': (week_start + timedelta(days=7)).isoformat(),
+        'selected_date': anchor.isoformat(),
+        'today_iso': today.isoformat(),
+    }
+
+
+def _day_grid_context(doctor, anchor):
+    """Context for the Day calendar view: a single day's slots, full size.
+    Shared by the doctor and secretary calendars."""
+    today = date.today()
+    return {
+        'view': 'day',
+        'day_slots': list(
+            Schedule.objects.filter(doctor=doctor, specific_date=anchor).order_by('start_time')
+        ),
+        'range_display': anchor.strftime('%a, %b %d, %Y'),
+        'day_full_display': anchor.strftime('%A, %B %d, %Y'),
+        'day_is_past': anchor < today,
+        'prev_anchor': (anchor - timedelta(days=1)).isoformat(),
+        'next_anchor': (anchor + timedelta(days=1)).isoformat(),
+        'selected_date': anchor.isoformat(),
+        'today_iso': today.isoformat(),
+    }
+
+
+def _resolve_grid_view(raw):
+    """Sanitize a ?view= query/POST value down to the three calendar views."""
+    return raw if raw in ('week', 'day') else 'month'
+
+
 def _build_doctor_dashboard_data(request):
     today_appts = Appointment.objects.filter(
         doctor=request.user,
@@ -271,7 +335,20 @@ def schedule_list(request):
         'selected_date': selected_date_str,
         'selected_date_display': _format_date_str(selected_date_str),
         'selected_slots': selected_slots,
+        'view': 'month',
     }
+    # ?view=week|day opens the desktop calendar in that view directly
+    # (the same views the Month/Week/Day toggle switches to via htmx).
+    view = _resolve_grid_view(request.GET.get('view'))
+    if view != 'month':
+        try:
+            anchor = datetime.strptime(selected_date_str, '%Y-%m-%d').date()
+        except ValueError:
+            anchor = date.today()
+        context.update(
+            _week_grid_context(request.user, anchor) if view == 'week'
+            else _day_grid_context(request.user, anchor)
+        )
     context.update(_panel_context_for_date(request.user, selected_date_str))
     return render(request, 'doctor/schedule_list.html', context)
 
@@ -317,24 +394,38 @@ def _panel_context_for_date(doctor, date_str):
 
 @role_required('doctor')
 def schedule_grid_partial(request):
-    """Desktop-only rectangular grid calendar (see _schedule_grid_desktop.html).
-    Every day's time slots are always visible right inside that day's own
-    cell. Clicking a day re-renders this grid (so the clicked day shows as
-    selected) AND rides an out-of-band swap along in the same response to
-    update the 'Today's Schedule' sidebar with that day's full detail
-    (add/edit/delete) instead — no modal, matching the old below-the-
-    calendar panel's behavior but positioned on the right."""
+    """Desktop-only calendar widget in one of three views (?view=month|
+    week|day; see _schedule_grid_desktop / _schedule_grid_week /
+    _schedule_grid_day templates). Every day's time slots are always
+    visible right inside that day's own cell. Clicking a day (or
+    navigating in day view) re-renders this grid (so the clicked day
+    shows as selected) AND rides an out-of-band swap along in the same
+    response to update the 'Today's Schedule' sidebar with that day's
+    full detail (add/edit/delete) — no modal."""
+    view = _resolve_grid_view(request.GET.get('view'))
     selected_date_str = request.GET.get('date') or date.today().isoformat()
-    year, month = _resolve_calendar_month(request, selected_date_str)
-    calendar_weeks = _compute_schedule_month_with_slots(request.user, year, month)
+    try:
+        anchor = datetime.strptime(selected_date_str, '%Y-%m-%d').date()
+    except ValueError:
+        anchor = date.today()
+        selected_date_str = anchor.isoformat()
 
-    grid_html = render_to_string('doctor/_schedule_grid_desktop.html', {
-        'calendar_weeks': calendar_weeks,
-        'calendar_year': year, 'calendar_month': month,
-        'calendar_month_name': calendar_module.month_name[month],
-        'today_iso': date.today().isoformat(),
-        'selected_date': selected_date_str,
-    }, request=request)
+    if view == 'week':
+        grid_html = render_to_string('doctor/_schedule_grid_week.html',
+                                     _week_grid_context(request.user, anchor), request=request)
+    elif view == 'day':
+        grid_html = render_to_string('doctor/_schedule_grid_day.html',
+                                     _day_grid_context(request.user, anchor), request=request)
+    else:
+        year, month = _resolve_calendar_month(request, selected_date_str)
+        calendar_weeks = _compute_schedule_month_with_slots(request.user, year, month)
+        grid_html = render_to_string('doctor/_schedule_grid_desktop.html', {
+            'calendar_weeks': calendar_weeks,
+            'calendar_year': year, 'calendar_month': month,
+            'calendar_month_name': calendar_module.month_name[month],
+            'today_iso': date.today().isoformat(),
+            'selected_date': selected_date_str,
+        }, request=request)
     panel_html = render_to_string('doctor/_schedule_selected_day_panel.html', {
         'oob': True,
         **_panel_context_for_date(request.user, selected_date_str),

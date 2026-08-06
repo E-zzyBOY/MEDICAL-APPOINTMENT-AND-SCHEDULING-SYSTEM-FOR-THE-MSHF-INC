@@ -571,3 +571,181 @@ class SecretaryAssignTimeDateNavigationTestCase(TestCase):
         self.assertEqual(self.appt.status, 'Cancelled')
         notif = Notification.objects.filter(user=self.patient).latest('created_at')
         self.assertIn('Unable to accommodate this request', notif.message)
+
+
+class DoctorScheduleCalendarViewsTestCase(TestCase):
+    """The doctor's My Schedule calendar can switch between month, week
+    and day views (?view= on the grid partial and the page itself)."""
+
+    def setUp(self):
+        self.doctor = User.objects.create_user(
+            username='calviewdoctor', email='calviewdoctor@test.com',
+            password='testpass123', role='doctor')
+        self.tomorrow = date.today() + timedelta(days=1)
+        Schedule.objects.create(doctor=self.doctor, specific_date=self.tomorrow,
+                                start_time='09:00', end_time='12:00')
+        self.client.login(username='calviewdoctor', password='testpass123')
+
+    def test_grid_partial_month_view_default(self):
+        resp = self.client.get(reverse('doctor:schedule_grid_partial'),
+                               {'date': self.tomorrow.isoformat()})
+        self.assertEqual(resp.status_code, 200)
+        self.assertContains(resp, 'schedule-grid-widget')
+        self.assertContains(resp, 'Month')
+
+    def test_grid_partial_week_view(self):
+        resp = self.client.get(reverse('doctor:schedule_grid_partial'),
+                               {'view': 'week', 'date': self.tomorrow.isoformat()})
+        self.assertEqual(resp.status_code, 200)
+        self.assertContains(resp, '9:00AM')
+        self.assertContains(resp, 'view=week')
+
+    def test_grid_partial_day_view(self):
+        resp = self.client.get(reverse('doctor:schedule_grid_partial'),
+                               {'view': 'day', 'date': self.tomorrow.isoformat()})
+        self.assertEqual(resp.status_code, 200)
+        self.assertContains(resp, self.tomorrow.strftime('%A, %B %d, %Y'))
+        self.assertContains(resp, '9:00 AM')
+
+    def test_grid_partial_invalid_view_falls_back_to_month(self):
+        resp = self.client.get(reverse('doctor:schedule_grid_partial'),
+                               {'view': 'bogus', 'date': self.tomorrow.isoformat()})
+        self.assertEqual(resp.status_code, 200)
+        self.assertContains(resp, 'schedule-grid-widget')
+
+    def test_schedule_page_accepts_view_param(self):
+        resp = self.client.get(reverse('doctor:schedule_list'),
+                               {'view': 'week', 'date': self.tomorrow.isoformat()})
+        self.assertEqual(resp.status_code, 200)
+        self.assertContains(resp, 'view=week')
+
+
+class SecretaryScheduleManagementTestCase(TestCase):
+    """A secretary can set (add/edit/remove) their ASSIGNED doctor's
+    schedule slots from the Doctor Profile & Schedule page — and only
+    their assigned doctor's."""
+
+    def setUp(self):
+        self.doctor = User.objects.create_user(
+            username='scheddoctor', email='scheddoctor@test.com',
+            password='testpass123', role='doctor')
+        self.other_doctor = User.objects.create_user(
+            username='otherdoctor', email='otherdoctor@test.com',
+            password='testpass123', role='doctor')
+        self.secretary = User.objects.create_user(
+            username='schedsecretary', email='schedsecretary@test.com',
+            password='testpass123', role='secretary')
+        SecretaryProfile.objects.create(user=self.secretary, assigned_doctor=self.doctor)
+
+        self.tomorrow = date.today() + timedelta(days=1)
+        self.slot = Schedule.objects.create(
+            doctor=self.doctor, specific_date=self.tomorrow,
+            start_time='09:00', end_time='12:00')
+        self.other_slot = Schedule.objects.create(
+            doctor=self.other_doctor, specific_date=self.tomorrow,
+            start_time='09:00', end_time='12:00')
+
+        self.client.login(username='schedsecretary', password='testpass123')
+
+    def test_day_panel_shows_assigned_doctors_slots(self):
+        resp = self.client.get(reverse('secretary:schedule_day_panel'),
+                               {'date': self.tomorrow.isoformat()})
+        self.assertEqual(resp.status_code, 200)
+        self.assertContains(resp, '9:00 AM')
+        self.assertContains(resp, 'Add a time slot')
+
+    def test_add_slot_creates_for_assigned_doctor_and_notifies(self):
+        resp = self.client.post(reverse('secretary:schedule_slot_add'), {
+            'specific_date': self.tomorrow.isoformat(),
+            'start_time': '13:00', 'end_time': '16:00',
+        })
+        self.assertEqual(resp.status_code, 200)
+        self.assertTrue(Schedule.objects.filter(
+            doctor=self.doctor, specific_date=self.tomorrow,
+            start_time='13:00', end_time='16:00').exists())
+        notif = Notification.objects.filter(user=self.doctor).latest('created_at')
+        self.assertIn('added a schedule slot', notif.message)
+
+    def test_add_slot_rejects_overlap(self):
+        resp = self.client.post(reverse('secretary:schedule_slot_add'), {
+            'specific_date': self.tomorrow.isoformat(),
+            'start_time': '10:00', 'end_time': '13:00',
+        })
+        self.assertContains(resp, 'overlaps')
+        self.assertEqual(Schedule.objects.filter(
+            doctor=self.doctor, specific_date=self.tomorrow).count(), 1)
+
+    def test_add_slot_rejects_past_date(self):
+        yesterday = date.today() - timedelta(days=1)
+        self.client.post(reverse('secretary:schedule_slot_add'), {
+            'specific_date': yesterday.isoformat(),
+            'start_time': '09:00', 'end_time': '12:00',
+        })
+        self.assertFalse(Schedule.objects.filter(
+            doctor=self.doctor, specific_date=yesterday).exists())
+
+    def test_edit_slot_updates_time(self):
+        resp = self.client.post(
+            reverse('secretary:schedule_slot_edit', kwargs={'pk': self.slot.pk}), {
+                'specific_date': self.tomorrow.isoformat(),
+                'start_time': '08:00', 'end_time': '11:00',
+            })
+        self.assertEqual(resp.status_code, 200)
+        self.slot.refresh_from_db()
+        self.assertEqual(self.slot.start_time.strftime('%H:%M'), '08:00')
+        self.assertEqual(self.slot.end_time.strftime('%H:%M'), '11:00')
+
+    def test_delete_slot_removes_it_and_notifies(self):
+        resp = self.client.post(
+            reverse('secretary:schedule_slot_delete', kwargs={'pk': self.slot.pk}))
+        self.assertEqual(resp.status_code, 200)
+        self.assertFalse(Schedule.objects.filter(pk=self.slot.pk).exists())
+        notif = Notification.objects.filter(user=self.doctor).latest('created_at')
+        self.assertIn('removed your schedule slot', notif.message)
+
+    def test_cannot_touch_another_doctors_slot(self):
+        resp = self.client.post(
+            reverse('secretary:schedule_slot_delete', kwargs={'pk': self.other_slot.pk}))
+        self.assertEqual(resp.status_code, 404)
+        self.assertTrue(Schedule.objects.filter(pk=self.other_slot.pk).exists())
+
+    def test_grid_partial_week_view(self):
+        resp = self.client.get(reverse('secretary:schedule_grid_partial'),
+                               {'view': 'week', 'date': self.tomorrow.isoformat()})
+        self.assertEqual(resp.status_code, 200)
+        self.assertContains(resp, 'secretary-schedule-grid')
+        self.assertContains(resp, '9:00AM')
+
+    def test_grid_partial_day_view(self):
+        resp = self.client.get(reverse('secretary:schedule_grid_partial'),
+                               {'view': 'day', 'date': self.tomorrow.isoformat()})
+        self.assertEqual(resp.status_code, 200)
+        self.assertContains(resp, self.tomorrow.strftime('%A, %B %d, %Y'))
+        self.assertContains(resp, '9:00 AM')
+
+    def test_mutation_refreshes_grid_in_current_view(self):
+        # Adding a slot from the week view must OOB-refresh the WEEK grid,
+        # not silently swap the calendar back to month view.
+        resp = self.client.post(reverse('secretary:schedule_slot_add'), {
+            'specific_date': self.tomorrow.isoformat(),
+            'start_time': '13:00', 'end_time': '16:00',
+            'grid_view': 'week',
+        })
+        self.assertEqual(resp.status_code, 200)
+        self.assertContains(resp, 'hx-swap-oob')
+        self.assertContains(resp, 'view=week')
+
+    def test_unassigned_secretary_cannot_add(self):
+        User.objects.create_user(
+            username='lonelysecretary', email='lonelysecretary@test.com',
+            password='testpass123', role='secretary')
+        # No SecretaryProfile at all — the view must not crash and must
+        # not create anything.
+        self.client.login(username='lonelysecretary', password='testpass123')
+        before = Schedule.objects.count()
+        resp = self.client.post(reverse('secretary:schedule_slot_add'), {
+            'specific_date': self.tomorrow.isoformat(),
+            'start_time': '13:00', 'end_time': '16:00',
+        })
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(Schedule.objects.count(), before)

@@ -1,7 +1,7 @@
 import logging
 
 from django.conf import settings
-from django.core.mail import get_connection, EmailMessage
+from django.core.mail import get_connection, EmailMultiAlternatives
 from django.template.loader import render_to_string
 
 from accounts.models import CustomUser
@@ -36,10 +36,9 @@ def send_broadcast(broadcast):
     )
 
     emailable = [u for u in recipients if broadcast.override_opt_out or _should_email(u)]
-    email_body = render_to_string('notifications/email/announcement.html', {
-        'subject': broadcast.subject,
-        'body': broadcast.message,
-    })
+    email_ctx = {'subject': broadcast.subject, 'body': broadcast.message}
+    email_body = render_to_string('notifications/email/announcement.html', email_ctx)
+    email_html = render_to_string('notifications/email/html/announcement.html', email_ctx)
 
     sent = 0
     for i in range(0, len(emailable), EMAIL_CHUNK_SIZE):
@@ -47,11 +46,13 @@ def send_broadcast(broadcast):
         connection = get_connection(fail_silently=True)
         try:
             connection.open()
-            messages = [
-                EmailMessage(broadcast.subject, email_body, settings.DEFAULT_FROM_EMAIL,
-                             [u.email], connection=connection)
-                for u in chunk
-            ]
+            messages = []
+            for u in chunk:
+                msg = EmailMultiAlternatives(broadcast.subject, email_body,
+                                             settings.DEFAULT_FROM_EMAIL,
+                                             [u.email], connection=connection)
+                msg.attach_alternative(email_html, 'text/html')
+                messages.append(msg)
             sent += connection.send_messages(messages) or 0
         except Exception:
             logger.exception('Broadcast #%s: email batch starting at %s failed', broadcast.pk, i)

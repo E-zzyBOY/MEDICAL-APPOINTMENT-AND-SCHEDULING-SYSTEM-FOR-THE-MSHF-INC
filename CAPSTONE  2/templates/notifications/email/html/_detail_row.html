@@ -1,0 +1,9 @@
+{% comment %}
+One label/value row inside a details table. `emph=True` renders the value
+larger and in the brand green — used for the fields the reader is looking
+for (Date, Time, codes). Include inside a <table> wrapper.
+{% endcomment %}
+<tr>
+  <td style="padding:5px 0;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#6B7280;width:130px;vertical-align:top;">{{ label }}</td>
+  <td style="padding:5px 0;font-family:Arial,Helvetica,sans-serif;font-size:{% if emph %}15px{% else %}13px{% endif %};font-weight:bold;color:{% if emph %}#183E0C{% else %}#1F2937{% endif %};">{{ value }}</td>
+</tr>

@@ -1,0 +1,6 @@
+{% extends "notifications/email/html/base_email.html" %}
+{% block content %}
+<p style="margin:0 0 4px;font-family:Arial,Helvetica,sans-serif;font-size:11px;font-weight:bold;letter-spacing:1.5px;color:#5E9A3C;">ANNOUNCEMENT</p>
+<p style="margin:0 0 14px;font-family:Arial,Helvetica,sans-serif;font-size:18px;font-weight:bold;line-height:1.4;color:#1F2937;">{{ subject }}</p>
+<p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:1.7;color:#374151;">{{ body|linebreaksbr }}</p>
+{% endblock %}

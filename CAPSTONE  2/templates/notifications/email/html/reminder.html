@@ -1,0 +1,27 @@
+{% extends "notifications/email/html/base_email.html" %}
+{% block content %}
+<p style="margin:0 0 14px;font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:1.6;color:#374151;">Dear <strong>{{ patient_name }}</strong>,</p>
+<p style="margin:0 0 14px;font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:1.6;color:#374151;">This is a friendly reminder that you have an appointment scheduled for
+  <span style="display:inline-block;background-color:#5E9A3C;color:#ffffff;font-family:Arial,Helvetica,sans-serif;font-size:11px;font-weight:bold;letter-spacing:1.5px;border-radius:999px;padding:3px 12px;vertical-align:middle;">TOMORROW</span>
+  at Mindalano Specialist Hospital Foundation Inc.</p>
+<p style="margin:0 0 6px;font-family:Arial,Helvetica,sans-serif;font-size:15px;font-weight:bold;color:#1F2937;">Appointment Details</p>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:4px 0 18px;">
+  <tr>
+    <td style="background-color:#F5F7FA;border-radius:10px;padding:14px 20px;">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+        {% include "notifications/email/html/_detail_row.html" with label="Doctor" value=doctor_name %}
+        {% include "notifications/email/html/_detail_row.html" with label="Date" value=date emph=True %}
+        {% include "notifications/email/html/_detail_row.html" with label="Time" value=time emph=True %}
+      </table>
+    </td>
+  </tr>
+</table>
+<p style="margin:0 0 6px;font-family:Arial,Helvetica,sans-serif;font-size:15px;font-weight:bold;color:#1F2937;">Please remember to:</p>
+<ul style="margin:0 0 16px;padding-left:20px;font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:1.8;color:#374151;">
+  <li>Arrive <strong>15 minutes early</strong> for check-in</li>
+  <li>Bring any previous medical records or prescriptions</li>
+  <li>Fast if required for blood tests (consult your doctor)</li>
+</ul>
+<p style="margin:0 0 14px;font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:1.6;color:#374151;">If you need to cancel or reschedule, please log in to your patient portal as soon as possible.</p>
+<p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:1.6;color:#374151;">We look forward to seeing you.</p>
+{% endblock %}

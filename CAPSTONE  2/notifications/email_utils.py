@@ -1,10 +1,25 @@
 import logging
 
-from django.core.mail import send_mail
+from django.core.mail import EmailMultiAlternatives
 from django.template.loader import render_to_string
 from django.conf import settings
 
 logger = logging.getLogger(__name__)
+
+
+def _send_email(subject, template, ctx, recipients, fail_silently):
+    """Single choke point for every outgoing email: sends the existing
+    plain-text template as the body PLUS a branded HTML alternative (the
+    html/ variant of the same template name), so mail clients that render
+    HTML show the important information highlighted while plain-text
+    clients — and the tests that regex-parse .body — still get the
+    original text."""
+    text_body = render_to_string(f'notifications/email/{template}', ctx)
+    html_body = render_to_string(f'notifications/email/html/{template}', ctx)
+    msg = EmailMultiAlternatives(subject, text_body,
+                                 settings.DEFAULT_FROM_EMAIL, recipients)
+    msg.attach_alternative(html_body, 'text/html')
+    msg.send(fail_silently=fail_silently)
 
 
 def _should_email(patient):
@@ -33,10 +48,8 @@ def send_verification_email(user, code, ttl_minutes=10):
         'code':         code,
         'ttl_minutes':  ttl_minutes,
     }
-    message = render_to_string('notifications/email/verify_email.html', ctx)
     try:
-        send_mail(subject, message, settings.DEFAULT_FROM_EMAIL,
-                  [user.email], fail_silently=False)
+        _send_email(subject, 'verify_email.html', ctx, [user.email], fail_silently=False)
     except Exception:
         # Never let a mail outage break registration itself, but DO leave
         # the real SMTP error in the server logs — a silently missing
@@ -55,10 +68,8 @@ def send_password_changed_email(user):
         'user_name': user.get_full_name() or user.username,
         'username':  user.username,
     }
-    message = render_to_string('notifications/email/password_changed.html', ctx)
     try:
-        send_mail(subject, message, settings.DEFAULT_FROM_EMAIL,
-                  [user.email], fail_silently=False)
+        _send_email(subject, 'password_changed.html', ctx, [user.email], fail_silently=False)
     except Exception:
         logger.exception('Password-changed email to %s failed to send', user.email)
 
@@ -72,10 +83,8 @@ def send_account_deactivated_email(user):
         'user_name': user.get_full_name() or user.username,
         'username':  user.username,
     }
-    message = render_to_string('notifications/email/account_deactivated.html', ctx)
     try:
-        send_mail(subject, message, settings.DEFAULT_FROM_EMAIL,
-                  [user.email], fail_silently=False)
+        _send_email(subject, 'account_deactivated.html', ctx, [user.email], fail_silently=False)
     except Exception:
         logger.exception('Account-deactivated email to %s failed to send', user.email)
 
@@ -94,10 +103,8 @@ def send_account_created_email(user, plain_password):
         'password':  plain_password,
         'role':      user.get_role_display(),
     }
-    message = render_to_string('notifications/email/account_created.html', ctx)
     try:
-        send_mail(subject, message, settings.DEFAULT_FROM_EMAIL,
-                  [user.email], fail_silently=False)
+        _send_email(subject, 'account_created.html', ctx, [user.email], fail_silently=False)
     except Exception:
         logger.exception('Account-created email to %s failed to send', user.email)
 
@@ -116,10 +123,8 @@ def send_password_reset_email(user, new_plain_password):
         'username':  user.username,
         'password':  new_plain_password,
     }
-    message = render_to_string('notifications/email/password_reset.html', ctx)
     try:
-        send_mail(subject, message, settings.DEFAULT_FROM_EMAIL,
-                  [user.email], fail_silently=False)
+        _send_email(subject, 'password_reset.html', ctx, [user.email], fail_silently=False)
         return True
     except Exception:
         logger.exception('Password-reset email to %s failed to send', user.email)
@@ -140,9 +145,8 @@ def send_booking_received_email(appointment):
         'date':         appointment.appointment_date.strftime('%B %d, %Y'),
         'reason':       appointment.reason,
     }
-    message = render_to_string('notifications/email/booking_received.html', ctx)
-    send_mail(subject, message, settings.DEFAULT_FROM_EMAIL,
-              [appointment.patient.email], fail_silently=True)
+    _send_email(subject, 'booking_received.html', ctx,
+                [appointment.patient.email], fail_silently=True)
 
 
 def send_time_assigned_email(appointment):
@@ -158,9 +162,8 @@ def send_time_assigned_email(appointment):
         'time':         _format_time_or_none(appointment.appointment_time),
         'reason':       appointment.reason,
     }
-    message = render_to_string('notifications/email/time_assigned.html', ctx)
-    send_mail(subject, message, settings.DEFAULT_FROM_EMAIL,
-              [appointment.patient.email], fail_silently=True)
+    _send_email(subject, 'time_assigned.html', ctx,
+                [appointment.patient.email], fail_silently=True)
 
 
 def send_booking_confirmation_email(appointment):
@@ -174,9 +177,8 @@ def send_booking_confirmation_email(appointment):
         'time':         _format_time_or_none(appointment.appointment_time),
         'reason':       appointment.reason,
     }
-    message = render_to_string('notifications/email/booking_confirmation.html', ctx)
-    send_mail(subject, message, settings.DEFAULT_FROM_EMAIL,
-              [appointment.patient.email], fail_silently=True)
+    _send_email(subject, 'booking_confirmation.html', ctx,
+                [appointment.patient.email], fail_silently=True)
 
 
 def send_cancellation_email(appointment, reason=''):
@@ -190,9 +192,8 @@ def send_cancellation_email(appointment, reason=''):
         'time':         _format_time_or_none(appointment.appointment_time),
         'reason':       reason or 'No reason provided.',
     }
-    message = render_to_string('notifications/email/cancellation_notice.html', ctx)
-    send_mail(subject, message, settings.DEFAULT_FROM_EMAIL,
-              [appointment.patient.email], fail_silently=True)
+    _send_email(subject, 'cancellation_notice.html', ctx,
+                [appointment.patient.email], fail_silently=True)
 
 
 def send_reschedule_email(appointment):
@@ -205,9 +206,8 @@ def send_reschedule_email(appointment):
         'date':         appointment.appointment_date.strftime('%B %d, %Y'),
         'time':         _format_time_or_none(appointment.appointment_time),
     }
-    message = render_to_string('notifications/email/reschedule_notice.html', ctx)
-    send_mail(subject, message, settings.DEFAULT_FROM_EMAIL,
-              [appointment.patient.email], fail_silently=True)
+    _send_email(subject, 'reschedule_notice.html', ctx,
+                [appointment.patient.email], fail_silently=True)
 
 
 def send_reminder_email(appointment):
@@ -220,9 +220,8 @@ def send_reminder_email(appointment):
         'date':         appointment.appointment_date.strftime('%B %d, %Y'),
         'time':         _format_time_or_none(appointment.appointment_time),
     }
-    message = render_to_string('notifications/email/reminder.html', ctx)
-    send_mail(subject, message, settings.DEFAULT_FROM_EMAIL,
-              [appointment.patient.email], fail_silently=True)
+    _send_email(subject, 'reminder.html', ctx,
+                [appointment.patient.email], fail_silently=True)
 
 
 def _staff_recipients(doctor):
@@ -237,6 +236,8 @@ def _staff_recipients(doctor):
 
 
 def _send_staff_email(appointment, subject, template, ctx=None):
+    """`template` is the basename shared by the text template and its html/
+    variant (see _send_email)."""
     ctx = ctx if ctx is not None else {
         'patient_name': appointment.patient.get_full_name(),
         'doctor_name':  f"Dr. {appointment.doctor.get_full_name()}",
@@ -244,11 +245,9 @@ def _send_staff_email(appointment, subject, template, ctx=None):
         'time':         _format_time_or_none(appointment.appointment_time),
         'reason':       appointment.reason,
     }
-    message = render_to_string(template, ctx)
     for staff_user in _staff_recipients(appointment.doctor):
         if _should_email(staff_user):
-            send_mail(subject, message, settings.DEFAULT_FROM_EMAIL,
-                      [staff_user.email], fail_silently=True)
+            _send_email(subject, template, ctx, [staff_user.email], fail_silently=True)
 
 
 def send_staff_new_booking_email(appointment):
@@ -256,7 +255,7 @@ def send_staff_new_booking_email(appointment):
     patient requested a new appointment awaiting time assignment."""
     _send_staff_email(
         appointment, "New Appointment Request — MSHFI",
-        'notifications/email/staff_new_booking.html',
+        'staff_new_booking.html',
     )
 
 
@@ -273,7 +272,7 @@ def send_staff_reschedule_request_email(appointment):
     }
     _send_staff_email(
         appointment, "Reschedule Request — MSHFI",
-        'notifications/email/staff_reschedule_request.html', ctx=ctx,
+        'staff_reschedule_request.html', ctx=ctx,
     )
 
 
@@ -282,7 +281,7 @@ def send_staff_cancellation_email(appointment):
     patient cancelled their appointment."""
     _send_staff_email(
         appointment, "Appointment Cancelled by Patient — MSHFI",
-        'notifications/email/staff_cancellation.html',
+        'staff_cancellation.html',
     )
 
 
@@ -292,5 +291,5 @@ def send_staff_reminder_email(appointment):
     (patient-facing) — used by the send_appointment_reminders command."""
     _send_staff_email(
         appointment, "Appointment Reminder — MSHFI (Tomorrow)",
-        'notifications/email/staff_reminder.html',
+        'staff_reminder.html',
     )

@@ -1,0 +1,26 @@
+{% extends "notifications/email/html/base_email.html" %}
+{% block content %}
+<p style="margin:0 0 14px;font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:1.6;color:#374151;">Dear <strong>{{ user_name }}</strong>,</p>
+<p style="margin:0 0 14px;font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:1.6;color:#374151;">An account has been created for you at Mindalano Specialist Hospital Foundation Inc. as a <strong style="color:#183E0C;">{{ role }}</strong>.</p>
+<p style="margin:0 0 6px;font-family:Arial,Helvetica,sans-serif;font-size:15px;font-weight:bold;color:#1F2937;">Your login credentials</p>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:4px 0 18px;">
+  <tr>
+    <td style="background-color:#F5F7FA;border-radius:10px;padding:14px 20px;">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+        {% include "notifications/email/html/_detail_row.html" with label="Username" value=username %}
+        <tr>
+          <td style="padding:5px 0;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#6B7280;width:130px;vertical-align:top;">Password</td>
+          <td style="padding:5px 0;font-family:'Courier New',Courier,monospace;font-size:16px;font-weight:bold;color:#183E0C;">{{ password }}</td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+</table>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:4px 0 0;">
+  <tr>
+    <td style="background-color:#FFFBEB;border-left:4px solid #F59E0B;border-radius:6px;padding:12px 16px;font-family:Arial,Helvetica,sans-serif;font-size:13px;line-height:1.6;color:#92400E;">
+      For your security, please log in and <strong>change your password as soon as possible</strong>.
+    </td>
+  </tr>
+</table>
+{% endblock %}

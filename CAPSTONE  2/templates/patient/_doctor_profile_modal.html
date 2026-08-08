@@ -27,8 +27,15 @@
   </div>
 </div>
 
-<!-- Stat badges (rating/reviews intentionally omitted — feedback is admin-only) -->
-<div class="grid grid-cols-2 gap-2 mb-6 max-w-[220px] mx-auto">
+<!-- Stat badges (avg rating now shown too, matching the doctor cards) -->
+<div class="grid grid-cols-3 gap-2 mb-6 max-w-[340px] mx-auto">
+  <div class="flex flex-col items-center gap-1.5">
+    <div class="size-12 rounded-full bg-[#F5F7FA] flex items-center justify-center">
+      <svg class="w-5 h-5 text-amber-400" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.958a1 1 0 00.95.69h4.162c.969 0 1.371 1.24.588 1.81l-3.367 2.446a1 1 0 00-.364 1.118l1.287 3.957c.3.922-.755 1.688-1.539 1.118l-3.367-2.446a1 1 0 00-1.176 0l-3.367 2.446c-.783.57-1.838-.196-1.538-1.118l1.286-3.957a1 1 0 00-.363-1.118L2.05 9.386c-.783-.57-.38-1.81.588-1.81h4.162a1 1 0 00.95-.69l1.286-3.958z"/></svg>
+    </div>
+    <p class="font-semibold text-sm text-[#1F2937]">{{ doctor.avg_rating|floatformat:1|default:"—" }}</p>
+    <p class="text-[10px] text-[#6B7280]">{{ doctor.review_count }} review{{ doctor.review_count|pluralize }}</p>
+  </div>
   <div class="flex flex-col items-center gap-1.5">
     <div class="size-12 rounded-full bg-[#F5F7FA] flex items-center justify-center">
       <svg class="w-5 h-5 text-[#1F2937]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6" d="M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m6-5.13a4 4 0 110-8 4 4 0 010 8zm-6 1a4 4 0 100-8 4 4 0 000 8z"/></svg>

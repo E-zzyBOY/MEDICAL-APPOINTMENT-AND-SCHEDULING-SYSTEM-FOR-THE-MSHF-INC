@@ -125,7 +125,14 @@ def _build_patient_dashboard_data(request):
         status='Completed'
     ).select_related('doctor').order_by('-appointment_date')[:5]
 
-    doctors_qs = CustomUser.objects.filter(role='doctor').select_related('doctor_profile')[:8]
+    doctors_qs = (
+        CustomUser.objects.filter(role='doctor')
+        .select_related('doctor_profile')
+        .annotate(
+            avg_rating=models.Avg('doctor_appointments__feedback__rating'),
+            review_count=models.Count('doctor_appointments__feedback'),
+        )[:8]
+    )
     specializations = _browsable_specializations()
 
     # "Available Today / Tomorrow" pills on the featured doctor cards —
@@ -244,6 +251,8 @@ def _build_patient_dashboard_data(request):
                 'specialization': d.doctor_profile.specialization if getattr(d, 'doctor_profile', None) else '',
                 'yearsExperience': d.doctor_profile.years_of_experience if getattr(d, 'doctor_profile', None) else None,
                 'availability': _availability(d.id),
+                'avgRating': round(float(d.avg_rating), 1) if d.avg_rating else None,
+                'reviewCount': d.review_count,
                 'photoUrl': d.profile_picture.url if d.profile_picture else None,
                 'href': f'/patient/doctors/{d.id}/',
             }
@@ -324,6 +333,8 @@ def book_step1(request):
         return incomplete
     doctors = CustomUser.objects.filter(role='doctor').select_related('doctor_profile').annotate(
         patient_count=models.Count('doctor_appointments__patient', distinct=True),
+        avg_rating=models.Avg('doctor_appointments__feedback__rating'),
+        review_count=models.Count('doctor_appointments__feedback'),
     )
     query = request.GET.get('q', '').strip()
     specialty = request.GET.get('specialty', '').strip()
@@ -345,17 +356,16 @@ def book_step1(request):
 @role_required('patient')
 def doctor_profile_view(request, doctor_id):
     doctor = get_object_or_404(
-        CustomUser.objects.annotate(
+        CustomUser.objects.select_related('doctor_profile').annotate(
             patient_count=models.Count('doctor_appointments__patient', distinct=True),
+            avg_rating=models.Avg('doctor_appointments__feedback__rating'),
+            review_count=models.Count('doctor_appointments__feedback'),
         ),
         pk=doctor_id, role='doctor'
     )
     schedules = Schedule.objects.filter(
         doctor=doctor, specific_date__gte=date.today()
     ).order_by('specific_date', 'start_time')
-    # Feedback (ratings/reviews) is intentionally not shown here, so a
-    # patient isn't swayed in their booking decision. Ratings reach listers
-    # via Admin's Feedback & Logs and the doctor's own "My Feedback" page.
     context = {'doctor': doctor, 'schedules': schedules, 'title': 'Doctor Profile'}
     if request.htmx:
         return render(request, 'patient/_doctor_profile_modal.html', context)

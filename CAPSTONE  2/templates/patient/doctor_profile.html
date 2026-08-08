@@ -34,6 +34,17 @@
       <div class="flex items-center gap-3 text-sm">
 
         <span class="text-[#4B5563]">{{ doctor.doctor_profile.years_of_experience|default:"—" }}{% if doctor.doctor_profile.years_of_experience %}+ Years Experience{% else %} Experience{% endif %}</span>
+        {% if doctor.avg_rating %}
+        <span class="h-4 w-px bg-[#E5E7EB]"></span>
+        <span class="flex items-center gap-1 text-[#4B5563]">
+          <svg class="w-3.5 h-3.5 text-amber-400" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.958a1 1 0 00.95.69h4.162c.969 0 1.371 1.24.588 1.81l-3.367 2.446a1 1 0 00-.364 1.118l1.287 3.957c.3.922-.755 1.688-1.539 1.118l-3.367-2.446a1 1 0 00-1.176 0l-3.367 2.446c-.783.57-1.838-.196-1.538-1.118l1.286-3.957a1 1 0 00-.363-1.118L2.05 9.386c-.783-.57-.38-1.81.588-1.81h4.162a1 1 0 00.95-.69l1.286-3.958z"/></svg>
+          {{ doctor.avg_rating|floatformat:1 }}
+          <span class="text-[#9CA3AF]">({{ doctor.review_count }} review{{ doctor.review_count|pluralize }})</span>
+        </span>
+        {% else %}
+        <span class="h-4 w-px bg-[#E5E7EB]"></span>
+        <span class="text-[#9CA3AF] flex items-center gap-1">No reviews yet</span>
+        {% endif %}
         <span class="h-4 w-px bg-[#E5E7EB]"></span>
         <span class="text-[#4B5563]">{{ doctor.patient_count }}{% if doctor.patient_count >= 50 %}+{% endif %} patients</span>
       </div>

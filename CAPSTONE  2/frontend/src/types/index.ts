@@ -98,6 +98,8 @@ export interface DoctorCard {
   specialization: string;
   yearsExperience?: number | null;
   availability?: string | null;
+  avgRating?: number | null;
+  reviewCount?: number;
   photoUrl?: string;
   href: string;
 }

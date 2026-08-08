@@ -12,6 +12,7 @@ import {
 	Smile,
 	Syringe,
 	Activity,
+	Star,
 } from "lucide-react";
 import { usePollingData } from "@/hooks/use-polling-data";
 import { PromoCarousel } from "@/components/promo-carousel";
@@ -21,11 +22,11 @@ import type { DashboardData, DoctorCard, CategoryItem } from "@/types";
    Patient home — ported from the "DesignbyAwais" mobile mockup.
    Section order matches the design exactly:
    header → search → promo carousel → Browse by Specialty → Featured
-   Doctors → Upcoming Appointment. Ratings were intentionally left out
-   (no patient-visible ratings exist in this system); the ♡ button is a
-   local-only toggle. The header has no avatar or bell — both already
-   live in the site header / bottom nav, so this just shows the greeting
-   text. ────────────────────────────────────────────────────────────── */
+   Doctors → Upcoming Appointment. Ratings come from real patient
+   Feedback averages (avgRating/reviewCount from the dashboard API); the ♡
+   button is a local-only toggle. The header has no avatar or bell — both
+   already live in the site header / bottom nav, so this just shows the
+   greeting. ───────────────────────────────────────────────────────────── */
 
 function WelcomeHeader({
 	greeting,
@@ -211,6 +212,30 @@ function FeaturedDoctorCard({ doc }: { doc: DoctorCard }) {
 					<p className="text-sm text-[#6B7280] mt-0.5">
 						{doc.yearsExperience}+ Years Experience
 					</p>
+				)}
+				{doc.avgRating != null ? (
+					<div className="flex items-center gap-0.5 mt-0.5">
+						{[1, 2, 3, 4, 5].map((i) => (
+							<Star
+								key={i}
+								className={
+									"size-3 " +
+									(doc.avgRating && doc.avgRating >= i
+										? "fill-amber-400 text-amber-400"
+										: "fill-[#E5E7EB] text-[#E5E7EB]")
+								}
+							/>
+						))}
+						<span className="text-xs font-medium text-[#1F2937] ml-0.5">
+							{doc.avgRating.toFixed(1)}
+						</span>
+						<span className="text-xs text-[#9CA3AF]">
+							({doc.reviewCount ?? 0} review
+							{doc.reviewCount === 1 ? "" : "s"})
+						</span>
+					</div>
+				) : (
+					<p className="text-xs text-[#9CA3AF] mt-0.5">No reviews yet</p>
 				)}
 				<div className="mt-3.5 flex items-center justify-between gap-2">
 					{doc.availability ? (

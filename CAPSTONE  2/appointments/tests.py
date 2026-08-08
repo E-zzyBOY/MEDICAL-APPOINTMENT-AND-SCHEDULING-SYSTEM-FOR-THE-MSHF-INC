@@ -6,7 +6,7 @@ from appointments.models import Appointment, Schedule
 from records.models import VitalSign, MedicalRecords, ResultsConsultation, Prescription
 from records.views import partition_vitals
 from accounts.models import (
-    PatientProfile, SecretaryProfile, SecretaryCoverage,
+    PatientProfile, DoctorProfile, SecretaryProfile, SecretaryCoverage,
     doctors_for_secretary, staff_users_for_doctor,
     SECRETARY_ACTIVE_DOCTOR_SESSION_KEY,
 )
@@ -986,3 +986,78 @@ class DoctorFeedbackAccessTestCase(TestCase):
         resp = self.client.get(reverse('doctor:feedback'))
         content = resp.content.decode()
         self.assertIn('Secretaries must not see this', content)
+
+
+class DoctorRatingDisplayTestCase(TestCase):
+    """Ratings now surface on patient-facing doctor cards (Search Doctors
+    list, doctor profile page/modal, and the dashboard API), reversing the
+    earlier decision to keep feedback admin-only."""
+
+    def setUp(self):
+        self.patient = User.objects.create_user(
+            username='rtpat', email='rtpat@test.com', password='testpass123',
+            role='patient', first_name='Ayesha', last_name='Manalao',
+            email_verified=True)
+        profile, _ = PatientProfile.objects.get_or_create(user=self.patient)
+        profile.address = '123 Mabini St., Marawi City'
+        profile.save()
+
+        self.rated = self._make_doctor('rateddoc', 'Rated', 'Doc', 'Cardiology')
+        self.unrated = self._make_doctor('plaindoc', 'Plain', 'Doc', 'Pediatrics')
+
+    def _make_doctor(self, username, first, last, spec):
+        doctor = User.objects.create_user(
+            username=username, email=f'{username}@test.com',
+            password='testpass123', role='doctor',
+            first_name=first, last_name=last)
+        DoctorProfile.objects.create(
+            user=doctor, specialization=spec, years_of_experience=5)
+        return doctor
+
+    def _add_feedback(self, doctor, rating):
+        appt = Appointment.objects.create(
+            patient=self.patient, doctor=doctor,
+            appointment_date=date.today(), appointment_time=time(9, 0),
+            status='Completed')
+        Feedback.objects.create(
+            patient=self.patient, appointment=appt, rating=rating,
+            comment='Thorough appointment')
+
+    def test_search_doctors_card_shows_rating_and_count(self):
+        self._add_feedback(self.rated, 5)
+        self._add_feedback(self.rated, 4)
+
+        self.client.login(username='rtpat', password='testpass123')
+        resp = self.client.get(reverse('patient:book_step1'))
+        self.assertEqual(resp.status_code, 200)
+        content = resp.content.decode()
+        self.assertIn('4.5', content)
+        self.assertIn('(2 reviews)', content)
+        self.assertIn('No reviews yet', content)
+
+    def test_doctor_profile_page_shows_rating(self):
+        self._add_feedback(self.rated, 5)
+        self._add_feedback(self.rated, 4)
+
+        self.client.login(username='rtpat', password='testpass123')
+        resp = self.client.get(reverse('patient:doctor_profile', args=[self.rated.pk]))
+        self.assertEqual(resp.status_code, 200)
+        content = resp.content.decode()
+        self.assertIn('4.5', content)
+        self.assertIn('(2 reviews)', content)
+
+        resp = self.client.get(reverse('patient:doctor_profile', args=[self.unrated.pk]))
+        self.assertIn('No reviews yet', resp.content.decode())
+
+    def test_dashboard_api_includes_rating_fields(self):
+        self._add_feedback(self.rated, 5)
+        self._add_feedback(self.rated, 4)
+
+        self.client.login(username='rtpat', password='testpass123')
+        resp = self.client.get(reverse('patient:dashboard_data'))
+        self.assertEqual(resp.status_code, 200)
+        doctors = {d['id']: d for d in resp.json()['doctors']}
+        self.assertEqual(doctors[str(self.rated.pk)]['avgRating'], 4.5)
+        self.assertEqual(doctors[str(self.rated.pk)]['reviewCount'], 2)
+        self.assertIsNone(doctors[str(self.unrated.pk)]['avgRating'])
+        self.assertEqual(doctors[str(self.unrated.pk)]['reviewCount'], 0)

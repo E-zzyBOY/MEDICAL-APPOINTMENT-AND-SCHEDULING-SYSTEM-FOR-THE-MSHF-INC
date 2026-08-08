@@ -684,3 +684,31 @@ class BookingProfileGateTests(SocialLoginTestBase):
             'doctor_id': '999', 'appointment_date': '2030-01-01',
         })
         self.assertRedirects(response, reverse('accounts:profile_edit'))
+
+
+class DoctorAccountMenuTestCase(TestCase):
+    """The doctor's profile page (the mobile bottom-nav Profile tab target)
+    links to "My Feedback"; other roles must not see that row."""
+
+    def setUp(self):
+        self.doctor = CustomUser.objects.create_user(
+            username='menudoc', email='menudoc@test.com',
+            password='testpass123', role='doctor',
+            first_name='Doc', last_name='One')
+        self.secretary = CustomUser.objects.create_user(
+            username='menusec', email='menusec@test.com',
+            password='testpass123', role='secretary',
+            first_name='Sec', last_name='Ret')
+
+    def test_doctor_profile_links_to_my_feedback(self):
+        self.client.login(username='menudoc', password='testpass123')
+        resp = self.client.get(reverse('accounts:profile_view'))
+        self.assertEqual(resp.status_code, 200)
+        self.assertContains(resp, '/doctor/feedback/')
+        self.assertContains(resp, 'My Feedback')
+
+    def test_other_roles_do_not_see_my_feedback(self):
+        self.client.login(username='menusec', password='testpass123')
+        resp = self.client.get(reverse('accounts:profile_view'))
+        self.assertEqual(resp.status_code, 200)
+        self.assertNotContains(resp, '/doctor/feedback/')

@@ -1,7 +1,7 @@
 from django.test import TestCase, Client
 from django.contrib.auth import get_user_model
 from django.urls import reverse
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, timedelta, time
 from appointments.models import Appointment, Schedule
 from records.models import VitalSign, MedicalRecords, ResultsConsultation, Prescription
 from records.views import partition_vitals
@@ -11,6 +11,7 @@ from accounts.models import (
     SECRETARY_ACTIVE_DOCTOR_SESSION_KEY,
 )
 from notifications.models import Notification
+from feedback.models import Feedback
 
 User = get_user_model()
 
@@ -883,3 +884,105 @@ class SecretaryCoverageTestCase(TestCase):
         self.assertEqual(resp.status_code, 302)
         self.sec_b.secretary_profile.refresh_from_db()
         self.assertEqual(self.sec_b.secretary_profile.assigned_doctor, self.doctor_a)
+
+
+class DoctorFeedbackAccessTestCase(TestCase):
+    """Doctor's "My Feedback" page: own-feedback-only scoping and
+    anonymized (masked) patient names, mirroring the admin feedback view."""
+
+    def setUp(self):
+        self.doctor_a = User.objects.create_user(
+            username='fbdoc',
+            email='fbdoc@test.com', password='testpass123',
+            role='doctor', first_name='Doc', last_name='One')
+        self.doctor_b = User.objects.create_user(
+            username='fbdocb',
+            email='fbdocb@test.com', password='testpass123',
+            role='doctor', first_name='Doc', last_name='Two')
+        self.patient_a = User.objects.create_user(
+            username='fbpat',
+            email='fbpat@test.com', password='testpass123',
+            role='patient', first_name='Sharima', last_name='Pancho')
+        self.other_patient = User.objects.create_user(
+            username='fbpat2',
+            email='fbpat2@test.com', password='testpass123',
+            role='patient', first_name='Lito', last_name='Dela Cruz')
+        self.secretary = User.objects.create_user(
+            username='fbsec',
+            email='fbsec@test.com', password='testpass123',
+            role='secretary')
+
+    def _completed_appointment(self, doctor, patient):
+        return Appointment.objects.create(
+            patient=patient, doctor=doctor,
+            appointment_date=date.today(),
+            appointment_time=time(9, 0), status='Completed')
+
+    def _add_feedback(self, appointment, rating, comment):
+        Feedback.objects.create(
+            patient=appointment.patient, appointment=appointment,
+            rating=rating, comment=comment)
+
+    def test_doctor_sees_only_their_own_feedback(self):
+        appt_a = self._completed_appointment(self.doctor_a, self.patient_a)
+        appt_b = self._completed_appointment(self.doctor_b, self.other_patient)
+        self._add_feedback(appt_a, 5, 'Great doctor, very thorough')
+        self._add_feedback(appt_a, 4, 'Kind and professional')
+        self._add_feedback(appt_b, 1, 'This belongs to another doctor')
+
+        self.client.login(username='fbdoc', password='testpass123')
+        resp = self.client.get(reverse('doctor:feedback'))
+        self.assertEqual(resp.status_code, 200)
+
+        content = resp.content.decode()
+        self.assertIn('Great doctor, very thorough', content)
+        self.assertIn('Kind and professional', content)
+        self.assertNotIn('This belongs to another doctor', content)
+
+    def test_patient_names_are_masked(self):
+        appt = self._completed_appointment(self.doctor_a, self.patient_a)
+        self._add_feedback(appt, 4, 'Nice clinic')
+
+        self.client.login(username='fbdoc', password='testpass123')
+        resp = self.client.get(reverse('doctor:feedback'))
+        content = resp.content.decode()
+
+        self.assertNotIn('Sharima', content)
+        self.assertNotIn('Pancho', content)
+        self.assertIn('Sha***', content)
+
+    def test_aggregate_summary_rendered(self):
+        appt = self._completed_appointment(self.doctor_a, self.patient_a)
+        self._add_feedback(appt, 5, 'Excellent')
+        appt2 = self._completed_appointment(
+            self.doctor_a, self.other_patient)
+        self._add_feedback(appt2, 4, 'Good')
+
+        self.client.login(username='fbdoc', password='testpass123')
+        resp = self.client.get(reverse('doctor:feedback'))
+        content = resp.content.decode()
+
+        self.assertEqual(resp.context['avg_rating'], 4.5)
+        self.assertEqual(resp.context['review_count'], 2)
+        self.assertIn('4.5', content)
+        self.assertIn('based on 2 reviews', content)
+
+    def test_feedback_empty_state(self):
+        self.client.login(username='fbdoc', password='testpass123')
+        resp = self.client.get(reverse('doctor:feedback'))
+        content = resp.content.decode()
+        self.assertEqual(resp.status_code, 200)
+        self.assertIn('No feedback yet', content)
+
+    def test_non_doctor_role_blocked(self):
+        appt = self._completed_appointment(self.doctor_a, self.patient_a)
+        self._add_feedback(appt, 5, 'Secretaries must not see this')
+
+        self.client.login(username='fbsec', password='testpass123')
+        resp = self.client.get(reverse('doctor:feedback'))
+        self.assertEqual(resp.status_code, 302)
+
+        self.client.login(username='fbdoc', password='testpass123')
+        resp = self.client.get(reverse('doctor:feedback'))
+        content = resp.content.decode()
+        self.assertIn('Secretaries must not see this', content)

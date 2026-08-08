@@ -3,7 +3,7 @@ from django.template.loader import render_to_string
 from django.urls import reverse
 from django.contrib import messages
 from django.db import transaction
-from django.db.models import Count, Case, When, Value, IntegerField, DateField, F, Q
+from django.db.models import Count, Avg, Case, When, Value, IntegerField, DateField, F, Q
 from django.http import JsonResponse, HttpResponse, HttpResponseNotAllowed
 from datetime import date, datetime, timedelta
 import calendar as calendar_module
@@ -16,6 +16,7 @@ from notifications.email_utils import (
     send_reminder_email
 )
 from notifications.models import Notification
+from feedback.models import Feedback
 
 
 def _notify(user, message):
@@ -1360,6 +1361,42 @@ def doctor_patient_records(request, patient_id):
     if request.htmx:
         return render(request, 'doctor/_records_list.html', context)
     return render(request, 'doctor/patient_records.html', context)
+
+
+@role_required('doctor')
+def doctor_feedback(request):
+    """My Feedback — the doctor's own aggregate rating and anonymized
+    patient comments. Deliberately a SEPARATE page from My Patients: that
+    list is clinical (records/vitals) and mixing in ratings could bias how
+    a doctor treats a patient based on a past review. Mirrors the same
+    feedback/ratings data powering Admin's Feedback & Logs, scoped to only
+    this doctor. Patient names are masked here (first 3 letters + ***),
+    same convention as the admin feedback view."""
+    feedback_qs = Feedback.objects.filter(
+        appointment__doctor=request.user
+    ).select_related('appointment', 'patient').order_by('-date_submitted')
+
+    avg_rating = feedback_qs.aggregate(avg=Avg('rating'))['avg']
+    count      = feedback_qs.count()
+
+    # Mask names in the view instead of the template so the raw patient
+    # object is never available to the page — anonymization is enforced at
+    # the data boundary, not just by display convention.
+    feedbacks = [
+        {
+            'masked_name': f"{fb.patient.get_full_name()[:3]}***",
+            'rating':      fb.rating,
+            'comment':     fb.comment,
+            'date':        fb.date_submitted,
+        }
+        for fb in feedback_qs
+    ]
+
+    return render(request, 'doctor/feedback.html', {
+        'feedbacks':   feedbacks,
+        'avg_rating':  avg_rating,
+        'review_count': count,
+    })
 
 
 @role_required('doctor')

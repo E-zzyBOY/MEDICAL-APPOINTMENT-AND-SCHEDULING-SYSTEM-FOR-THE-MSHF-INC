@@ -35,5 +35,6 @@ urlpatterns = [
     path('patients/<int:patient_id>/quickview/',    v.patient_quickview,         name='patient_quickview'),
     path('patients/<int:patient_id>/records/',      v.doctor_patient_records,    name='patient_records'),
     path('patients/<int:patient_id>/records/critical-info/', v.patient_critical_info, name='patient_critical_info'),
+    path('feedback/',                               v.doctor_feedback,             name='feedback'),
     path('notifications/',                          v.doctor_notifications,      name='notifications'),
 ]

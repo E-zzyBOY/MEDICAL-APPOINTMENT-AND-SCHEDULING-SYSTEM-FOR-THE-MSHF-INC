@@ -1,0 +1,54 @@
+{% extends "doctor/base_doctor.html" %}
+{% block page_title %}My Feedback{% endblock %}
+{% block doctor_content %}
+<div class="md:-mt-2">
+  <h1 class="md:hidden text-xl font-semibold text-ink text-center mb-5">My Feedback</h1>
+
+  <div class="max-w-3xl mx-auto">
+    {% if avg_rating %}
+    <div class="bg-white rounded-2xl border border-gray-200 shadow-soft-sm p-5 mb-5">
+      <p class="text-sm font-semibold text-gray-500 mb-1">Your average rating</p>
+      <div class="flex items-center gap-3">
+        <div class="flex items-center gap-0.5">
+          {% for i in "12345" %}
+            <span class="text-2xl {% if forloop.counter <= avg_rating %}text-amber-400{% else %}text-gray-200{% endif %}">★</span>
+          {% endfor %}
+        </div>
+        <p class="text-lg font-semibold text-gray-800">{{ avg_rating|floatformat:1 }} <span class="text-sm font-normal text-gray-400">/ 5</span></p>
+        <span class="text-sm text-gray-400">— based on {{ review_count }} review{{ review_count|pluralize }}</span>
+      </div>
+    </div>
+    {% endif %}
+
+    <div class="space-y-3">
+      {% if feedbacks %}
+        {% for fb in feedbacks %}
+        <div class="bg-white rounded-2xl border border-gray-200 shadow-soft-sm p-4">
+          <div class="flex items-center justify-between gap-4">
+            <div class="min-w-0">
+              <p class="text-xs font-medium text-gray-400">Anonymous Patient</p>
+              <p class="text-sm text-gray-500 truncate">{{ fb.masked_name }}</p>
+            </div>
+            <div class="flex items-center gap-3 flex-shrink-0">
+              <div class="flex gap-0.5">
+                {% for i in "12345" %}
+                <span class="text-sm {% if forloop.counter <= fb.rating %}text-amber-400{% else %}text-gray-200{% endif %}">★</span>
+                {% endfor %}
+              </div>
+              <p class="text-xs text-gray-400">{{ fb.date|date:"M j, Y" }}</p>
+            </div>
+          </div>
+          {% if fb.comment %}
+          <p class="mt-3 text-sm text-gray-600 whitespace-pre-line">{{ fb.comment }}</p>
+          {% else %}
+          <p class="mt-3 text-sm text-gray-400 italic">No comment</p>
+          {% endif %}
+        </div>
+        {% endfor %}
+      {% else %}
+      <p class="text-gray-400 text-center py-10">No feedback yet. Your patients' ratings and comments will appear here.</p>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

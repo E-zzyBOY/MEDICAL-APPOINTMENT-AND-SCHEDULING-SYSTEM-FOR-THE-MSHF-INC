@@ -353,8 +353,9 @@ def doctor_profile_view(request, doctor_id):
     schedules = Schedule.objects.filter(
         doctor=doctor, specific_date__gte=date.today()
     ).order_by('specific_date', 'start_time')
-    # Feedback (ratings/reviews) is intentionally not shown here — patients
-    # and doctors don't see it; only admin does, via the admin feedback list.
+    # Feedback (ratings/reviews) is intentionally not shown here, so a
+    # patient isn't swayed in their booking decision. Ratings reach listers
+    # via Admin's Feedback & Logs and the doctor's own "My Feedback" page.
     context = {'doctor': doctor, 'schedules': schedules, 'title': 'Doctor Profile'}
     if request.htmx:
         return render(request, 'patient/_doctor_profile_modal.html', context)

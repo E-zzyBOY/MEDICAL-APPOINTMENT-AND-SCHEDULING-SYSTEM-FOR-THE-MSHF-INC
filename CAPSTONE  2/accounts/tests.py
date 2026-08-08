@@ -712,3 +712,55 @@ class DoctorAccountMenuTestCase(TestCase):
         resp = self.client.get(reverse('accounts:profile_view'))
         self.assertEqual(resp.status_code, 200)
         self.assertNotContains(resp, '/doctor/feedback/')
+
+
+class ProfileMenuDuplicateNotificationsTestCase(TestCase):
+    """The shared profile menu (used by every role's mobile Profile tab)
+    must not duplicate the header bell as a "Notifications" list item."""
+
+    def setUp(self):
+        self.patient = CustomUser.objects.create_user(
+            username='menupat', email='menupat@test.com',
+            password='testpass123', role='patient',
+            first_name='Pat', last_name='One')
+        # Bypass the email-verification gate so the profile page renders.
+        self.patient.email_verified = True
+        self.patient.save(update_fields=['email_verified'])
+        self.doctor = CustomUser.objects.create_user(
+            username='menudoc', email='menudoc@test.com',
+            password='testpass123', role='doctor',
+            first_name='Doc', last_name='One')
+        self.secretary = CustomUser.objects.create_user(
+            username='menusec', email='menusec@test.com',
+            password='testpass123', role='secretary',
+            first_name='Sec', last_name='One')
+        self.admin = CustomUser.objects.create_user(
+            username='menuadmin', email='menuadmin@test.com',
+            password='testpass123', role='admin',
+            first_name='Ad', last_name='Min')
+
+    def _assert_profile_menu(self, username, doctor=False):
+        self.client.login(username=username, password='testpass123')
+        resp = self.client.get(reverse('accounts:profile_view'))
+        self.assertEqual(resp.status_code, 200)
+        # The menu row is gone; the header bell's aria-label remains the
+        # single notification access point.
+        self.assertNotContains(resp, 'Notifications</span>')
+        self.assertContains(resp, 'aria-label="Notifications"')
+        # Other menu items are untouched.
+        self.assertContains(resp, 'Edit Profile')
+        self.assertContains(resp, 'Settings')
+        if doctor:
+            self.assertContains(resp, '/doctor/feedback/')
+
+    def test_patient_profile_menu_has_no_notifications_row(self):
+        self._assert_profile_menu('menupat')
+
+    def test_doctor_profile_menu_has_no_notifications_row(self):
+        self._assert_profile_menu('menudoc', doctor=True)
+
+    def test_secretary_profile_menu_has_no_notifications_row(self):
+        self._assert_profile_menu('menusec')
+
+    def test_admin_profile_menu_has_no_notifications_row(self):
+        self._assert_profile_menu('menuadmin')

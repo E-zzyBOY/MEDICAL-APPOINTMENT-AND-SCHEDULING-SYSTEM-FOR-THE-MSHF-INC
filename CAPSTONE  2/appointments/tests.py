@@ -1061,3 +1061,51 @@ class DoctorRatingDisplayTestCase(TestCase):
         self.assertEqual(doctors[str(self.rated.pk)]['reviewCount'], 2)
         self.assertIsNone(doctors[str(self.unrated.pk)]['avgRating'])
         self.assertEqual(doctors[str(self.unrated.pk)]['reviewCount'], 0)
+
+
+class SecretaryRescheduleTabLabelsTestCase(TestCase):
+    """The Manage Appointments tabs must keep 'Pending Reschedule' and
+    'Rescheduled' clearly labeled and pointing at their own distinct
+    status — the two states are genuinely different (awaiting staff action
+    vs. already moved), so the ambiguous 'Reschedule' label must never
+    return."""
+
+    def setUp(self):
+        self.pending_patient = User.objects.create_user(
+            username='needsr', email='needsr@test.com', password='testpass123',
+            role='patient', first_name='Rufa', last_name='Needs')
+        self.done_patient = User.objects.create_user(
+            username='donedr', email='donedr@test.com', password='testpass123',
+            role='patient', first_name='Zaina', last_name='Resolved')
+        self.doctor = User.objects.create_user(
+            username='tabdoc', email='tabdoc@test.com', password='testpass123',
+            role='doctor', first_name='Steno', last_name='Fix')
+        self.secretary = User.objects.create_user(
+            username='tabsec', email='tabsec@test.com', password='testpass123',
+            role='secretary')
+        SecretaryProfile.objects.create(user=self.secretary, assigned_doctor=self.doctor)
+
+        self.future = date.today() + timedelta(days=3)
+        self.needs_action = Appointment.objects.create(
+            patient=self.pending_patient, doctor=self.doctor,
+            appointment_date=self.future, status='Pending Reschedule',
+            requested_date=self.future)
+        self.already_done = Appointment.objects.create(
+            patient=self.done_patient, doctor=self.doctor,
+            appointment_date=self.future, status='Rescheduled')
+        self.client.login(username='tabsec', password='testpass123')
+
+    def test_tabs_labeled_distinctly_and_filter_distinct_statuses(self):
+        resp = self.client.get(reverse('secretary:appointment_list'), {'status': 'Pending Reschedule'})
+        self.assertEqual(resp.status_code, 200)
+        content = resp.content.decode()
+        self.assertIn('>Pending Reschedule</a>', content)
+        self.assertIn('>Rescheduled</a>', content)
+        self.assertNotIn('>Reschedule</a>', content)
+        self.assertIn('Rufa', content)
+        self.assertNotIn('Zaina', content)
+
+        resp = self.client.get(reverse('secretary:appointment_list'), {'status': 'Rescheduled'})
+        content = resp.content.decode()
+        self.assertIn('Zaina', content)
+        self.assertNotIn('Rufa', content)

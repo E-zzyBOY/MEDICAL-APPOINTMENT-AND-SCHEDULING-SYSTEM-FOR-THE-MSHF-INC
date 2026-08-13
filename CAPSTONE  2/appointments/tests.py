@@ -506,17 +506,17 @@ class SecretaryAssignTimeDateNavigationTestCase(TestCase):
         data = resp.json()
         self.assertEqual(data['date'], self.yesterday.isoformat())
         self.assertTrue(data['is_past'])
-        self.assertEqual(data['occupied_times'], [])
+        self.assertEqual(data['slots'], [])
 
-        # explicit ?date= returns that date's blocks + occupancy instead
+        # explicit ?date= returns that date's server-generated slots instead
         resp = self.client.get(url, {'date': self.day_after.isoformat()})
         data = resp.json()
         self.assertEqual(data['date'], self.day_after.isoformat())
         self.assertFalse(data['is_past'])
         self.assertTrue(data['has_schedule'])
         self.assertIn('09:00-17:00', data['blocks'])
-        times = [o['time'] for o in data['occupied_times']]
-        self.assertIn('10:00', times)
+        occupied = [s['time'] for s in data['slots'] if s['status'] == 'occupied']
+        self.assertIn('10:00', occupied)
 
     def test_occupied_times_ignores_invalid_date(self):
         url = reverse('secretary:occupied_times', kwargs={'pk': self.appt.pk})

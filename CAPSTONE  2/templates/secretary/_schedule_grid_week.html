@@ -1,9 +1,9 @@
 {% comment %}
-Week view of the secretary's availability calendar: one Monday-to-Sunday
-strip for the week containing the anchor day. Clicking a day loads its
-manage-capable panel into #day-details (same as month view); Prev/Next
-move a week at a time. Rendered with oob=True to refresh in place after
-a slot change.
+Week view of the secretary's availability calendar: an hourly time grid
+(like Google Calendar), mirroring templates/doctor/_schedule_grid_week.html.
+Clicking a day header loads its manage-capable panel into #day-details
+(same as month view); Prev/Next move a week at a time. Rendered with
+oob=True to refresh in place after a slot change.
 {% endcomment %}
 <div id="secretary-schedule-grid" {% if oob %}hx-swap-oob="true"{% endif %} class="bg-white rounded-2xl border border-gray-200 shadow-soft-sm overflow-hidden">
   <!-- Header: title + week nav + view toggle -->
@@ -29,46 +29,69 @@ a slot change.
     </div>
   </div>
 
-  <!-- One-week strip -->
-  <div class="grid grid-cols-7">
+  <!-- Day-header strip: click a day to load its panel below -->
+  <div class="flex border-b border-gray-100">
+    <div class="w-10 md:w-12 shrink-0"></div>
     {% for cell in week_days %}
       {% if cell.status == 'past' %}
-      <div class="border-r border-b border-gray-100 min-h-[110px] md:min-h-[160px] p-1.5 md:p-2 pt-1.5 last:border-r-0 bg-white">
-        <p class="text-[9px] md:text-[11px] font-semibold text-gray-300 tracking-wider text-center">{{ cell.weekday }}</p>
-        <span class="mt-1 flex items-center justify-center size-6 mx-auto rounded-full text-[13px] font-semibold text-gray-300">{{ cell.day }}</span>
+      <div class="flex-1 min-w-0 border-l border-gray-100 py-2 text-center bg-white">
+        <p class="text-[9px] md:text-[11px] font-semibold text-gray-300 tracking-wider">{{ cell.weekday }}</p>
+        <span class="mt-1 inline-flex items-center justify-center size-6 rounded-full text-[13px] font-semibold text-gray-300">{{ cell.day }}</span>
       </div>
       {% else %}
       <div data-day-cell
            data-day-label="{{ cell.date }}"
            hx-get="{% url 'secretary:schedule_day_panel' %}?date={{ cell.date }}&view=week"
            hx-target="#day-details" hx-swap="outerHTML"
-           class="cursor-pointer hover:bg-brand-50/60 transition border-r border-b last:border-r-0 min-h-[110px] md:min-h-[160px] p-1.5 md:p-2 pt-1.5
-            {% if cell.date == today_iso %}border-brand-300 bg-brand-50/50 ring-1 ring-inset ring-brand-200
-            {% elif cell.status == 'has_slots' %}border-gray-100 bg-green-50/40
-            {% else %}border-gray-100{% endif %}">
-        <p class="text-[9px] md:text-[11px] font-semibold tracking-wider text-center {% if cell.date == today_iso %}text-brand-600{% else %}text-gray-400{% endif %}">{{ cell.weekday }}</p>
-        <span class="mt-1 flex items-center justify-center size-6 mx-auto rounded-full text-[13px] font-semibold
-          {% if cell.date == today_iso %}bg-brand-100 text-brand-700
-          {% else %}text-gray-800{% endif %}">
+           class="flex-1 min-w-0 border-l border-gray-100 py-2 text-center cursor-pointer transition
+            {% if cell.date == today_iso %}bg-brand-50/50{% else %}hover:bg-softgray/60{% endif %}">
+        <p class="text-[9px] md:text-[11px] font-semibold tracking-wider {% if cell.date == today_iso %}text-brand-600{% else %}text-gray-400{% endif %}">{{ cell.weekday }}</p>
+        <span class="mt-1 inline-flex items-center justify-center size-6 rounded-full text-[13px] font-semibold
+          {% if cell.date == today_iso %}bg-brand-100 text-brand-700{% else %}text-gray-800{% endif %}">
           {{ cell.day }}
         </span>
-        {% if cell.slots %}
-        <div class="mt-2 space-y-1">
-          {% for s in cell.slots %}
-          <div class="bg-white border border-green-200 rounded-md px-1 md:px-1.5 py-0.5">
-            <p class="text-[9px] md:text-[11px] font-medium text-green-700 leading-tight truncate">{{ s.start_time|time:"g:iA" }}&ndash;{{ s.end_time|time:"g:iA" }}</p>
-          </div>
-          {% endfor %}
-        </div>
-        {% endif %}
       </div>
       {% endif %}
     {% endfor %}
   </div>
 
+  <!-- Hourly time grid -->
+  <div class="flex overflow-y-auto" style="max-height: 420px;">
+    <div class="w-10 md:w-12 shrink-0 relative border-r border-gray-100" style="height: {{ total_height }}px;">
+      {% for row in hour_rows %}
+      <p class="absolute left-0 right-1.5 -translate-y-1/2 text-right text-[9px] md:text-[10px] text-gray-400" style="top: calc({{ forloop.counter0 }} * 60px);">{{ row.label }}</p>
+      {% endfor %}
+    </div>
+    <div class="flex-1 grid grid-cols-7 relative hour-grid-bg" style="height: {{ total_height }}px;">
+      {% for cell in week_days %}
+      <div class="relative border-l border-gray-100" style="height: {{ total_height }}px;">
+        {% for item in cell.blocks_pos %}
+        <div class="absolute left-0.5 right-0.5 rounded-md bg-green-100/80 border border-green-300 overflow-hidden px-1 py-0.5"
+             style="top: {{ item.top }}px; height: {{ item.height }}px;" title="{{ item.obj.start_time|time:'g:i A' }}–{{ item.obj.end_time|time:'g:i A' }}">
+          <p class="text-[9px] font-medium text-green-700 leading-tight truncate">{{ item.obj.start_time|time:"g:iA" }}&ndash;{{ item.obj.end_time|time:"g:iA" }}</p>
+        </div>
+        {% endfor %}
+        {% for item in cell.appts_pos %}
+        <div class="absolute left-0.5 right-0.5 rounded-md bg-brand-500 text-white overflow-hidden px-1 py-0.5 shadow-soft-sm"
+             style="top: {{ item.top }}px; height: {{ item.height }}px;" title="{{ item.obj.patient.get_full_name }} — {{ item.obj.appointment_time|time:'g:i A' }}">
+          <p class="text-[9px] font-semibold leading-tight truncate">{{ item.obj.appointment_time|time:"g:iA" }} {{ item.obj.patient.get_full_name }}</p>
+        </div>
+        {% endfor %}
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
   <!-- Legend -->
   <div class="flex items-center gap-4 px-4 md:px-6 py-3 border-t border-gray-100 text-[11px] text-gray-500">
-    <span class="flex items-center gap-1.5"><span class="size-2.5 rounded-full bg-green-100 border border-green-300"></span> Has slot(s)</span>
+    <span class="flex items-center gap-1.5"><span class="size-2.5 rounded-full bg-green-100 border border-green-300"></span> Available</span>
+    <span class="flex items-center gap-1.5"><span class="size-2.5 rounded-full bg-brand-500"></span> Booked appointment</span>
     <span class="flex items-center gap-1.5"><span class="size-2.5 rounded-full bg-brand-100 border border-brand-300"></span> Today</span>
   </div>
 </div>
+
+<style>
+  .hour-grid-bg {
+    background-image: repeating-linear-gradient(to bottom, #f3f4f6 0, #f3f4f6 1px, transparent 1px, transparent 60px);
+  }
+</style>

@@ -7,6 +7,9 @@
   You are not currently assigned to a doctor. Please contact the administrator.
 </div>
 {% else %}
+<div class="mb-5">
+  {% include "secretary/_schedule_template_editor.html" %}
+</div>
 <style>
   /* Mobile / narrowed-window default: stack profile -> calendar -> details */
   .doctor-schedule-layout {

@@ -7,7 +7,8 @@ from django.utils import timezone
 from datetime import date, datetime, timedelta
 import calendar as calendar_module
 from accounts.decorators import role_required
-from appointments.models import Appointment, Schedule, AppointmentPatientDetails, TIME_NULLS_FIRST
+from appointments.models import Appointment, Schedule, AppointmentPatientDetails, TIME_NULLS_FIRST, DoctorScheduleSettings
+from appointments import services
 from appointments.forms import PatientDetailsForm
 from accounts.models import CustomUser, PatientProfile, TERMS_VERSION, SPECIALIZATIONS
 from notifications.email_utils import (
@@ -50,7 +51,17 @@ def _compute_month_availability(doctor, year, month):
     'available', 'unavailable', 'past'.
     """
     today = date.today()
-    now_time = datetime.now().time()
+    settings_row = DoctorScheduleSettings.for_doctor(doctor)
+    services.sync_generated_schedule_for_doctor(doctor)
+    now_dt = timezone.localtime()
+    # A date beyond the doctor's scheduling window isn't offered yet, even
+    # if a Schedule block already exists on it (e.g. from the weekly
+    # template running further ahead than the window used to be).
+    window_end = today + timedelta(days=settings_row.advance_booking_days)
+    # "Today" additionally requires the doctor's minimum-notice policy to
+    # still leave room before their last working-hour block ends — not
+    # just that the block hasn't technically ended yet.
+    earliest_bookable = now_dt + timedelta(hours=settings_row.min_notice_hours)
     first_weekday, days_in_month = calendar_module.monthrange(year, month)
     month_start = date(year, month, 1)
     month_end   = date(year, month, days_in_month)
@@ -61,9 +72,10 @@ def _compute_month_availability(doctor, year, month):
         ).values_list('specific_date', flat=True)
     )
     # Today's own end times, so "today" can be marked unavailable once
-    # the doctor's last working-hour block has already elapsed — e.g. a
-    # patient browsing at 6 PM shouldn't be able to book "today" against
-    # an 8 AM–12 PM schedule that's long over.
+    # the doctor's last working-hour block has already elapsed (or falls
+    # within the minimum-notice window) — e.g. a patient browsing at 6 PM
+    # shouldn't be able to book "today" against an 8 AM–12 PM schedule
+    # that's long over.
     today_end_times = list(
         Schedule.objects.filter(doctor=doctor, specific_date=today).values_list('end_time', flat=True)
     )
@@ -74,8 +86,13 @@ def _compute_month_availability(doctor, year, month):
         current_date = date(year, month, day_num)
         if current_date < today:
             status = 'past'
+        elif current_date > window_end:
+            status = 'unavailable'
         elif current_date == today:
-            still_open = any(now_time < end for end in today_end_times)
+            still_open = any(
+                timezone.make_aware(datetime.combine(today, end)) > earliest_bookable
+                for end in today_end_times
+            )
             status = 'available' if (current_date in working_dates and still_open) else 'unavailable'
         elif current_date in working_dates:
             status = 'available'

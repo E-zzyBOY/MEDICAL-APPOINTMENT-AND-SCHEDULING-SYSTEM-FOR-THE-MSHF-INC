@@ -5,11 +5,18 @@ from django.contrib import messages
 from django.db import transaction
 from django.db.models import Count, Avg, Case, When, Value, IntegerField, DateField, F, Q
 from django.http import JsonResponse, HttpResponse, HttpResponseNotAllowed
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, time, timedelta
 import calendar as calendar_module
 from accounts.decorators import role_required
-from appointments.models import Appointment, Schedule, TIME_NULLS_FIRST
-from appointments.forms import ScheduleForm, RescheduleForm, AssignTimeForm, MultiDateScheduleForm
+from appointments.models import (
+    Appointment, Schedule, TIME_NULLS_FIRST,
+    DoctorScheduleSettings, ScheduleTemplate, ScheduleException,
+)
+from appointments.forms import (
+    ScheduleForm, RescheduleForm, AssignTimeForm, MultiDateScheduleForm,
+    DoctorScheduleSettingsForm, ScheduleTemplateForm,
+)
+from appointments import services
 from accounts.models import CustomUser
 from notifications.email_utils import (
     send_cancellation_email, send_reschedule_email, send_booking_received_email, send_time_assigned_email,
@@ -39,6 +46,13 @@ def _parse_int(value, default=None):
         return int(value)
     except (TypeError, ValueError):
         return default
+
+
+def _mark_exception(doctor, the_date):
+    """Marks a date as manually adjusted so the weekly-template sync never
+    regenerates/overwrites it — called whenever a doctor or secretary
+    touches a specific date through the per-date Add/Edit/Delete tools."""
+    ScheduleException.objects.get_or_create(doctor=doctor, date=the_date)
 
 
 def _notify_assigned_secretaries(doctor, message):
@@ -175,23 +189,125 @@ def _compute_schedule_month_with_slots(doctor, year, month):
     return weeks
 
 
+def _format_hour_label(h):
+    h = h % 24
+    ampm = 'AM' if h < 12 else 'PM'
+    hr = h % 12 or 12
+    return f"{hr} {ampm}"
+
+
+# Pixels per minute for the hourly time-grid (Week/Day views) — 1px/min =
+# 60px per hour row, a plain enough ratio that top/height math is just
+# "minutes since the axis start", no separate scale factor to carry around.
+GRID_PX_PER_MIN = 1
+
+
+def _time_grid_axis_and_positions(doctor, dates):
+    """Shared hour-axis + pixel-positioned blocks/appointments for the
+    Week and Day views' hourly time grid (like Google Calendar). Computes
+    one axis (in whole hours) covering every Schedule block and booked
+    Appointment across `dates`, clamped to at least 8AM-6PM, then positions
+    each block/appointment as top/height pixels against that axis so the
+    templates can render them as plain absolutely-positioned <div>s — no
+    JS/CSS calendar library involved."""
+    schedules = list(
+        Schedule.objects.filter(doctor=doctor, specific_date__in=dates)
+        .order_by('specific_date', 'start_time')
+    )
+    appts = list(
+        Appointment.objects.filter(
+            doctor=doctor, appointment_date__in=dates, appointment_time__isnull=False,
+            status__in=['Scheduled', 'Confirmed', 'Rescheduled'],
+        ).select_related('patient').order_by('appointment_date', 'appointment_time')
+    )
+    settings_row = DoctorScheduleSettings.for_doctor(doctor)
+    default_duration = settings_row.appointment_duration_minutes
+
+    def _appt_duration(a):
+        return a.duration_minutes or default_duration
+
+    min_hour, max_hour = None, None
+    for s in schedules:
+        sh, eh = s.start_time.hour, s.end_time.hour + (1 if s.end_time.minute else 0)
+        min_hour = sh if min_hour is None else min(min_hour, sh)
+        max_hour = eh if max_hour is None else max(max_hour, eh)
+    for a in appts:
+        end_dt = datetime.combine(date.min, a.appointment_time) + timedelta(minutes=_appt_duration(a))
+        sh = a.appointment_time.hour
+        eh = 24 if end_dt.date() != date.min else end_dt.hour + (1 if end_dt.minute else 0)
+        min_hour = sh if min_hour is None else min(min_hour, sh)
+        max_hour = eh if max_hour is None else max(max_hour, eh)
+
+    if min_hour is None:
+        axis_start, axis_end = 8, 18
+    else:
+        axis_start = max(0, min(min_hour, 8))
+        axis_end = min(24, max(max_hour, 18))
+        if axis_end <= axis_start:
+            axis_end = axis_start + 1
+    axis_start_min = axis_start * 60
+
+    blocks_by_date = {}
+    for s in schedules:
+        start_min = s.start_time.hour * 60 + s.start_time.minute
+        end_min = s.end_time.hour * 60 + s.end_time.minute
+        blocks_by_date.setdefault(s.specific_date, []).append({
+            'obj': s,
+            'top': (start_min - axis_start_min) * GRID_PX_PER_MIN,
+            'height': max((end_min - start_min) * GRID_PX_PER_MIN, 18),
+        })
+
+    appts_by_date = {}
+    for a in appts:
+        start_min = a.appointment_time.hour * 60 + a.appointment_time.minute
+        appts_by_date.setdefault(a.appointment_date, []).append({
+            'obj': a,
+            'top': (start_min - axis_start_min) * GRID_PX_PER_MIN,
+            'height': max(_appt_duration(a) * GRID_PX_PER_MIN, 18),
+        })
+
+    # Current-time indicator (like Google Calendar's red line) — only
+    # meaningful when today is one of the rendered dates and the current
+    # time falls within the axis, so day/week views past "now" simply
+    # don't show it.
+    now_top = None
+    today = date.today()
+    if today in dates:
+        now = datetime.now()
+        now_min = now.hour * 60 + now.minute
+        if axis_start_min <= now_min <= axis_end * 60:
+            now_top = (now_min - axis_start_min) * GRID_PX_PER_MIN
+
+    return {
+        'axis_start_hour': axis_start,
+        'axis_end_hour': axis_end,
+        'hour_rows': [{'hour': h, 'label': _format_hour_label(h)} for h in range(axis_start, axis_end)],
+        'total_height': (axis_end - axis_start) * 60 * GRID_PX_PER_MIN,
+        'blocks_by_date': blocks_by_date,
+        'appts_by_date': appts_by_date,
+        'now_top': now_top,
+        'show_now_line': now_top is not None,
+    }
+
+
 def _week_grid_context(doctor, anchor):
-    """Context for the Week calendar view: one Monday-to-Sunday strip of
-    day-cells for the week containing `anchor` (which is also the selected
-    day). Cells carry the FULL slot list — a single week row has room to
-    show every slot without the month grid's +N-more truncation. Shared by
-    the doctor and secretary calendars."""
+    """Context for the Week calendar view: an hourly time grid (like
+    Google Calendar) spanning Monday-to-Sunday for the week containing
+    `anchor` (which is also the selected day), with the doctor's
+    availability blocks and booked appointments positioned in their
+    correct time slots. Shared by the doctor and secretary calendars."""
     today = date.today()
     week_start = anchor - timedelta(days=anchor.weekday())
     week_end   = week_start + timedelta(days=6)
+    week_dates = [week_start + timedelta(days=i) for i in range(7)]
     slots_by_date = {}
     for s in Schedule.objects.filter(
         doctor=doctor, specific_date__gte=week_start, specific_date__lte=week_end,
     ).order_by('specific_date', 'start_time'):
         slots_by_date.setdefault(s.specific_date, []).append(s)
+    axis = _time_grid_axis_and_positions(doctor, week_dates)
     days = []
-    for i in range(7):
-        d = week_start + timedelta(days=i)
+    for d in week_dates:
         day_slots = slots_by_date.get(d, [])
         if d < today:
             status = 'past'
@@ -203,6 +319,8 @@ def _week_grid_context(doctor, anchor):
             'day': d.day, 'date': d.isoformat(),
             'weekday': d.strftime('%a').upper(),
             'status': status, 'slots': day_slots,
+            'blocks_pos': axis['blocks_by_date'].get(d, []),
+            'appts_pos': axis['appts_by_date'].get(d, []),
         })
     return {
         'view': 'week',
@@ -212,18 +330,90 @@ def _week_grid_context(doctor, anchor):
         'next_anchor': (week_start + timedelta(days=7)).isoformat(),
         'selected_date': anchor.isoformat(),
         'today_iso': today.isoformat(),
+        'axis_start_hour': axis['axis_start_hour'],
+        'axis_end_hour': axis['axis_end_hour'],
+        'hour_rows': axis['hour_rows'],
+        'total_height': axis['total_height'],
+        'now_top': axis['now_top'],
+        'show_now_line': axis['show_now_line'],
     }
 
 
+def _day_time_slots(doctor, the_date):
+    """Doctor-facing slot table for the Day view: every duration-stepped
+    slot inside the doctor's Schedule blocks for the date — the same step
+    grid patients book against (see services.generate_bookable_slots) — each
+    flagged with whichever booked Appointment (if any) occupies it. Unlike
+    generate_bookable_slots, which filters out past/at-cap slots because
+    it's used to decide what a *patient* may still book, this always
+    returns every slot in the grid since it's the doctor's own read of
+    their day."""
+    settings_row = DoctorScheduleSettings.for_doctor(doctor)
+    duration = settings_row.appointment_duration_minutes
+    step = duration + settings_row.buffer_minutes
+
+    blocks = list(
+        Schedule.objects.filter(doctor=doctor, specific_date=the_date)
+        .order_by('start_time').values_list('start_time', 'end_time')
+    )
+    if not blocks:
+        return []
+
+    booked_intervals = [
+        (*services.slot_interval(a.appointment_time, a.duration_minutes or duration), a)
+        for a in Appointment.objects.filter(
+            doctor=doctor, appointment_date=the_date,
+            appointment_time__isnull=False, status__in=services.OCCUPYING_STATUSES,
+        ).select_related('patient')
+    ]
+
+    now = datetime.now()
+    today = now.date()
+
+    seen_times = set()
+    slots = []
+    for start, end in blocks:
+        cursor = datetime.combine(the_date, start)
+        block_end = datetime.combine(the_date, end)
+        while cursor + timedelta(minutes=duration) <= block_end:
+            t = cursor.time()
+            if t in seen_times:
+                cursor += timedelta(minutes=step)
+                continue
+            seen_times.add(t)
+            slot_start, slot_end = services.slot_interval(t, duration)
+
+            appt = next(
+                (a for b_start, b_end, a in booked_intervals
+                 if services.intervals_overlap(slot_start, slot_end, b_start, b_end)),
+                None,
+            )
+            slots.append({
+                'start_time': t,
+                'end_time': slot_end,
+                'appt': appt,
+                'is_past': the_date < today or (the_date == today and t <= now.time()),
+            })
+            cursor += timedelta(minutes=step)
+
+    slots.sort(key=lambda s: s['start_time'])
+    return slots
+
+
 def _day_grid_context(doctor, anchor):
-    """Context for the Day calendar view: a single day's slots, full size.
-    Shared by the doctor and secretary calendars."""
+    """Context for the Day calendar view: an hourly time grid for a single
+    day, with availability blocks and booked appointments positioned in
+    their correct time slots. Shared by the doctor and secretary calendars."""
     today = date.today()
+    axis = _time_grid_axis_and_positions(doctor, [anchor])
     return {
         'view': 'day',
         'day_slots': list(
             Schedule.objects.filter(doctor=doctor, specific_date=anchor).order_by('start_time')
         ),
+        'day_time_slots': _day_time_slots(doctor, anchor),
+        'day_blocks_pos': axis['blocks_by_date'].get(anchor, []),
+        'day_appts_pos': axis['appts_by_date'].get(anchor, []),
         'range_display': anchor.strftime('%a, %b %d, %Y'),
         'day_full_display': anchor.strftime('%A, %B %d, %Y'),
         'day_is_past': anchor < today,
@@ -231,6 +421,12 @@ def _day_grid_context(doctor, anchor):
         'next_anchor': (anchor + timedelta(days=1)).isoformat(),
         'selected_date': anchor.isoformat(),
         'today_iso': today.isoformat(),
+        'axis_start_hour': axis['axis_start_hour'],
+        'axis_end_hour': axis['axis_end_hour'],
+        'hour_rows': axis['hour_rows'],
+        'total_height': axis['total_height'],
+        'now_top': axis['now_top'],
+        'show_now_line': axis['show_now_line'],
     }
 
 
@@ -310,49 +506,120 @@ def doctor_dashboard_data(request):
 
 @role_required('doctor')
 def schedule_list(request):
-    """Main 'My Schedule' page. Mobile shows a circle calendar with a
-    separate day-detail panel below; desktop shows a full grid with every
-    day's slots always visible inline, plus a sidebar that shows today's
-    schedule by default and switches to show whichever day is clicked."""
+    """Main 'My Schedule' page: a Calendar tab (full calendar-app view —
+    mini calendar + grid, mobile falls back to the circle calendar) and an
+    Availability & Settings tab (the recurring weekly template editor) —
+    mirrors how Google Calendar keeps its main calendar and its bookable-
+    schedule editor as two separate screens instead of one stacked page."""
+    services.sync_generated_schedule_for_doctor(request.user)
+    active_tab = request.GET.get('tab')
+    active_tab = active_tab if active_tab in ('calendar', 'availability') else 'calendar'
     selected_date_str = request.GET.get('date') or date.today().isoformat()
-    year, month = _resolve_calendar_month(request, selected_date_str)
-    calendar_weeks = _compute_schedule_month(request.user, year, month)
-    calendar_weeks_with_slots = _compute_schedule_month_with_slots(request.user, year, month)
-
-    selected_slots = []
-    try:
-        the_date = datetime.strptime(selected_date_str, '%Y-%m-%d').date()
-        selected_slots = list(
-            Schedule.objects.filter(doctor=request.user, specific_date=the_date).order_by('start_time')
-        )
-    except ValueError:
-        pass
 
     context = {
-        'calendar_weeks': calendar_weeks,
-        'calendar_weeks_with_slots': calendar_weeks_with_slots,
-        'calendar_year': year, 'calendar_month': month,
-        'calendar_month_name': calendar_module.month_name[month],
+        'active_tab': active_tab,
         'today_iso': date.today().isoformat(),
         'selected_date': selected_date_str,
         'selected_date_display': _format_date_str(selected_date_str),
-        'selected_slots': selected_slots,
-        'view': 'month',
     }
-    # ?view=week|day opens the desktop calendar in that view directly
-    # (the same views the Month/Week/Day toggle switches to via htmx).
-    view = _resolve_grid_view(request.GET.get('view'))
-    if view != 'month':
+
+    if active_tab == 'calendar':
+        year, month = _resolve_calendar_month(request, selected_date_str)
+        calendar_weeks = _compute_schedule_month(request.user, year, month)
+        calendar_weeks_with_slots = _compute_schedule_month_with_slots(request.user, year, month)
+
+        selected_slots = []
         try:
-            anchor = datetime.strptime(selected_date_str, '%Y-%m-%d').date()
+            the_date = datetime.strptime(selected_date_str, '%Y-%m-%d').date()
+            selected_slots = list(
+                Schedule.objects.filter(doctor=request.user, specific_date=the_date).order_by('start_time')
+            )
         except ValueError:
-            anchor = date.today()
-        context.update(
-            _week_grid_context(request.user, anchor) if view == 'week'
-            else _day_grid_context(request.user, anchor)
-        )
-    context.update(_panel_context_for_date(request.user, selected_date_str))
+            pass
+
+        context.update({
+            'calendar_weeks': calendar_weeks,
+            'calendar_weeks_with_slots': calendar_weeks_with_slots,
+            'calendar_year': year, 'calendar_month': month,
+            'calendar_month_name': calendar_module.month_name[month],
+            'selected_slots': selected_slots,
+            'view': 'month',
+        })
+        # ?view=week|day opens the desktop calendar in that view directly
+        # (the same views the Month/Week/Day toggle switches to via htmx).
+        view = _resolve_grid_view(request.GET.get('view'))
+        if view != 'month':
+            try:
+                anchor = datetime.strptime(selected_date_str, '%Y-%m-%d').date()
+            except ValueError:
+                anchor = date.today()
+            context.update(
+                _week_grid_context(request.user, anchor) if view == 'week'
+                else _day_grid_context(request.user, anchor)
+            )
+        context.update(_panel_context_for_date(request.user, selected_date_str))
+    else:
+        context.update(_template_editor_context(request.user))
+
     return render(request, 'doctor/schedule_list.html', context)
+
+
+def _template_preview_positions(weekday_rows):
+    """Pixel top/height for each ScheduleTemplate block per weekday, against
+    a shared hour axis (clamped 7AM-7PM, widened to fit any block outside
+    that range) — same 1px-per-minute math as _time_grid_axis_and_positions,
+    just keyed by weekday instead of date, for the small live week-preview
+    next to the Repeat Weekly editor (mirrors Google Calendar's 'Bookable
+    appointment schedule' side-by-side preview)."""
+    min_hour, max_hour = 7, 19
+    for row in weekday_rows:
+        for b in row['blocks']:
+            min_hour = min(min_hour, b.start_time.hour)
+            eh = b.end_time.hour + (1 if b.end_time.minute else 0)
+            max_hour = max(max_hour, eh)
+    axis_start_min = min_hour * 60
+
+    positioned_rows = []
+    for row in weekday_rows:
+        blocks_pos = [
+            {
+                'top': (b.start_time.hour * 60 + b.start_time.minute) - axis_start_min,
+                'height': max(
+                    (b.end_time.hour * 60 + b.end_time.minute)
+                    - (b.start_time.hour * 60 + b.start_time.minute),
+                    14,
+                ),
+            }
+            for b in row['blocks']
+        ]
+        positioned_rows.append({**row, 'blocks_pos': blocks_pos})
+
+    return {
+        'preview_weekday_rows': positioned_rows,
+        'preview_hour_rows': [{'hour': h, 'label': _format_hour_label(h)} for h in range(min_hour, max_hour)],
+        'preview_total_height': (max_hour - min_hour) * 60,
+    }
+
+
+def _template_editor_context(doctor):
+    """Weekly 'Repeat weekly' template editor data (7 weekday rows, each
+    with its own blocks) plus the doctor's derived-booking-rules settings,
+    for the My Schedule page's new sections."""
+    blocks_by_weekday = {}
+    for tmpl in ScheduleTemplate.objects.filter(doctor=doctor):
+        blocks_by_weekday.setdefault(tmpl.weekday, []).append(tmpl)
+    weekday_rows = [
+        {'weekday': wd, 'name': name, 'blocks': blocks_by_weekday.get(wd, [])}
+        for wd, name in ScheduleTemplate.WEEKDAY_CHOICES
+    ]
+    context = {
+        'template_weekday_rows': weekday_rows,
+        'today_weekday': date.today().weekday(),
+        'schedule_settings': DoctorScheduleSettings.for_doctor(doctor),
+        'settings_form': DoctorScheduleSettingsForm(instance=DoctorScheduleSettings.for_doctor(doctor)),
+    }
+    context.update(_template_preview_positions(weekday_rows))
+    return context
 
 
 @role_required('doctor')
@@ -369,6 +636,26 @@ def schedule_calendar_partial(request):
         'calendar_month_name': calendar_module.month_name[month],
         'today_iso': date.today().isoformat(),
         'selected_date': selected_date_str,
+    })
+
+
+@role_required('doctor')
+def schedule_mini_calendar_partial(request):
+    """Re-renders the desktop sidebar's compact 'jump to date' mini
+    calendar (month nav only — day clicks navigate the main grid widget
+    directly and repaint this one's selection client-side, see
+    _schedule_mini_calendar.html)."""
+    selected_date_str = request.GET.get('date', '')
+    view = _resolve_grid_view(request.GET.get('view'))
+    year, month = _resolve_calendar_month(request, selected_date_str)
+    calendar_weeks = _compute_schedule_month(request.user, year, month)
+    return render(request, 'doctor/_schedule_mini_calendar.html', {
+        'calendar_weeks': calendar_weeks,
+        'calendar_year': year, 'calendar_month': month,
+        'calendar_month_name': calendar_module.month_name[month],
+        'today_iso': date.today().isoformat(),
+        'selected_date': selected_date_str,
+        'view': view,
     })
 
 
@@ -404,6 +691,7 @@ def schedule_grid_partial(request):
     shows as selected) AND rides an out-of-band swap along in the same
     response to update the 'Today's Schedule' sidebar with that day's
     full detail (add/edit/delete) — no modal."""
+    services.sync_generated_schedule_for_doctor(request.user)
     view = _resolve_grid_view(request.GET.get('view'))
     selected_date_str = request.GET.get('date') or date.today().isoformat()
     try:
@@ -485,6 +773,35 @@ def schedule_day_info(request):
 
 
 @role_required('doctor')
+def schedule_day_popover(request):
+    """Small 'day preview' popover, like clicking a date in Google
+    Calendar: opened from any day cell in the month/week grid, shows that
+    day's availability blocks + booked appointments and quick actions,
+    without re-rendering the whole grid or losing scroll position."""
+    date_str = request.GET.get('date', '')
+    today = date.today()
+    try:
+        the_date = datetime.strptime(date_str, '%Y-%m-%d').date()
+    except ValueError:
+        the_date = today
+        date_str = the_date.isoformat()
+    appts = list(
+        Appointment.objects.filter(
+            doctor=request.user, appointment_date=the_date, appointment_time__isnull=False,
+            status__in=['Scheduled', 'Confirmed', 'Rescheduled'],
+        ).select_related('patient').order_by('appointment_time')
+    )
+    context = {
+        'title': the_date.strftime('%A, %B %d, %Y'),
+        'is_today': the_date == today,
+        'is_past': the_date < today,
+        'panel_appts': appts,
+        **_panel_context_for_date(request.user, date_str),
+    }
+    return render(request, 'doctor/_schedule_day_popover.html', context)
+
+
+@role_required('doctor')
 def schedule_add(request):
     """Add Slot now accepts MULTIPLE dates at once — the doctor multi-selects
     days on the calendar (pure client-side toggle, see the JS in
@@ -560,7 +877,9 @@ def schedule_add(request):
                     Schedule.objects.create(
                         doctor=request.user, specific_date=d,
                         start_time=start_time, end_time=end_time,
+                        source='manual',
                     )
+                    _mark_exception(request.user, d)
                     saved_dates.append(d)
 
             if saved_dates:
@@ -742,7 +1061,10 @@ def schedule_edit(request, pk):
                 })
         else:
             old_date, old_start, old_end = schedule.specific_date, schedule.start_time, schedule.end_time
+            updated.source = 'manual'
             updated.save()
+            _mark_exception(request.user, old_date)
+            _mark_exception(request.user, updated.specific_date)
             _notify_assigned_secretaries(
                 request.user,
                 f"Dr. {request.user.get_full_name()} updated a schedule slot: "
@@ -797,6 +1119,7 @@ def schedule_delete(request, pk):
             schedule.specific_date, schedule.start_time, schedule.end_time
         )
         schedule.delete()
+        _mark_exception(request.user, removed_date)
         _notify_assigned_secretaries(
             request.user,
             f"Dr. {request.user.get_full_name()} removed the schedule slot on "
@@ -820,6 +1143,242 @@ def schedule_delete(request, pk):
     if request.htmx:
         return render(request, 'doctor/_schedule_delete_modal.html', {'schedule': schedule})
     return render(request, 'doctor/schedule_confirm_delete.html', {'schedule': schedule})
+
+
+@role_required('doctor')
+def schedule_settings(request):
+    """Derived-booking-rules settings: appointment duration, buffer time,
+    max bookings/day, and the scheduling window (advance days + minimum
+    notice). Powers the new server-side slot generation used by the
+    assign-time tools and constrains which dates patients can book."""
+    settings_row = DoctorScheduleSettings.for_doctor(request.user)
+    if request.method == 'POST':
+        form = DoctorScheduleSettingsForm(request.POST, instance=settings_row)
+        if form.is_valid():
+            form.save()
+            services.sync_generated_schedule_for_doctor(request.user, force=True)
+            _notify_assigned_secretaries(
+                request.user,
+                f"Dr. {request.user.get_full_name()} updated their scheduling settings."
+            )
+            messages.success(request, 'Schedule settings updated.')
+            if request.htmx:
+                response = render(request, 'doctor/_schedule_settings_modal.html', {'form': form})
+                response['HX-Redirect'] = reverse('doctor:schedule_list') + '?tab=availability'
+                return response
+            return redirect(f"{reverse('doctor:schedule_list')}?tab=availability")
+    else:
+        form = DoctorScheduleSettingsForm(instance=settings_row)
+
+    context = {'form': form, 'title': 'Schedule Settings'}
+    if request.htmx:
+        return render(request, 'doctor/_schedule_settings_modal.html', context)
+    return render(request, 'doctor/schedule_settings_form.html', context)
+
+
+@role_required('doctor')
+def schedule_template_add(request):
+    """Adds one recurring weekly block (e.g. every Monday 9-12) to the
+    doctor's 'Repeat weekly' template. Overlap is checked against the
+    doctor's other blocks on the same weekday, mirroring schedule_add's
+    per-date overlap check."""
+    if request.method != 'POST':
+        return HttpResponseNotAllowed(['POST'])
+    form = ScheduleTemplateForm(request.POST)
+    if form.is_valid():
+        new_block = form.save(commit=False)
+        overlap = ScheduleTemplate.objects.filter(
+            doctor=request.user, weekday=new_block.weekday,
+            start_time__lt=new_block.end_time, end_time__gt=new_block.start_time,
+        ).exists()
+        if overlap:
+            messages.error(request, 'That overlaps with an existing block on that day of the week.')
+        else:
+            new_block.doctor = request.user
+            new_block.save()
+            services.sync_generated_schedule_for_doctor(request.user, force=True)
+            _notify_assigned_secretaries(
+                request.user,
+                f"Dr. {request.user.get_full_name()} updated their weekly availability template "
+                f"({new_block.get_weekday_display()} {new_block.start_time.strftime('%I:%M %p')}"
+                f"–{new_block.end_time.strftime('%I:%M %p')})."
+            )
+            messages.success(request, f'Added to {new_block.get_weekday_display()}.')
+    else:
+        messages.error(request, 'End time must be after start time.')
+
+    if request.htmx:
+        response = HttpResponse('')
+        response['HX-Redirect'] = reverse('doctor:schedule_list') + '?tab=availability'
+        return response
+    return redirect(f"{reverse('doctor:schedule_list')}?tab=availability")
+
+
+@role_required('doctor')
+def schedule_template_quick_add(request):
+    """Google-style '+' quick-add for the Repeat Weekly editor: creates one
+    new block for the given weekday with sensible default hours (9am-5pm,
+    or right after that day's last existing block) so the doctor can
+    immediately fine-tune the times inline via schedule_template_edit
+    instead of filling in a separate add-form first."""
+    if request.method != 'POST':
+        return HttpResponseNotAllowed(['POST'])
+    try:
+        weekday = int(request.POST.get('weekday', ''))
+    except (TypeError, ValueError):
+        messages.error(request, 'Invalid day.')
+        return redirect(f"{reverse('doctor:schedule_list')}?tab=availability")
+
+    existing = list(
+        ScheduleTemplate.objects.filter(doctor=request.user, weekday=weekday).order_by('start_time')
+    )
+    if existing:
+        start_time = existing[-1].end_time
+        end_dt = datetime.combine(date.min, start_time) + timedelta(hours=1)
+        end_time = end_dt.time() if end_dt.date() == date.min else time(23, 59)
+    else:
+        start_time, end_time = time(9, 0), time(17, 0)
+
+    if start_time >= end_time:
+        messages.error(request, "There's no room left in the day to add another block.")
+    else:
+        new_block = ScheduleTemplate.objects.create(
+            doctor=request.user, weekday=weekday, start_time=start_time, end_time=end_time,
+        )
+        services.sync_generated_schedule_for_doctor(request.user, force=True)
+        _notify_assigned_secretaries(
+            request.user,
+            f"Dr. {request.user.get_full_name()} updated their weekly availability template "
+            f"({new_block.get_weekday_display()} {new_block.start_time.strftime('%I:%M %p')}"
+            f"–{new_block.end_time.strftime('%I:%M %p')})."
+        )
+        messages.success(request, f'Added to {new_block.get_weekday_display()}.')
+
+    if request.htmx:
+        response = HttpResponse('')
+        response['HX-Redirect'] = reverse('doctor:schedule_list') + '?tab=availability'
+        return response
+    return redirect(f"{reverse('doctor:schedule_list')}?tab=availability")
+
+
+@role_required('doctor')
+def schedule_template_edit(request, pk):
+    """Inline edit of one weekly template block's times. The Google-style
+    editor keeps the time inputs directly on the day row (see
+    _schedule_template_editor.html) and auto-submits this on
+    hx-trigger="change" instead of a separate add-form popup."""
+    if request.method != 'POST':
+        return HttpResponseNotAllowed(['POST'])
+    block = get_object_or_404(ScheduleTemplate, pk=pk, doctor=request.user)
+    form = ScheduleTemplateForm(request.POST, instance=block)
+    if form.is_valid():
+        updated = form.save(commit=False)
+        overlap = ScheduleTemplate.objects.filter(
+            doctor=request.user, weekday=updated.weekday,
+            start_time__lt=updated.end_time, end_time__gt=updated.start_time,
+        ).exclude(pk=updated.pk).exists()
+        if overlap:
+            messages.error(request, 'That overlaps with another block on that day of the week.')
+        else:
+            updated.save()
+            services.sync_generated_schedule_for_doctor(request.user, force=True)
+            _notify_assigned_secretaries(
+                request.user,
+                f"Dr. {request.user.get_full_name()} updated their weekly availability template "
+                f"({updated.get_weekday_display()} {updated.start_time.strftime('%I:%M %p')}"
+                f"–{updated.end_time.strftime('%I:%M %p')})."
+            )
+            messages.success(request, f'Updated {updated.get_weekday_display()}.')
+    else:
+        messages.error(request, 'End time must be after start time.')
+
+    if request.htmx:
+        response = HttpResponse('')
+        response['HX-Redirect'] = reverse('doctor:schedule_list') + '?tab=availability'
+        return response
+    return redirect(f"{reverse('doctor:schedule_list')}?tab=availability")
+
+
+@role_required('doctor')
+def schedule_template_delete(request, pk):
+    """Removes one block from the weekly template. This never touches
+    already-generated Schedule rows directly — the next sync will simply
+    stop regenerating that block on future (non-exception) dates."""
+    if request.method != 'POST':
+        return HttpResponseNotAllowed(['POST'])
+    block = get_object_or_404(ScheduleTemplate, pk=pk, doctor=request.user)
+    weekday_display = block.get_weekday_display()
+    block.delete()
+    services.sync_generated_schedule_for_doctor(request.user, force=True)
+    _notify_assigned_secretaries(
+        request.user,
+        f"Dr. {request.user.get_full_name()} removed a weekly availability block on {weekday_display}."
+    )
+    messages.success(request, f'Removed from {weekday_display}.')
+    if request.htmx:
+        response = HttpResponse('')
+        response['HX-Redirect'] = reverse('doctor:schedule_list') + '?tab=availability'
+        return response
+    return redirect(f"{reverse('doctor:schedule_list')}?tab=availability")
+
+
+@role_required('doctor')
+def schedule_template_duplicate(request):
+    """Copies every block from one weekday onto one or more other weekdays
+    ('duplicate this day's blocks to other days'). Each target weekday is
+    validated independently — a target that already has a conflicting
+    block is skipped rather than failing the whole operation."""
+    if request.method != 'POST':
+        return HttpResponseNotAllowed(['POST'])
+    try:
+        source_weekday = int(request.POST.get('source_weekday', ''))
+    except (TypeError, ValueError):
+        messages.error(request, 'Invalid source day.')
+        return redirect(f"{reverse('doctor:schedule_list')}?tab=availability")
+
+    target_weekdays = []
+    for raw in request.POST.getlist('target_weekdays'):
+        try:
+            target_weekdays.append(int(raw))
+        except (TypeError, ValueError):
+            continue
+
+    source_blocks = list(ScheduleTemplate.objects.filter(doctor=request.user, weekday=source_weekday))
+    if not source_blocks:
+        messages.error(request, 'That day has no blocks to duplicate.')
+    else:
+        copied_to = []
+        for target in target_weekdays:
+            if target == source_weekday:
+                continue
+            for block in source_blocks:
+                overlap = ScheduleTemplate.objects.filter(
+                    doctor=request.user, weekday=target,
+                    start_time__lt=block.end_time, end_time__gt=block.start_time,
+                ).exists()
+                if not overlap:
+                    ScheduleTemplate.objects.create(
+                        doctor=request.user, weekday=target,
+                        start_time=block.start_time, end_time=block.end_time,
+                    )
+                    if target not in copied_to:
+                        copied_to.append(target)
+        if copied_to:
+            services.sync_generated_schedule_for_doctor(request.user, force=True)
+            names = ', '.join(dict(ScheduleTemplate.WEEKDAY_CHOICES)[w] for w in copied_to)
+            _notify_assigned_secretaries(
+                request.user,
+                f"Dr. {request.user.get_full_name()} duplicated weekly availability to {names}."
+            )
+            messages.success(request, f'Duplicated to {names}.')
+        else:
+            messages.error(request, 'Nothing was duplicated — every target day already had a conflicting block.')
+
+    if request.htmx:
+        response = HttpResponse('')
+        response['HX-Redirect'] = reverse('doctor:schedule_list') + '?tab=availability'
+        return response
+    return redirect(f"{reverse('doctor:schedule_list')}?tab=availability")
 
 
 @role_required('doctor')
@@ -923,8 +1482,11 @@ def _working_hours_for_date(doctor, the_date):
     )
 
 
-def _time_within_working_hours(the_time, blocks):
-    return any(start <= the_time < end for start, end in blocks)
+def _time_within_working_hours(the_time, blocks, duration_minutes=1):
+    """A slot of duration_minutes starting at the_time must fit entirely
+    inside at least one block — not just have its start time land inside
+    one, which would allow an appointment to run past the doctor's hours."""
+    return services.fits_within_blocks(the_time, duration_minutes, blocks)
 
 
 @role_required('doctor')
@@ -934,6 +1496,8 @@ def assign_appointment_time(request, pk):
     action — both roles can do this, whichever gets to it first."""
     appt = get_object_or_404(Appointment, pk=pk, doctor=request.user, status='Pending Assignment')
     blocks = _working_hours_for_date(appt.doctor, appt.appointment_date)
+    doctor_settings = DoctorScheduleSettings.for_doctor(appt.doctor)
+    duration = doctor_settings.appointment_duration_minutes
 
     if request.method == 'POST':
         form = AssignTimeForm(request.POST)
@@ -941,28 +1505,20 @@ def assign_appointment_time(request, pk):
             new_time = form.cleaned_data['appointment_time']
             if not blocks:
                 messages.error(request, "You have no working hours set for this date.")
-            elif not _time_within_working_hours(new_time, blocks):
+            elif not _time_within_working_hours(new_time, blocks, duration):
                 hours_display = ', '.join(
                     f"{s.strftime('%I:%M %p')}–{e.strftime('%I:%M %p')}" for s, e in blocks
                 )
-                messages.error(request, f"That time is outside your working hours ({hours_display}).")
+                messages.error(request, f"That time (plus your {duration}-minute appointment length) doesn't fit within your working hours ({hours_display}).")
             else:
                 with transaction.atomic():
-                    doctor_conflict = Appointment.objects.select_for_update().filter(
-                        doctor=appt.doctor,
-                        appointment_date=appt.appointment_date,
-                        appointment_time=new_time,
-                        status__in=['Scheduled', 'Rescheduled'],
-                    ).exclude(pk=appt.pk).exists()
-                    # The patient is allowed to have appointments with
-                    # several different doctors — only block them from
-                    # ending up double-booked at the exact same date/time.
-                    patient_conflict = Appointment.objects.select_for_update().filter(
-                        patient=appt.patient,
-                        appointment_date=appt.appointment_date,
-                        appointment_time=new_time,
-                        status__in=['Scheduled', 'Rescheduled'],
-                    ).exclude(pk=appt.pk).exists()
+                    result = services.check_appointment_conflict(
+                        doctor=appt.doctor, patient=appt.patient, the_date=appt.appointment_date,
+                        new_time=new_time, duration_minutes=duration,
+                        buffer_minutes=doctor_settings.buffer_minutes, exclude_pk=appt.pk,
+                    )
+                    doctor_conflict = result['doctor_conflict']
+                    patient_conflict = result['patient_conflict']
                     conflict = doctor_conflict or patient_conflict
                     if doctor_conflict:
                         messages.error(request, 'You already have another appointment at that time. Choose a different time.')
@@ -970,6 +1526,7 @@ def assign_appointment_time(request, pk):
                         messages.error(request, 'This patient already has another appointment at that time with a different doctor. Choose a different time.')
                     else:
                         appt.appointment_time = new_time
+                        appt.duration_minutes = duration
                         appt.status = 'Scheduled'
                         appt.save()
 
@@ -1001,31 +1558,26 @@ def assign_appointment_time(request, pk):
 
 @role_required('doctor')
 def get_occupied_times(request, pk):
-    """API endpoint — occupied appointment times for a doctor's appointment date.
-    Returns JSON: {'occupied_times': [{'time', 'time_display', 'patient', 'status'}]}"""
+    """API endpoint — server-generated bookable time slots for a doctor's
+    appointment date, derived from the doctor's Schedule blocks and
+    DoctorScheduleSettings (duration/buffer/max-per-day/min-notice).
+    Replaces the old client-side 30-minute splitting. Returns JSON:
+    {'slots': [{'time','time_display','status','patient'}], 'blocks': [...],
+     'has_schedule': bool, 'is_past': bool, 'date': 'YYYY-MM-DD', 'appointment_id': pk}"""
     appt = get_object_or_404(
         Appointment, pk=pk, doctor=request.user,
         status__in=['Pending Assignment', 'Scheduled', 'Rescheduled']
     )
-    occupied = Appointment.objects.filter(
-        doctor=request.user,
-        appointment_date=appt.appointment_date,
-        appointment_time__isnull=False,
-        status__in=['Scheduled', 'Rescheduled', 'Confirmed'],
-    ).exclude(pk=appt.pk).select_related('patient').values_list(
-        'appointment_time', 'patient__first_name', 'patient__last_name', 'status'
-    ).order_by('appointment_time')
-
-    occupied_list = [
-        {
-            'time':         t.strftime('%H:%M'),
-            'time_display': t.strftime('%I:%M %p'),
-            'patient':      f"{fn} {ln}",
-            'status':       st,
-        }
-        for t, fn, ln, st in occupied
-    ]
-    return JsonResponse({'occupied_times': occupied_list, 'appointment_id': pk})
+    blocks = _working_hours_for_date(request.user, appt.appointment_date)
+    slots = services.generate_bookable_slots(request.user, appt.appointment_date, exclude_appointment_pk=appt.pk)
+    return JsonResponse({
+        'slots': slots,
+        'blocks': [f"{s.strftime('%H:%M')}-{e.strftime('%H:%M')}" for s, e in blocks],
+        'has_schedule': bool(blocks),
+        'is_past': appt.appointment_date < date.today(),
+        'date': appt.appointment_date.strftime('%Y-%m-%d'),
+        'appointment_id': pk,
+    })
 
 
 @role_required('doctor')

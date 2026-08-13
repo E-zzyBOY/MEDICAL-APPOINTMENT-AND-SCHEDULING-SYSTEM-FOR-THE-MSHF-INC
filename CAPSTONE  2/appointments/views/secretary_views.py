@@ -8,12 +8,19 @@ from django.db import transaction
 from datetime import date, datetime, timedelta
 from django.db.models import Q, Count, Case, When, Value, IntegerField, F, DateField
 from accounts.decorators import role_required
-from appointments.models import Appointment, Schedule, TIME_NULLS_FIRST
-from appointments.forms import AssignTimeForm, ScheduleForm
+from appointments.models import (
+    Appointment, Schedule, TIME_NULLS_FIRST,
+    DoctorScheduleSettings, ScheduleTemplate, ScheduleException,
+)
+from appointments.forms import (
+    AssignTimeForm, ScheduleForm, DoctorScheduleSettingsForm, ScheduleTemplateForm,
+)
+from appointments import services
 from accounts.models import (
     CustomUser, PatientProfile, SecretaryCoverage, doctors_for_secretary,
     SECRETARY_ACTIVE_DOCTOR_SESSION_KEY,
 )
+from accounts.forms import WalkInPatientForm
 from notifications.email_utils import (
     send_cancellation_email, send_time_assigned_email, send_booking_confirmation_email,
     send_reminder_email
@@ -219,8 +226,11 @@ def _working_hours_for_date(doctor, the_date):
     )
 
 
-def _time_within_working_hours(the_time, blocks):
-    return any(start <= the_time < end for start, end in blocks)
+def _time_within_working_hours(the_time, blocks, duration_minutes=1):
+    """A slot of duration_minutes starting at the_time must fit entirely
+    inside at least one block — not just have its start time land inside
+    one, which would allow an appointment to run past working hours."""
+    return services.fits_within_blocks(the_time, duration_minutes, blocks)
 
 
 @role_required('secretary')
@@ -247,6 +257,8 @@ def assign_appointment_time(request, pk):
             except (ValueError, TypeError):
                 the_date = appt.appointment_date
     blocks = _working_hours_for_date(appt.doctor, the_date)
+    doctor_settings = DoctorScheduleSettings.for_doctor(appt.doctor)
+    duration = doctor_settings.appointment_duration_minutes
 
     if request.method == 'POST':
         form = AssignTimeForm(request.POST)
@@ -256,30 +268,20 @@ def assign_appointment_time(request, pk):
                 messages.error(request, "You can't assign a time on a date that's already passed.")
             elif not blocks:
                 messages.error(request, "The doctor has no working hours set for this date.")
-            elif not _time_within_working_hours(new_time, blocks):
+            elif not _time_within_working_hours(new_time, blocks, duration):
                 hours_display = ', '.join(
                     f"{s.strftime('%I:%M %p')}–{e.strftime('%I:%M %p')}" for s, e in blocks
                 )
-                messages.error(request, f"That time is outside the doctor's working hours ({hours_display}).")
+                messages.error(request, f"That time (plus the {duration}-minute appointment length) doesn't fit within the doctor's working hours ({hours_display}).")
             else:
                 with transaction.atomic():
-                    doctor_conflict = Appointment.objects.select_for_update().filter(
-                        doctor=appt.doctor,
-                        appointment_date=the_date,
-                        appointment_time=new_time,
-                        status__in=['Scheduled', 'Rescheduled'],
-                    ).exclude(pk=appt.pk).exists()
-                    # A patient is free to have appointments with several
-                    # different doctors — that's expected and allowed.
-                    # What must never happen is the SAME patient ending up
-                    # double-booked at the same date/time, even across two
-                    # different doctors.
-                    patient_conflict = Appointment.objects.select_for_update().filter(
-                        patient=appt.patient,
-                        appointment_date=the_date,
-                        appointment_time=new_time,
-                        status__in=['Scheduled', 'Rescheduled'],
-                    ).exclude(pk=appt.pk).exists()
+                    result = services.check_appointment_conflict(
+                        doctor=appt.doctor, patient=appt.patient, the_date=the_date,
+                        new_time=new_time, duration_minutes=duration,
+                        buffer_minutes=doctor_settings.buffer_minutes, exclude_pk=appt.pk,
+                    )
+                    doctor_conflict = result['doctor_conflict']
+                    patient_conflict = result['patient_conflict']
                     conflict = doctor_conflict or patient_conflict
                     if doctor_conflict:
                         messages.error(request, 'The doctor already has another appointment at that time. Choose a different time.')
@@ -288,6 +290,7 @@ def assign_appointment_time(request, pk):
                     else:
                         appt.appointment_date = the_date
                         appt.appointment_time = new_time
+                        appt.duration_minutes = duration
                         appt.status = 'Scheduled'
                         appt.secretary = request.user
                         appt.save()
@@ -329,6 +332,8 @@ def appointment_reschedule(request, pk):
         Appointment, pk=pk, status__in=['Scheduled', 'Rescheduled'], doctor=doctor
     )
     blocks = _working_hours_for_date(appt.doctor, appt.appointment_date)
+    doctor_settings = DoctorScheduleSettings.for_doctor(appt.doctor)
+    duration = doctor_settings.appointment_duration_minutes
 
     if request.method == 'POST':
         new_date_str = request.POST.get('new_date')
@@ -349,25 +354,20 @@ def appointment_reschedule(request, pk):
                     messages.error(request, f"Doctor has no working hours set for {new_date.strftime('%B %d, %Y')}.")
                 elif new_time_str:
                     new_time = datetime.strptime(new_time_str, '%H:%M').time()
-                    if not _time_within_working_hours(new_time, new_blocks):
+                    if not _time_within_working_hours(new_time, new_blocks, duration):
                         hours_display = ', '.join(
                             f"{s.strftime('%I:%M %p')}–{e.strftime('%I:%M %p')}" for s, e in new_blocks
                         )
-                        messages.error(request, f"That time is outside working hours ({hours_display}).")
+                        messages.error(request, f"That time (plus the {duration}-minute appointment length) doesn't fit within working hours ({hours_display}).")
                     else:
                         with transaction.atomic():
-                            doctor_conflict = Appointment.objects.select_for_update().filter(
-                                doctor=appt.doctor,
-                                appointment_date=new_date,
-                                appointment_time=new_time,
-                                status__in=['Scheduled', 'Rescheduled'],
-                            ).exclude(pk=appt.pk).exists()
-                            patient_conflict = Appointment.objects.select_for_update().filter(
-                                patient=appt.patient,
-                                appointment_date=new_date,
-                                appointment_time=new_time,
-                                status__in=['Scheduled', 'Rescheduled'],
-                            ).exclude(pk=appt.pk).exists()
+                            result = services.check_appointment_conflict(
+                                doctor=appt.doctor, patient=appt.patient, the_date=new_date,
+                                new_time=new_time, duration_minutes=duration,
+                                buffer_minutes=doctor_settings.buffer_minutes, exclude_pk=appt.pk,
+                            )
+                            doctor_conflict = result['doctor_conflict']
+                            patient_conflict = result['patient_conflict']
                             conflict = doctor_conflict or patient_conflict
                             if doctor_conflict:
                                 messages.error(request, 'Doctor already has an appointment at that time.')
@@ -376,6 +376,7 @@ def appointment_reschedule(request, pk):
                             else:
                                 appt.appointment_date = new_date
                                 appt.appointment_time = new_time
+                                appt.duration_minutes = duration
                                 appt.status = 'Rescheduled'
                                 appt.secretary = request.user
                                 appt.save()
@@ -644,9 +645,14 @@ def _schedule_calendar_context(doctor, year=None, month=None):
 @role_required('secretary')
 def view_all_schedules(request):
     doctor = _active_doctor(request)
+    if doctor:
+        services.sync_generated_schedule_for_doctor(doctor)
     schedules = Schedule.objects.filter(doctor=doctor).order_by('specific_date', 'start_time') if doctor else Schedule.objects.none()
     context = {'schedules': schedules, 'doctor': doctor}
     context.update(_schedule_calendar_context(doctor))
+    if doctor:
+        from appointments.views.doctor_views import _template_editor_context
+        context.update(_template_editor_context(doctor))
     # Seed the Selected Day panel with today so the page opens with
     # today's slots (and the add-slot controls) already visible.
     context.update(_day_panel_context(doctor, date.today()))
@@ -693,6 +699,8 @@ def schedule_grid_partial(request):
     navigates with ?year=&month= (Prev/Next a month at a time); week and
     day views (?view=week|day) anchor on ?date= instead."""
     doctor = _active_doctor(request)
+    if doctor:
+        services.sync_generated_schedule_for_doctor(doctor)
     from appointments.views.doctor_views import _resolve_grid_view
     view = _resolve_grid_view(request.GET.get('view'))
     if view != 'month':
@@ -780,7 +788,7 @@ def schedule_slot_add(request):
     existing slots."""
     if request.method != 'POST':
         return HttpResponseNotAllowed(['POST'])
-    from appointments.views.doctor_views import _resolve_grid_view
+    from appointments.views.doctor_views import _resolve_grid_view, _mark_exception
     doctor = _active_doctor(request)
     the_date = _panel_date(request.POST.get('specific_date'))
     grid_view = _resolve_grid_view(request.POST.get('grid_view'))
@@ -797,7 +805,9 @@ def schedule_slot_add(request):
             form.add_error(None, 'This overlaps with an existing time slot on that date.')
         else:
             new_slot.doctor = doctor
+            new_slot.source = 'manual'
             new_slot.save()
+            _mark_exception(doctor, new_slot.specific_date)
             _notify(
                 doctor,
                 f"{request.user.get_full_name()} (secretary) added a schedule slot for you on "
@@ -817,7 +827,7 @@ def schedule_slot_edit(request, pk):
     """Secretary changes the time of one of the assigned doctor's existing
     slots. The date stays fixed (hidden field) — the panel is always
     scoped to one selected day."""
-    from appointments.views.doctor_views import _resolve_grid_view
+    from appointments.views.doctor_views import _resolve_grid_view, _mark_exception
     doctor = _active_doctor(request)
     slot = get_object_or_404(Schedule, pk=pk, doctor=doctor)
     if request.method == 'POST':
@@ -833,7 +843,11 @@ def schedule_slot_edit(request, pk):
                 form.add_error(None, 'This overlaps with an existing time slot on that date.')
             else:
                 old_start, old_end = slot.start_time, slot.end_time
+                old_date = slot.specific_date
+                updated.source = 'manual'
                 updated.save()
+                _mark_exception(doctor, old_date)
+                _mark_exception(doctor, updated.specific_date)
                 _notify(
                     doctor,
                     f"{request.user.get_full_name()} (secretary) updated your schedule slot on "
@@ -859,7 +873,7 @@ def schedule_slot_edit(request, pk):
 def schedule_slot_delete(request, pk):
     """Secretary removes one of the assigned doctor's schedule slots
     (confirmation happens client-side via hx-confirm)."""
-    from appointments.views.doctor_views import _resolve_grid_view
+    from appointments.views.doctor_views import _resolve_grid_view, _mark_exception
     doctor = _active_doctor(request)
     slot = get_object_or_404(Schedule, pk=pk, doctor=doctor)
     if request.method != 'POST':
@@ -867,6 +881,7 @@ def schedule_slot_delete(request, pk):
     grid_view = _resolve_grid_view(request.POST.get('grid_view'))
     removed_date, removed_start, removed_end = slot.specific_date, slot.start_time, slot.end_time
     slot.delete()
+    _mark_exception(doctor, removed_date)
     _notify(
         doctor,
         f"{request.user.get_full_name()} (secretary) removed your schedule slot on "
@@ -877,6 +892,149 @@ def schedule_slot_delete(request, pk):
         request, doctor, removed_date, with_grid_oob=True,
         panel_message='Time slot removed.', grid_view=grid_view,
     )
+
+
+@role_required('secretary')
+def schedule_settings(request):
+    """Secretary version of the doctor's derived-booking-rules settings —
+    acts on the assigned/active doctor, mirrors doctor_views.schedule_settings."""
+    doctor = _active_doctor(request)
+    if not doctor:
+        return redirect('secretary:schedule_view')
+    settings_row = DoctorScheduleSettings.for_doctor(doctor)
+    if request.method == 'POST':
+        form = DoctorScheduleSettingsForm(request.POST, instance=settings_row)
+        if form.is_valid():
+            form.save()
+            services.sync_generated_schedule_for_doctor(doctor, force=True)
+            _notify(doctor, f"{request.user.get_full_name()} (secretary) updated your scheduling settings.")
+            messages.success(request, 'Schedule settings updated.')
+            if request.htmx:
+                response = render(request, 'secretary/_schedule_settings_modal.html', {'form': form, 'doctor': doctor})
+                response['HX-Redirect'] = reverse('secretary:schedule_view')
+                return response
+            return redirect('secretary:schedule_view')
+    else:
+        form = DoctorScheduleSettingsForm(instance=settings_row)
+
+    context = {'form': form, 'doctor': doctor, 'title': 'Schedule Settings'}
+    if request.htmx:
+        return render(request, 'secretary/_schedule_settings_modal.html', context)
+    return render(request, 'secretary/schedule_settings_form.html', context)
+
+
+@role_required('secretary')
+def schedule_template_add(request):
+    """Secretary adds a recurring weekly block to the active doctor's
+    'Repeat weekly' template. Mirrors doctor_views.schedule_template_add."""
+    if request.method != 'POST':
+        return HttpResponseNotAllowed(['POST'])
+    doctor = _active_doctor(request)
+    if not doctor:
+        return redirect('secretary:schedule_view')
+    form = ScheduleTemplateForm(request.POST)
+    if form.is_valid():
+        new_block = form.save(commit=False)
+        overlap = ScheduleTemplate.objects.filter(
+            doctor=doctor, weekday=new_block.weekday,
+            start_time__lt=new_block.end_time, end_time__gt=new_block.start_time,
+        ).exists()
+        if overlap:
+            messages.error(request, 'That overlaps with an existing block on that day of the week.')
+        else:
+            new_block.doctor = doctor
+            new_block.save()
+            services.sync_generated_schedule_for_doctor(doctor, force=True)
+            _notify(
+                doctor,
+                f"{request.user.get_full_name()} (secretary) updated your weekly availability template "
+                f"({new_block.get_weekday_display()} {new_block.start_time.strftime('%I:%M %p')}"
+                f"–{new_block.end_time.strftime('%I:%M %p')})."
+            )
+            messages.success(request, f'Added to {new_block.get_weekday_display()}.')
+    else:
+        messages.error(request, 'End time must be after start time.')
+
+    if request.htmx:
+        response = HttpResponse('')
+        response['HX-Redirect'] = reverse('secretary:schedule_view')
+        return response
+    return redirect('secretary:schedule_view')
+
+
+@role_required('secretary')
+def schedule_template_delete(request, pk):
+    """Mirrors doctor_views.schedule_template_delete, scoped to the active doctor."""
+    if request.method != 'POST':
+        return HttpResponseNotAllowed(['POST'])
+    doctor = _active_doctor(request)
+    block = get_object_or_404(ScheduleTemplate, pk=pk, doctor=doctor)
+    weekday_display = block.get_weekday_display()
+    block.delete()
+    services.sync_generated_schedule_for_doctor(doctor, force=True)
+    _notify(doctor, f"{request.user.get_full_name()} (secretary) removed a weekly availability block on {weekday_display}.")
+    messages.success(request, f'Removed from {weekday_display}.')
+    if request.htmx:
+        response = HttpResponse('')
+        response['HX-Redirect'] = reverse('secretary:schedule_view')
+        return response
+    return redirect('secretary:schedule_view')
+
+
+@role_required('secretary')
+def schedule_template_duplicate(request):
+    """Mirrors doctor_views.schedule_template_duplicate, scoped to the active doctor."""
+    if request.method != 'POST':
+        return HttpResponseNotAllowed(['POST'])
+    doctor = _active_doctor(request)
+    if not doctor:
+        return redirect('secretary:schedule_view')
+    try:
+        source_weekday = int(request.POST.get('source_weekday', ''))
+    except (TypeError, ValueError):
+        messages.error(request, 'Invalid source day.')
+        return redirect('secretary:schedule_view')
+
+    target_weekdays = []
+    for raw in request.POST.getlist('target_weekdays'):
+        try:
+            target_weekdays.append(int(raw))
+        except (TypeError, ValueError):
+            continue
+
+    source_blocks = list(ScheduleTemplate.objects.filter(doctor=doctor, weekday=source_weekday))
+    if not source_blocks:
+        messages.error(request, 'That day has no blocks to duplicate.')
+    else:
+        copied_to = []
+        for target in target_weekdays:
+            if target == source_weekday:
+                continue
+            for block in source_blocks:
+                overlap = ScheduleTemplate.objects.filter(
+                    doctor=doctor, weekday=target,
+                    start_time__lt=block.end_time, end_time__gt=block.start_time,
+                ).exists()
+                if not overlap:
+                    ScheduleTemplate.objects.create(
+                        doctor=doctor, weekday=target,
+                        start_time=block.start_time, end_time=block.end_time,
+                    )
+                    if target not in copied_to:
+                        copied_to.append(target)
+        if copied_to:
+            services.sync_generated_schedule_for_doctor(doctor, force=True)
+            names = ', '.join(dict(ScheduleTemplate.WEEKDAY_CHOICES)[w] for w in copied_to)
+            _notify(doctor, f"{request.user.get_full_name()} (secretary) duplicated weekly availability to {names}.")
+            messages.success(request, f'Duplicated to {names}.')
+        else:
+            messages.error(request, 'Nothing was duplicated — every target day already had a conflicting block.')
+
+    if request.htmx:
+        response = HttpResponse('')
+        response['HX-Redirect'] = reverse('secretary:schedule_view')
+        return response
+    return redirect('secretary:schedule_view')
 
 
 def _accessible_patient_ids(request):
@@ -909,6 +1067,44 @@ def secretary_patient_list(request):
     return render(request, 'secretary/patient_list.html', {
         'patients': patients.distinct(), 'search': search
     })
+
+
+@role_required('secretary')
+def walkin_register(request):
+    """Registers a patient who walked in with no account, generating them
+    a temporary login (see WalkInPatientForm), and checks them straight
+    into an appointment with the secretary's active doctor — mirroring
+    what appointment_confirm does for a normally-scheduled check-in."""
+    doctor = _active_doctor(request)
+    form = WalkInPatientForm(request.POST or None)
+    if request.method == 'POST' and doctor and form.is_valid():
+        with transaction.atomic():
+            user, temp_password = form.save()
+            appt = Appointment.objects.create(
+                patient=user,
+                doctor=doctor,
+                secretary=request.user,
+                appointment_date=date.today(),
+                appointment_time=None,
+                status='Confirmed',
+                reason=form.cleaned_data['reason'],
+            )
+        _notify(doctor, f"{request.user.get_full_name()} (secretary) checked in a walk-in patient: {user.get_full_name()}.")
+        vitals_url = reverse('secretary:vitals_add', kwargs={'patient_id': user.pk})
+        vitals_url += f'?appointment={appt.pk}'
+        context = {
+            'patient': user, 'username': user.username, 'temp_password': temp_password, 'vitals_url': vitals_url,
+            'title': 'Patient Registered & Checked In',
+        }
+        template = 'secretary/_walkin_credentials_modal.html' if request.htmx else 'secretary/walkin_credentials.html'
+        return render(request, template, context)
+
+    context = {
+        'form': form, 'assigned_doctor': doctor,
+        'title': 'Register Walk-In Patient',
+    }
+    template = 'secretary/_walkin_register_modal.html' if request.htmx else 'secretary/walkin_register.html'
+    return render(request, template, context)
 
 
 @role_required('secretary')
@@ -948,11 +1144,13 @@ def secretary_notifications(request):
 
 @role_required('secretary')
 def get_occupied_times(request, pk):
-    """API endpoint returning occupied appointment times for a doctor on a
-    specific date. Accepts an optional '?date=YYYY-MM-DD' to look up a date
-    other than the appointment's currently-requested one (used by the date
-    picker the assign-time modal now offers). Returns JSON with:
-    {'occupied_times': [{'time': 'HH:MM', 'patient': 'Name', 'status': ...}],
+    """API endpoint returning server-generated bookable time slots for a
+    doctor on a specific date, derived from the doctor's Schedule blocks
+    and DoctorScheduleSettings (duration/buffer/max-per-day/min-notice).
+    Accepts an optional '?date=YYYY-MM-DD' to look up a date other than the
+    appointment's currently-requested one (used by the date picker the
+    assign-time modal offers). Returns JSON with:
+    {'slots': [{'time','time_display','status','patient'}],
      'patient_conflicts': [...], 'blocks': ['HH:MM-HH:MM', ...],
      'is_past': bool, 'has_schedule': bool, 'date': 'YYYY-MM-DD'}"""
     doctor = _active_doctor(request)
@@ -970,24 +1168,7 @@ def get_occupied_times(request, pk):
         except (ValueError, TypeError):
             the_date = appt.appointment_date
 
-    occupied = Appointment.objects.filter(
-        doctor=appt.doctor,
-        appointment_date=the_date,
-        appointment_time__isnull=False,
-        status__in=['Scheduled', 'Rescheduled', 'Confirmed'],
-    ).exclude(pk=appt.pk).select_related('patient').values_list(
-        'appointment_time', 'patient__first_name', 'patient__last_name', 'status'
-    ).order_by('appointment_time')
-
-    occupied_list = [
-        {
-            'time': time.strftime('%H:%M'),
-            'time_display': time.strftime('%I:%M %p'),
-            'patient': f"{first_name} {last_name}",
-            'status': status,
-        }
-        for time, first_name, last_name, status in occupied
-    ]
+    slots = services.generate_bookable_slots(appt.doctor, the_date, exclude_appointment_pk=appt.pk)
 
     # Times where THIS patient is already booked with a different doctor —
     # mirrors the patient_conflict check in assign_appointment_time so the
@@ -1013,7 +1194,7 @@ def get_occupied_times(request, pk):
 
     blocks = _working_hours_for_date(appt.doctor, the_date)
     return JsonResponse({
-        'occupied_times': occupied_list,
+        'slots': slots,
         'patient_conflicts': patient_conflict_list,
         'blocks': [
             f"{s.strftime('%H:%M')}-{e.strftime('%H:%M')}" for s, e in blocks

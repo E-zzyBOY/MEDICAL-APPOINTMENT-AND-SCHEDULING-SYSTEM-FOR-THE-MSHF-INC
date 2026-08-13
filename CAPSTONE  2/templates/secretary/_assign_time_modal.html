@@ -60,6 +60,7 @@
             <span class="flex items-center gap-1.5"><span class="inline-block w-3 h-3 rounded-full bg-green-400"></span> Available</span>
             <span class="flex items-center gap-1.5"><span class="inline-block w-3 h-3 rounded-full bg-red-400"></span> Occupied</span>
             <span class="flex items-center gap-1.5"><span class="inline-block w-3 h-3 rounded-full bg-red-600"></span> Patient conflict</span>
+            <span class="flex items-center gap-1.5"><span class="inline-block w-3 h-3 rounded-full bg-amber-300"></span> Day full</span>
             <span class="flex items-center gap-1.5"><span class="inline-block w-3 h-3 rounded-full bg-gray-300"></span> Past / unavailable</span>
             <span class="flex items-center gap-1.5"><span class="inline-block w-3 h-3 rounded-full bg-purple-500"></span> Selected</span>
           </div>
@@ -226,6 +227,13 @@
     background: #fecaca;
     border-color: #ef4444;
   }
+  .slot-btn.capped {
+    background: #fef3c7;
+    color: #92400e;
+    border-color: #fde68a;
+    cursor: not-allowed;
+    opacity: 0.85;
+  }
   .slot-btn.past {
     background: #f3f4f6;
     color: #9ca3af;
@@ -241,53 +249,20 @@
 (function () {
   const APPT_ID     = '{{ appt.pk }}';
   const INIT_DATE   = '{% if selected_date %}{{ selected_date|date:"Y-m-d" }}{% else %}{{ appt.appointment_date|date:"Y-m-d" }}{% endif %}';
-  const BLOCKS_RAW  = `{% for start, end in blocks %}{{ start|time:"H:i" }}-{{ end|time:"H:i" }}{% if not forloop.last %},{% endif %}{% endfor %}`;
 
-  let occupiedMap   = {}; // "HH:MM" -> { time_display, patient }
   let conflictMap   = {}; // "HH:MM" -> { time_display, doctor } — this patient booked elsewhere
   let selectedTime  = null;
-  let slotsReady    = false;
 
-  let currentDate      = INIT_DATE;
-  let currentBlocksRaw = BLOCKS_RAW;   // "HH:MM-HH:MM,HH:MM-HH:MM"
-  let currentIsPast    = false;
+  let currentDate    = INIT_DATE;
+  let currentSlots   = []; // server-generated: [{time, time_display, status, patient}]
+  let currentIsPast  = false;
 
   /* ── helpers ─────────────────────────────────────── */
-  function toMin(t) {
-    const [h, m] = t.split(':').map(Number);
-    return h * 60 + m;
-  }
-  function fromMin(m) {
-    return `${String(Math.floor(m/60)).padStart(2,'0')}:${String(m%60).padStart(2,'0')}`;
-  }
   function to12(t) {
     const [h, m] = t.split(':').map(Number);
     const ampm = h < 12 ? 'AM' : 'PM';
     const hr   = h % 12 || 12;
     return `${hr}:${String(m).padStart(2,'0')} ${ampm}`;
-  }
-  function todayStr() {
-    const n = new Date();
-    return `${n.getFullYear()}-${String(n.getMonth()+1).padStart(2,'0')}-${String(n.getDate()).padStart(2,'0')}`;
-  }
-  function isToday()   { return todayStr() === currentDate; }
-  function nowMinutes() {
-    const n = new Date();
-    return n.getHours() * 60 + n.getMinutes();
-  }
-
-  /* ── generate slots from the current date's blocks ── */
-  function getSlots() {
-    if (!currentBlocksRaw.trim()) return [];
-    const slots = [];
-    currentBlocksRaw.split(',').forEach(block => {
-      const [s, e] = block.trim().split('-');
-      if (!s || !e) return;
-      for (let m = toMin(s); m < toMin(e); m += 30) {
-        slots.push(fromMin(m));
-      }
-    });
-    return slots;
   }
 
   /* ── working-hours banner ────────────────────────── */
@@ -322,8 +297,8 @@
     if (empty) empty.classList.add('hidden');
     if (loading) loading.classList.remove('hidden');
 
-    // reset stale maps so old data never flashes
-    occupiedMap = {};
+    // reset stale state so old data never flashes
+    currentSlots = [];
     conflictMap = {};
 
     const url = `/secretary/appointments/${APPT_ID}/occupied-times/?date=${encodeURIComponent(date)}`;
@@ -331,11 +306,9 @@
       .then(r => r.json())
       .then(data => {
         currentDate      = data.date || date;
-        currentBlocksRaw = (data.blocks || []).join(',');
+        currentSlots     = data.slots || [];
         currentIsPast    = !!data.is_past;
-        occupiedMap = {};
         conflictMap = {};
-        (data.occupied_times || []).forEach(t => { occupiedMap[t.time] = t; });
         (data.patient_conflicts || []).forEach(t => { conflictMap[t.time] = t; });
 
         const dateInput   = document.getElementById('datePickerInput');
@@ -370,7 +343,7 @@
 
   /* ── render grid ─────────────────────────────────── */
   function renderGrid() {
-    const slots   = getSlots();
+    const slots   = currentSlots;
     const grid    = document.getElementById('slotGrid');
     const loading = document.getElementById('slotLoadingState');
     const empty   = document.getElementById('slotEmptyState');
@@ -389,35 +362,37 @@
       return;
     }
 
-    const now      = isToday() ? nowMinutes() : (currentIsPast ? Number.MAX_SAFE_INTEGER : -1);
     let hasAvail   = false;
     grid.innerHTML = '';
 
-    slots.forEach(time => {
+    slots.forEach(slot => {
+      const time = slot.time;
       const btn    = document.createElement('button');
       btn.type     = 'button';
       btn.classList.add('slot-btn');
 
       const label  = document.createElement('span');
       label.classList.add('slot-label');
-      label.textContent = to12(time);
+      label.textContent = slot.time_display || to12(time);
 
       const sub    = document.createElement('span');
       sub.classList.add('slot-sub');
 
-      const isPast     = now >= 0 && toMin(time) <= now;
-      const isOccupied = !!occupiedMap[time];
-      const isConflict = !!conflictMap[time];
+      const isConflict = slot.status === 'available' && !!conflictMap[time];
 
-      if (isPast) {
+      if (slot.status === 'past') {
         btn.classList.add('past');
         btn.disabled = true;
         sub.textContent = 'Past';
-      } else if (isOccupied) {
+      } else if (slot.status === 'occupied') {
         btn.classList.add('occupied');
         btn.disabled = true;
-        sub.textContent = occupiedMap[time].patient;
-        btn.title = `Occupied — ${occupiedMap[time].patient}`;
+        sub.textContent = slot.patient || 'Occupied';
+        btn.title = `Occupied — ${slot.patient || ''}`;
+      } else if (slot.status === 'blocked_by_cap') {
+        btn.classList.add('capped');
+        btn.disabled = true;
+        sub.textContent = 'Day full';
       } else if (isConflict) {
         btn.classList.add('conflict');
         sub.textContent = 'Conflict — Already Booked';
@@ -441,8 +416,6 @@
     if (empty) {
       empty.classList.toggle('hidden', hasAvail);
     }
-
-    slotsReady = true;
   }
 
   /* ── patient-conflict warning ───────────────────── */
@@ -523,8 +496,9 @@
 
     const err  = document.getElementById('timeValidationError');
     const btn  = document.getElementById('confirmTimeBtn');
-    if (occupiedMap[val]) {
-      if (err) { err.textContent = `⚠ This time is occupied by ${occupiedMap[val].patient}. Choose another slot.`; err.classList.remove('hidden'); }
+    const matched = currentSlots.find(s => s.time === val);
+    if (matched && (matched.status === 'occupied' || matched.status === 'blocked_by_cap')) {
+      if (err) { err.textContent = `⚠ This time is ${matched.status === 'blocked_by_cap' ? 'unavailable (day full)' : 'occupied by ' + (matched.patient || 'another patient')}. Choose another slot.`; err.classList.remove('hidden'); }
       if (btn) btn.disabled = true;
       selectedTime = null;
       renderGrid();
@@ -557,21 +531,7 @@
 
     const existingVal = document.getElementById('appointmentTimeInput').value;
 
-    if (BLOCKS_RAW.trim()) {
-      fetchAvailability(INIT_DATE).then(() => {
-        if (existingVal) {
-          selectedTime = existingVal;
-          const btn = document.getElementById('confirmTimeBtn');
-          if (btn) btn.disabled = false;
-          const display = document.getElementById('selectedTimeDisplay');
-          const lbl     = document.getElementById('selectedTimeLabel');
-          if (display && lbl) { lbl.textContent = to12(existingVal); display.classList.remove('hidden'); }
-        }
-      });
-    } else {
-      const loading = document.getElementById('slotLoadingState');
-      if (loading) loading.classList.add('hidden');
-      updateWorkingHoursBanner(false, []);
+    fetchAvailability(INIT_DATE).then(() => {
       if (existingVal) {
         selectedTime = existingVal;
         const btn = document.getElementById('confirmTimeBtn');
@@ -580,7 +540,7 @@
         const lbl     = document.getElementById('selectedTimeLabel');
         if (display && lbl) { lbl.textContent = to12(existingVal); display.classList.remove('hidden'); }
       }
-    }
+    });
   }
 
   // Run after the modal DOM is injected

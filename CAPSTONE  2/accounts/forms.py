@@ -6,6 +6,7 @@ import re
 from .models import CustomUser, PatientProfile, DoctorProfile, SecretaryProfile, SPECIALIZATION_CHOICES
 from .validators import validate_ph_mobile_number, normalize_ph_mobile_number
 from .psgc import validate_picker_data, validate_place_of_birth_data
+from .passwords import generate_temp_password
 
 # Sanity floor for SecretaryCreationForm.date_assigned — generous on purpose
 # (a staff assignment date can legitimately be backdated), just enough to
@@ -42,11 +43,13 @@ def _generate_walkin_username(first_name, last_name):
 
 
 class WalkInPatientForm(forms.Form):
-    """Registers a walk-in patient who will never log in themselves — the
-    secretary is entering their details in person, on the spot. No
-    username or password is collected; both are generated automatically.
-    Email is optional since many walk-ins won't have one handy, but a
-    mobile number is required so the clinic has a way to reach them.
+    """Registers a walk-in patient whose account is created on the spot by
+    the secretary. Username and a temporary password are both generated
+    automatically — the secretary reads them off the confirmation screen
+    and hands them to the patient so they can log in later. Email is
+    optional since many walk-ins won't have one handy (they can add it
+    afterwards from Settings), but a mobile number is required so the
+    clinic has a way to reach them.
 
     Field set intentionally matches PatientProfileEditForm so a walk-in's
     profile ends up just as complete as a self-registered patient's —
@@ -104,10 +107,8 @@ class WalkInPatientForm(forms.Form):
             # Staff registered this patient in person — no email gate.
             email_verified=True,
         )
-        # Walk-in patients never log in with this account, so it should
-        # be impossible to authenticate as them even if someone later
-        # learned or guessed the auto-generated username.
-        user.set_unusable_password()
+        temp_password = generate_temp_password()
+        user.set_password(temp_password)
         user.save()
         PatientProfile.objects.create(
             user=user,
@@ -122,7 +123,7 @@ class WalkInPatientForm(forms.Form):
             emergency_contact_number=self.cleaned_data.get('emergency_contact_number', ''),
             blood_type=self.cleaned_data.get('blood_type', ''),
         )
-        return user
+        return user, temp_password
 
 
 class PatientRegistrationForm(UserCreationForm):
@@ -493,10 +494,17 @@ class SecretaryAssignmentForm(forms.ModelForm):
 
 
 class EmailNotificationSettingsForm(forms.ModelForm):
+    """Also doubles as the Settings-page 'add your email' field for
+    walk-in patients, who start out with a blank email (see
+    WalkInPatientForm) and need somewhere to add one themselves once
+    they're logged in — notification sending is already gated on
+    `if not user.email` (notifications/email_utils.py), so filling this
+    in is what turns notifications on for them."""
     class Meta:
         model  = CustomUser
-        fields = ['email_notifications_enabled']
+        fields = ['email', 'email_notifications_enabled']
         widgets = {
+            'email': forms.EmailInput(attrs={'placeholder': 'you@example.com'}),
             'email_notifications_enabled': forms.CheckboxInput(attrs={'class': 'sr-only peer'}),
         }
 

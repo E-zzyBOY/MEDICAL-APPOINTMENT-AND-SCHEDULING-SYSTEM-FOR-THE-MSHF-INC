@@ -51,6 +51,7 @@
           <div class="flex items-center gap-4 text-xs text-gray-500 flex-wrap">
             <span class="flex items-center gap-1.5"><span class="inline-block w-3 h-3 rounded-full bg-green-400"></span> Available</span>
             <span class="flex items-center gap-1.5"><span class="inline-block w-3 h-3 rounded-full bg-red-400"></span> Occupied</span>
+            <span class="flex items-center gap-1.5"><span class="inline-block w-3 h-3 rounded-full bg-amber-300"></span> Day full</span>
             <span class="flex items-center gap-1.5"><span class="inline-block w-3 h-3 rounded-full bg-gray-300"></span> Past / unavailable</span>
             <span class="flex items-center gap-1.5"><span class="inline-block w-3 h-3 rounded-full bg-green-600"></span> Selected</span>
           </div>
@@ -142,6 +143,7 @@
   .slot-btn.available:hover { background:#bbf7d0; border-color:#86efac; transform:translateY(-1px); box-shadow:0 2px 8px rgba(21,128,61,.15); }
   .slot-btn.available.selected { background:#d1fae5; color:#065f46; border-color:#34d399; box-shadow:0 0 0 3px rgba(52,211,153,.3); }
   .slot-btn.occupied { background:#fee2e2; color:#b91c1c; border-color:#fecaca; cursor:not-allowed; opacity:.85; }
+  .slot-btn.capped { background:#fef3c7; color:#92400e; border-color:#fde68a; cursor:not-allowed; opacity:.85; }
   .slot-btn.past { background:#f3f4f6; color:#9ca3af; border-color:#e5e7eb; cursor:not-allowed; opacity:.6; }
   .slot-btn .slot-label { font-size:.8rem; font-weight:700; }
   .slot-btn .slot-sub { font-size:.6rem; font-weight:500; line-height:1.1; opacity:.8; white-space:normal; word-break:break-word; max-width:90%; }
@@ -149,52 +151,38 @@
 
 <script>
 (function () {
-  const APPT_ID    = '{{ appt.pk }}';
-  const APPT_DATE  = '{{ appt.appointment_date|date:"Y-m-d" }}';
-  const BLOCKS_RAW = `{% for start, end in blocks %}{{ start|time:"H:i" }}-{{ end|time:"H:i" }}{% if not forloop.last %},{% endif %}{% endfor %}`;
+  const APPT_ID = '{{ appt.pk }}';
 
-  let occupiedMap  = {};
+  let slotsData    = [];
   let selectedTime = null;
 
-  function toMin(t) { const [h,m]=t.split(':').map(Number); return h*60+m; }
-  function fromMin(m) { return `${String(Math.floor(m/60)).padStart(2,'0')}:${String(m%60).padStart(2,'0')}`; }
   function to12(t) { const [h,m]=t.split(':').map(Number); const ap=h<12?'AM':'PM'; const hr=h%12||12; return `${hr}:${String(m).padStart(2,'0')} ${ap}`; }
-  function isToday() { const n=new Date(); return `${n.getFullYear()}-${String(n.getMonth()+1).padStart(2,'0')}-${String(n.getDate()).padStart(2,'0')}`===APPT_DATE; }
-  function nowMin()  { const n=new Date(); return n.getHours()*60+n.getMinutes(); }
 
-  function getSlots() {
-    if (!BLOCKS_RAW.trim()) return [];
-    const slots=[];
-    BLOCKS_RAW.split(',').forEach(b=>{ const[s,e]=b.trim().split('-'); for(let m=toMin(s);m<toMin(e);m+=30) slots.push(fromMin(m)); });
-    return slots;
-  }
-
-  function fetchOccupied() {
+  function fetchSlots() {
     return fetch(`/doctor/appointments/${APPT_ID}/occupied-times/`)
-      .then(r=>r.json()).then(d=>{ occupiedMap={}; d.occupied_times.forEach(t=>{ occupiedMap[t.time]=t; }); })
-      .catch(()=>{ occupiedMap={}; });
+      .then(r=>r.json()).then(d=>{ slotsData = d.slots || []; })
+      .catch(()=>{ slotsData = []; });
   }
 
   function renderGrid() {
-    const slots=getSlots(), grid=document.getElementById('slotGrid');
+    const grid=document.getElementById('slotGrid');
     const loading=document.getElementById('slotLoadingState'), empty=document.getElementById('slotEmptyState');
     if (!grid) return;
     if (loading) loading.classList.add('hidden');
-    if (!slots.length) { grid.classList.add('hidden'); if(empty) empty.classList.remove('hidden'); return; }
+    if (!slotsData.length) { grid.classList.add('hidden'); if(empty) empty.classList.remove('hidden'); return; }
 
-    const now=isToday()?nowMin():-1;
     let hasAvail=false;
     grid.innerHTML='';
 
-    slots.forEach(time=>{
+    slotsData.forEach(slot=>{
+      const time=slot.time;
       const btn=document.createElement('button'); btn.type='button'; btn.classList.add('slot-btn');
-      const label=document.createElement('span'); label.classList.add('slot-label'); label.textContent=to12(time);
+      const label=document.createElement('span'); label.classList.add('slot-label'); label.textContent=slot.time_display || to12(time);
       const sub=document.createElement('span');   sub.classList.add('slot-sub');
 
-      const isPast=now>=0&&toMin(time)<=now, isOcc=!!occupiedMap[time];
-
-      if (isPast) { btn.classList.add('past'); btn.disabled=true; sub.textContent='Past'; }
-      else if (isOcc) { btn.classList.add('occupied'); btn.disabled=true; sub.textContent=occupiedMap[time].patient; btn.title=`Occupied — ${occupiedMap[time].patient}`; }
+      if (slot.status === 'past') { btn.classList.add('past'); btn.disabled=true; sub.textContent='Past'; }
+      else if (slot.status === 'occupied') { btn.classList.add('occupied'); btn.disabled=true; sub.textContent=slot.patient||'Occupied'; btn.title=`Occupied — ${slot.patient||''}`; }
+      else if (slot.status === 'blocked_by_cap') { btn.classList.add('capped'); btn.disabled=true; sub.textContent='Day full'; }
       else { btn.classList.add('available'); hasAvail=true; sub.textContent='Available'; btn.addEventListener('click',()=>selectTime(time)); }
 
       if (time===selectedTime) btn.classList.add('selected');
@@ -225,8 +213,9 @@
     if(!val){ clearSelectedTime(); return; }
     document.getElementById('appointmentTimeInput').value=val;
     const err=document.getElementById('timeValidationError'), btn=document.getElementById('confirmTimeBtn');
-    if(occupiedMap[val]){
-      if(err){ err.textContent=`⚠ This time is occupied by ${occupiedMap[val].patient}. Choose another slot.`; err.classList.remove('hidden'); }
+    const matched = slotsData.find(s=>s.time===val);
+    if(matched && (matched.status==='occupied' || matched.status==='blocked_by_cap')){
+      if(err){ err.textContent=`⚠ This time is ${matched.status==='blocked_by_cap'?'unavailable (day full)':'occupied by '+(matched.patient||'another patient')}. Choose another slot.`; err.classList.remove('hidden'); }
       if(btn) btn.disabled=true; selectedTime=null; renderGrid();
     } else {
       if(err) err.classList.add('hidden'); if(btn) btn.disabled=false;
@@ -238,7 +227,7 @@
   };
 
   function init() {
-    if (BLOCKS_RAW.trim()) { fetchOccupied().then(renderGrid); }
+    if (document.getElementById('slotGrid')) { fetchSlots().then(renderGrid); }
     else { const l=document.getElementById('slotLoadingState'); if(l) l.classList.add('hidden'); }
 
     const existing=document.getElementById('appointmentTimeInput').value;

@@ -5,7 +5,7 @@
 <div class="max-w-3xl">
   <div class="bg-white rounded-2xl shadow-soft p-8">
     <h2 class="text-xl font-semibold text-gray-800 mb-2">Register Walk-In Patient</h2>
-    <p class="text-gray-500 text-sm mb-6">Quickly record a walk-in patient's details — no account login is created. This checks them in with Dr. {{ assigned_doctor.get_full_name|default:"your assigned doctor" }} and lets you take their vitals.</p>
+    <p class="text-gray-500 text-sm mb-6">Quickly record a walk-in patient's details — a temporary login (username &amp; password) is generated for them to hand off. This checks them in with Dr. {{ assigned_doctor.get_full_name|default:"your assigned doctor" }} and lets you take their vitals.</p>
     {% if not assigned_doctor %}
     <div class="bg-amber-50 border border-amber-200 text-amber-700 rounded-xl p-3 text-sm mb-4">
       You are not currently assigned to a doctor, so a walk-in visit cannot be checked in. Please contact the administrator.

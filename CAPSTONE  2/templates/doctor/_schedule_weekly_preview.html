@@ -1,0 +1,53 @@
+{% comment %}
+Live "week" preview for the Repeat Weekly editor (Availability & Settings
+tab) — mirrors Google Calendar's side-by-side preview in the "Bookable
+appointment schedule" screen: one column per weekday (Mon-Sun, matching
+the rest of this app's calendar convention, not Google's Sun-first one)
+with the doctor's currently saved template blocks drawn as translucent
+brand-green bars against a shared hour axis, and the whole column washed a
+lighter brand green whenever that day has at least one block. Every
+Add/Remove/Duplicate action on the editor HX-Redirects back to this tab
+(see schedule_template_add/delete/duplicate in doctor_views.py), so a
+full page reload always redraws this preview with the latest saved
+state immediately — no client-side JS needed to keep it "live".
+{% endcomment %}
+<div class="flex-1 bg-white rounded-2xl border border-gray-200 shadow-soft-sm p-5">
+  <p class="font-semibold text-ink text-sm mb-1">Weekly Preview</p>
+  <p class="text-xs text-gray-400 mb-4">How your recurring hours look across the week.</p>
+
+  <div class="flex border-t border-l border-gray-100 rounded-xl overflow-hidden">
+    <div class="w-10 shrink-0"></div>
+    {% for row in preview_weekday_rows %}
+    <div class="flex-1 min-w-0 border-r border-gray-100 py-1.5 text-center {% if row.weekday == today_weekday %}bg-brand-50{% endif %}">
+      <p class="text-[10px] font-semibold tracking-wider {% if row.weekday == today_weekday %}text-brand-600{% else %}text-gray-400{% endif %}">{{ row.name|slice:":3"|upper }}</p>
+    </div>
+    {% endfor %}
+  </div>
+  <div class="flex border-l border-gray-100 rounded-b-xl overflow-hidden border-b">
+    <div class="w-10 shrink-0 relative border-r border-gray-100" style="height: {{ preview_total_height }}px;">
+      {% for row in preview_hour_rows %}
+      <p class="absolute left-0 right-1 -translate-y-1/2 text-right text-[9px] text-gray-400" style="top: calc({{ forloop.counter0 }} * 60px);">{{ row.label }}</p>
+      {% endfor %}
+    </div>
+    <div class="flex-1 grid grid-cols-7 relative preview-hour-grid-bg" style="height: {{ preview_total_height }}px; background-size: 100% 60px;">
+      {% for row in preview_weekday_rows %}
+      <div class="relative border-r border-gray-100 last:border-r-0 {% if row.blocks %}bg-brand-50/60{% endif %}" style="height: {{ preview_total_height }}px;">
+        {% for pos in row.blocks_pos %}
+        <div class="absolute left-0.5 right-0.5 rounded-md bg-brand-500/40 border border-brand-500/70" style="top: {{ pos.top }}px; height: {{ pos.height }}px;"></div>
+        {% endfor %}
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="flex items-center gap-4 mt-3 text-[11px] text-gray-500">
+    <span class="flex items-center gap-1.5"><span class="size-2.5 rounded-full bg-brand-500"></span> Available</span>
+    <span class="flex items-center gap-1.5"><span class="size-2.5 rounded-full bg-white border border-gray-300"></span> Unavailable</span>
+  </div>
+</div>
+
+<style>
+  .preview-hour-grid-bg {
+    background-image: repeating-linear-gradient(to bottom, #f3f4f6 0, #f3f4f6 1px, transparent 1px, transparent 60px);
+  }
+</style>

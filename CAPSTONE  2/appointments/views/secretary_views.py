@@ -9,12 +9,19 @@ from datetime import date, datetime, timedelta
 import calendar as calendar_module
 from django.db.models import Q, Count, Case, When, Value, IntegerField, F, DateField
 from accounts.decorators import role_required
-from appointments.models import Appointment, Schedule, TIME_NULLS_FIRST
-from appointments.forms import AssignTimeForm, ScheduleForm
+from appointments.models import (
+    Appointment, Schedule, TIME_NULLS_FIRST,
+    DoctorScheduleSettings, ScheduleTemplate, ScheduleException,
+)
+from appointments.forms import (
+    AssignTimeForm, ScheduleForm, DoctorScheduleSettingsForm, ScheduleTemplateForm,
+)
+from appointments import services
 from accounts.models import (
     CustomUser, PatientProfile, SecretaryCoverage, doctors_for_secretary,
     SECRETARY_ACTIVE_DOCTOR_SESSION_KEY,
 )
+from accounts.forms import WalkInPatientForm
 from notifications.email_utils import (
     send_cancellation_email, send_time_assigned_email, send_booking_confirmation_email,
     send_reminder_email
@@ -656,29 +663,6 @@ def view_all_schedules(request):
         _week_grid_context, _day_grid_context,
     )
     doctor = _active_doctor(request)
-<<<<<<< Updated upstream
-    schedules = Schedule.objects.filter(doctor=doctor).order_by('specific_date', 'start_time') if doctor else Schedule.objects.none()
-    context = {'schedules': schedules, 'doctor': doctor}
-    context.update(_schedule_calendar_context(doctor))
-    # Seed the Selected Day panel with today so the page opens with
-    # today's slots (and the add-slot controls) already visible.
-    context.update(_day_panel_context(doctor, date.today()))
-    # Coverage section on the profile card: colleagues she can hand her
-    # doctor to, plus every active coverage that involves her (she covers
-    # someone, or someone covers HER doctor).
-    my_doctor = _assigned_doctor(request.user)
-    involvement = Q(secretary=request.user)
-    if my_doctor:
-        involvement |= Q(doctor=my_doctor)
-    context.update({
-        'primary_doctor': my_doctor,
-        'colleagues': CustomUser.objects.filter(role='secretary', is_active=True)
-                                        .exclude(pk=request.user.pk)
-                                        .order_by('first_name', 'last_name'),
-        'coverages': SecretaryCoverage.objects.filter(involvement)
-                                              .select_related('secretary', 'doctor'),
-    })
-=======
     if doctor:
         services.sync_generated_schedule_for_doctor(doctor)
 
@@ -733,7 +717,6 @@ def view_all_schedules(request):
         from appointments.views.doctor_views import _template_editor_context
         context.update(_template_editor_context(doctor))
 
->>>>>>> Stashed changes
     return render(request, 'secretary/schedules.html', context)
 
 
@@ -999,8 +982,6 @@ def schedule_slot_delete(request, pk):
     )
 
 
-<<<<<<< Updated upstream
-=======
 @role_required('secretary')
 def schedule_settings(request):
     """Secretary version of the doctor's derived-booking-rules settings —
@@ -1144,7 +1125,6 @@ def schedule_template_duplicate(request):
     return redirect(f"{reverse('secretary:schedule_view')}?tab=availability")
 
 
->>>>>>> Stashed changes
 def _accessible_patient_ids(request):
     """Patients the secretary may see: only those who have (or had) an
     appointment with the doctor she's currently working as."""
@@ -1175,6 +1155,44 @@ def secretary_patient_list(request):
     return render(request, 'secretary/patient_list.html', {
         'patients': patients.distinct(), 'search': search
     })
+
+
+@role_required('secretary')
+def walkin_register(request):
+    """Registers a patient who walked in with no account, generating them
+    a temporary login (see WalkInPatientForm), and checks them straight
+    into an appointment with the secretary's active doctor — mirroring
+    what appointment_confirm does for a normally-scheduled check-in."""
+    doctor = _active_doctor(request)
+    form = WalkInPatientForm(request.POST or None)
+    if request.method == 'POST' and doctor and form.is_valid():
+        with transaction.atomic():
+            user, temp_password = form.save()
+            appt = Appointment.objects.create(
+                patient=user,
+                doctor=doctor,
+                secretary=request.user,
+                appointment_date=date.today(),
+                appointment_time=None,
+                status='Confirmed',
+                reason=form.cleaned_data['reason'],
+            )
+        _notify(doctor, f"{request.user.get_full_name()} (secretary) checked in a walk-in patient: {user.get_full_name()}.")
+        vitals_url = reverse('secretary:vitals_add', kwargs={'patient_id': user.pk})
+        vitals_url += f'?appointment={appt.pk}'
+        context = {
+            'patient': user, 'username': user.username, 'temp_password': temp_password, 'vitals_url': vitals_url,
+            'title': 'Patient Registered & Checked In',
+        }
+        template = 'secretary/_walkin_credentials_modal.html' if request.htmx else 'secretary/walkin_credentials.html'
+        return render(request, template, context)
+
+    context = {
+        'form': form, 'assigned_doctor': doctor,
+        'title': 'Register Walk-In Patient',
+    }
+    template = 'secretary/_walkin_register_modal.html' if request.htmx else 'secretary/walkin_register.html'
+    return render(request, template, context)
 
 
 @role_required('secretary')

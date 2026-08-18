@@ -2,7 +2,7 @@ from django import forms
 from django.utils import timezone
 from accounts.psgc import validate_picker_data
 from datetime import date, datetime
-from .models import Schedule, Appointment, AppointmentPatientDetails
+from .models import Schedule, Appointment, AppointmentPatientDetails, DoctorScheduleSettings, ScheduleTemplate
 from accounts.models import CustomUser
 from accounts.validators import validate_ph_mobile_number, normalize_ph_mobile_number
 
@@ -158,6 +158,54 @@ class ScheduleForm(forms.ModelForm):
         if specific_date and start and specific_date == date.today():
             if start <= timezone.localtime().time():
                 raise forms.ValidationError('The start time has already passed today. Please choose a future time.')
+        return cleaned
+
+
+class DoctorScheduleSettingsForm(forms.ModelForm):
+    class Meta:
+        model  = DoctorScheduleSettings
+        fields = [
+            'appointment_duration_minutes', 'buffer_minutes',
+            'max_bookings_per_day', 'advance_booking_days', 'min_notice_hours',
+        ]
+        widgets = {
+            'max_bookings_per_day': forms.NumberInput(attrs={'min': 1, 'placeholder': 'Unlimited'}),
+            'advance_booking_days': forms.NumberInput(attrs={'min': 1}),
+            'min_notice_hours':     forms.NumberInput(attrs={'min': 0}),
+        }
+
+    def clean_max_bookings_per_day(self):
+        value = self.cleaned_data.get('max_bookings_per_day')
+        if value is not None and value < 1:
+            raise forms.ValidationError('Must be at least 1, or leave blank for unlimited.')
+        return value
+
+    def clean_advance_booking_days(self):
+        value = self.cleaned_data.get('advance_booking_days')
+        if value is not None and value < 1:
+            raise forms.ValidationError('Must be at least 1 day.')
+        return value
+
+
+class ScheduleTemplateForm(forms.ModelForm):
+    """One recurring weekly block (e.g. every Monday 9:00-12:00). Overlap
+    against the doctor's other blocks on the same weekday is checked in the
+    view, same division of labor as ScheduleForm."""
+    class Meta:
+        model  = ScheduleTemplate
+        fields = ['weekday', 'start_time', 'end_time']
+        widgets = {
+            'weekday':    forms.HiddenInput(),
+            'start_time': forms.TimeInput(attrs={'type': 'time'}),
+            'end_time':   forms.TimeInput(attrs={'type': 'time'}),
+        }
+
+    def clean(self):
+        cleaned = super().clean()
+        start = cleaned.get('start_time')
+        end   = cleaned.get('end_time')
+        if start and end and end <= start:
+            raise forms.ValidationError('End time must be after start time.')
         return cleaned
 
 

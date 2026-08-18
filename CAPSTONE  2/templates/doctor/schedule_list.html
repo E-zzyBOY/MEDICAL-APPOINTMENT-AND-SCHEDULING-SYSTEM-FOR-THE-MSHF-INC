@@ -2,38 +2,67 @@
 {% block page_title %}My Schedule{% endblock %}
 
 {% block doctor_content %}
-<div class="max-w-3xl md:max-w-6xl space-y-3 md:-mt-2">
-  <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-    <p class="text-gray-500 text-sm">Manage your consultation schedule by date. Appointments will only be bookable during these hours.</p>
-    <a hx-get="{% url 'doctor:schedule_add' %}?date={{ selected_date }}"
-       hx-target="#modal-root"
-       hx-swap="innerHTML"
-       class="md:hidden shrink-0 whitespace-nowrap text-center px-4 py-2 bg-green-600 text-white rounded-xl text-sm font-medium hover:bg-green-700 transition cursor-pointer">
-      + Add Slot
-    </a>
+<div class="h-full flex flex-col md:-mt-2">
+  <!-- Calendar (full calendar-app view, matches the Google Calendar main
+       screen) vs Availability & Settings (matches Google Calendar's
+       "Bookable appointment schedule" editor screen) — two separate
+       screens there, so two separate tabs here instead of one long
+       scrolling page. -->
+  <div class="flex gap-6 border-b border-gray-200 mb-4 shrink-0 overflow-x-auto whitespace-nowrap [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" data-swipe-tabs>
+    <a href="?tab=calendar" class="pb-3 text-sm font-medium border-b-2 -mb-px transition-colors shrink-0 {% if active_tab == 'calendar' %}border-brand-600 text-brand-600 font-semibold{% else %}border-transparent text-gray-400 hover:text-gray-600{% endif %}">Calendar</a>
+    <a href="?tab=availability" class="pb-3 text-sm font-medium border-b-2 -mb-px transition-colors shrink-0 {% if active_tab == 'availability' %}border-brand-600 text-brand-600 font-semibold{% else %}border-transparent text-gray-400 hover:text-gray-600{% endif %}">Availability &amp; Settings</a>
   </div>
 
-  <!-- Desktop: grid calendar (every day's slots always visible inline,
-       click opens a modal) + a static "Today's Schedule" sidebar that
-       doesn't change as you browse other months. -->
-  <div class="hidden md:flex items-start gap-5">
-    {% if view == 'week' %}
-      {% include "doctor/_schedule_grid_week.html" %}
-    {% elif view == 'day' %}
-      {% include "doctor/_schedule_grid_day.html" %}
-    {% else %}
-      {% include "doctor/_schedule_grid_desktop.html" with calendar_weeks=calendar_weeks_with_slots %}
-    {% endif %}
-    {% include "doctor/_schedule_selected_day_panel.html" %}
-  </div>
-
-  <!-- Mobile: original circle calendar + separate day-detail panel below,
-       unchanged. -->
-  <div class="md:hidden space-y-4">
-    {% include "doctor/_schedule_main_calendar_fragment.html" %}
-    <div id="schedule-day-detail">
-      {% include "doctor/_schedule_day_detail.html" with date_str=selected_date date_display=selected_date_display slots=selected_slots %}
+  {% if active_tab == 'availability' %}
+  <div class="space-y-3">
+    <p class="text-gray-500 text-sm">Set your recurring weekly hours once — applied automatically to every upcoming date unless you adjust a specific day from the Calendar tab.</p>
+    <div class="flex flex-col lg:flex-row gap-5 items-stretch">
+      <div class="w-full lg:w-[520px] shrink-0 flex flex-col">
+        {% include "doctor/_schedule_template_editor.html" %}
+      </div>
+      <div class="flex-1 min-w-0 w-full flex flex-col">
+        {% include "doctor/_schedule_weekly_preview.html" %}
+      </div>
     </div>
   </div>
+  {% else %}
+  <div class="flex-1 min-h-0 flex flex-col">
+    <div class="flex items-center justify-between gap-3 mb-3 shrink-0 md:hidden">
+      <p class="text-gray-500 text-sm">Manage your consultation schedule by date.</p>
+      <a href="?tab=availability"
+         class="shrink-0 whitespace-nowrap text-center px-4 py-2 bg-green-600 text-white rounded-xl text-sm font-medium hover:bg-green-700 transition cursor-pointer">
+        + Set Availability
+      </a>
+    </div>
+
+    <!-- Desktop: grid calendar (every day's slots always visible inline,
+         click opens a small cursor-anchored popover) + a sidebar with a
+         mini month calendar for quick date-jumping above a static
+         "Today's Schedule" panel — fills the remaining viewport height
+         instead of being capped inside a small card. -->
+    <div class="hidden md:flex flex-1 min-h-0 gap-5">
+      <div class="self-start flex flex-col gap-5 w-72 shrink-0">
+        {% include "doctor/_schedule_mini_calendar.html" %}
+        {% include "doctor/_schedule_selected_day_panel.html" %}
+      </div>
+      {% if view == 'week' %}
+        {% include "doctor/_schedule_grid_week.html" %}
+      {% elif view == 'day' %}
+        {% include "doctor/_schedule_grid_day.html" %}
+      {% else %}
+        {% include "doctor/_schedule_grid_desktop.html" with calendar_weeks=calendar_weeks_with_slots %}
+      {% endif %}
+    </div>
+
+    <!-- Mobile: original circle calendar + separate day-detail panel below,
+         unchanged. -->
+    <div class="md:hidden space-y-4">
+      {% include "doctor/_schedule_main_calendar_fragment.html" %}
+      <div id="schedule-day-detail">
+        {% include "doctor/_schedule_day_detail.html" with date_str=selected_date date_display=selected_date_display slots=selected_slots %}
+      </div>
+    </div>
+  </div>
+  {% endif %}
 </div>
 {% endblock %}

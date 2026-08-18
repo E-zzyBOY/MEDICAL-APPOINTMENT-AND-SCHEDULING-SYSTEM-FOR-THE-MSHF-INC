@@ -3,9 +3,9 @@ Desktop sidebar next to the grid calendar. Shows today's schedule by
 default on page load; clicking any day on the grid updates this panel
 (via an htmx out-of-band swap riding along with the grid's own request)
 to show that day's slots instead — same add/edit/delete actions the old
-below-the-calendar panel had, just living on the right now.
+below-the-calendar panel had, just living on the left now.
 {% endcomment %}
-<div id="schedule-day-sidebar" {% if oob %}hx-swap-oob="true"{% endif %} class="bg-white rounded-2xl border border-gray-200 shadow-soft-sm p-5 w-72 shrink-0">
+<div id="schedule-day-sidebar" {% if oob %}hx-swap-oob="true"{% endif %} class="bg-white rounded-2xl border border-gray-200 shadow-soft-sm p-5">
   <p class="font-semibold text-ink text-sm">
     {% if panel_is_today %}Today's Schedule{% else %}Schedule{% endif %}
   </p>

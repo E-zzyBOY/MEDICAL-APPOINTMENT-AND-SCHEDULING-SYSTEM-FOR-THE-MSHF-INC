@@ -7,89 +7,6 @@
   You are not currently assigned to a doctor. Please contact the administrator.
 </div>
 {% else %}
-<<<<<<< Updated upstream
-<style>
-  /* Mobile / narrowed-window default: stack profile -> calendar -> details */
-  .doctor-schedule-layout {
-    display: grid;
-    gap: 1.5rem;
-    align-items: start;
-    grid-template-columns: 1fr;
-    grid-template-areas:
-      "profile"
-      "calendar"
-      "details";
-  }
-  /* Wide screens: two columns, profile+details stacked on the left,
-     calendar as the big box on the right */
-  @media (min-width: 1024px) {
-    .doctor-schedule-layout {
-      grid-template-columns: 320px 1fr;
-      /* "auto" lets row 1 hug the profile card's own height instead of
-         being inflated by the tall calendar; "1fr" makes row 2 absorb
-         all the leftover height so the details card can stretch down
-         to meet the calendar's bottom edge. */
-      grid-template-rows: auto 1fr;
-      grid-template-areas:
-        "profile calendar"
-        "details calendar";
-    }
-    .area-details  { align-self: stretch; }
-    .area-calendar { align-self: stretch; }
-  }
-  .area-profile  { grid-area: profile; }
-  .area-calendar { grid-area: calendar; min-width: 0; }
-  .area-details  { grid-area: details; }
-</style>
-
-<div class="doctor-schedule-layout">
-
-  <!-- Doctor profile card -->
-  <div class="area-profile bg-white rounded-2xl shadow-soft p-6">
-    <div class="flex flex-col items-center text-center gap-3">
-      {% if doctor.profile_picture %}
-        <img src="{{ doctor.profile_picture.url }}" class="size-24 rounded-full object-cover ring-4 ring-brand-50" alt="">
-      {% else %}
-        <img src="{% static 'img/default-avatar.svg' %}" class="size-24 rounded-full object-cover ring-4 ring-brand-50" alt="">
-      {% endif %}
-      <div>
-        <p class="font-semibold text-gray-800 text-lg leading-tight">Dr. {{ doctor.get_full_name }}</p>
-        <p class="text-sm text-brand-600 font-medium mt-0.5">{{ doctor.doctor_profile.specialization|default:"General Medicine" }}</p>
-        <p class="text-sm text-gray-400 mt-1 break-all">{{ doctor.email }}</p>
-      </div>
-    </div>
-
-    <!-- Coverage: hand the doctor over to a colleague during a leave, and
-         see/end every coverage involving this secretary or her doctor. -->
-    <div class="mt-6 pt-5 border-t border-gray-100 text-left">
-      <p class="font-semibold text-ink text-sm mb-1">Coverage</p>
-      <p class="text-xs text-gray-400 mb-3">Going on leave? Hand your doctor over to a colleague so appointments stay managed.</p>
-      {% for c in coverages %}
-      <div class="flex items-center gap-2 bg-softgray/60 rounded-lg px-3 py-2 mb-2">
-        <span class="text-xs text-gray-600 flex-1">
-          {% if c.secretary == request.user %}You cover <strong>Dr. {{ c.doctor.get_full_name }}</strong>{% else %}<strong>{{ c.secretary.get_full_name }}</strong> covers Dr. {{ c.doctor.get_full_name }}{% endif %}
-        </span>
-        <form method="post" action="{% url 'secretary:coverage_remove' pk=c.pk %}" onsubmit="return confirm('End this coverage?');">
-          {% csrf_token %}
-          <button type="submit" class="text-[11px] font-medium text-red-500 hover:text-red-700 cursor-pointer">End</button>
-        </form>
-      </div>
-      {% endfor %}
-      {% if primary_doctor and colleagues %}
-      <form method="post" action="{% url 'secretary:coverage_add' %}" class="flex items-center gap-2 mt-2">
-        {% csrf_token %}
-        <select name="secretary_id" required
-                class="flex-1 min-w-0 text-xs border border-gray-200 rounded-lg px-2 py-2 bg-white">
-          <option value="">Hand over to&hellip;</option>
-          {% for s in colleagues %}
-          <option value="{{ s.pk }}">{{ s.get_full_name|default:s.username }}</option>
-          {% endfor %}
-        </select>
-        <button type="submit" class="shrink-0 text-xs font-medium bg-brand-500 hover:bg-brand-600 text-white rounded-lg px-3 py-2 transition cursor-pointer">Assign</button>
-      </form>
-      {% endif %}
-    </div>
-=======
 <div class="h-full flex flex-col">
   <!-- Calendar (full calendar-app view, matches the Google Calendar main
        screen) vs Availability & Settings (doctor profile/coverage +
@@ -98,7 +15,6 @@
   <div class="flex gap-6 border-b border-gray-200 mb-4 shrink-0 overflow-x-auto whitespace-nowrap [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" data-swipe-tabs>
     <a href="?tab=calendar" class="pb-3 text-sm font-medium border-b-2 -mb-px transition-colors shrink-0 {% if active_tab == 'calendar' %}border-brand-600 text-brand-600 font-semibold{% else %}border-transparent text-gray-400 hover:text-gray-600{% endif %}">Calendar</a>
     <a href="?tab=availability" class="pb-3 text-sm font-medium border-b-2 -mb-px transition-colors shrink-0 {% if active_tab == 'availability' %}border-brand-600 text-brand-600 font-semibold{% else %}border-transparent text-gray-400 hover:text-gray-600{% endif %}">Availability &amp; Settings</a>
->>>>>>> Stashed changes
   </div>
 
   {% if active_tab == 'availability' %}

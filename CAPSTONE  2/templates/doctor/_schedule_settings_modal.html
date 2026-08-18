@@ -1,0 +1,88 @@
+{% extends "components/modal.html" %}
+{% block modal_content %}
+<p class="text-sm text-gray-500 -mt-1 mb-5">These rules control how bookable time slots are generated for the assign-time tools, and which dates patients can request.</p>
+
+{% if form.non_field_errors %}
+<div class="bg-red-50 border border-red-200 text-red-700 rounded-xl p-3 text-sm mb-4">
+  {% for error in form.non_field_errors %}{{ error }}{% endfor %}
+</div>
+{% endif %}
+
+<form method="post" action="{% url 'doctor:schedule_settings' %}"
+      hx-post="{% url 'doctor:schedule_settings' %}"
+      hx-target="#modal-root" hx-swap="innerHTML"
+      class="space-y-3">
+  {% csrf_token %}
+
+  <!-- Scheduling window — collapsible section, Google-Calendar style -->
+  <details class="group rounded-xl border border-gray-200 open:border-brand-200 open:bg-brand-50/30" open>
+    <summary class="list-none flex items-center justify-between gap-3 px-4 py-3 cursor-pointer select-none">
+      <div class="min-w-0">
+        <p class="text-sm font-semibold text-ink">Scheduling window</p>
+        <p class="text-xs text-gray-500 mt-0.5 truncate">Up to {{ form.instance.advance_booking_days }} days in advance &middot; {{ form.instance.min_notice_hours }}h minimum notice</p>
+      </div>
+      <svg class="w-4 h-4 shrink-0 text-gray-400 transition-transform group-open:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+    </summary>
+    <div class="px-4 pb-4 space-y-4">
+      <div>
+        <label class="block text-sm font-semibold text-ink mb-1.5">Scheduling window (days in advance)</label>
+        {{ form.advance_booking_days }}
+        <p class="text-xs text-gray-400 mt-1">How far ahead patients and staff can see/book availability.</p>
+        {% if form.advance_booking_days.errors %}<p class="text-red-600 text-xs mt-1">{{ form.advance_booking_days.errors.0 }}</p>{% endif %}
+      </div>
+      <div>
+        <label class="block text-sm font-semibold text-ink mb-1.5">Minimum notice (hours)</label>
+        {{ form.min_notice_hours }}
+        <p class="text-xs text-gray-400 mt-1">A slot can't be booked/assigned less than this many hours from now.</p>
+        {% if form.min_notice_hours.errors %}<p class="text-red-600 text-xs mt-1">{{ form.min_notice_hours.errors.0 }}</p>{% endif %}
+      </div>
+    </div>
+  </details>
+
+  <!-- Booked appointment settings — collapsible section -->
+  <details class="group rounded-xl border border-gray-200 open:border-brand-200 open:bg-brand-50/30" open>
+    <summary class="list-none flex items-center justify-between gap-3 px-4 py-3 cursor-pointer select-none">
+      <div class="min-w-0">
+        <p class="text-sm font-semibold text-ink">Booked appointment settings</p>
+        <p class="text-xs text-gray-500 mt-0.5 truncate">{{ form.instance.appointment_duration_minutes }} min appointments &middot; {{ form.instance.buffer_minutes }} min buffer &middot; {% if form.instance.max_bookings_per_day %}{{ form.instance.max_bookings_per_day }}/day max{% else %}Unlimited/day{% endif %}</p>
+      </div>
+      <svg class="w-4 h-4 shrink-0 text-gray-400 transition-transform group-open:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+    </summary>
+    <div class="px-4 pb-4 space-y-4">
+      <div>
+        <label class="block text-sm font-semibold text-ink mb-1.5">Appointment duration</label>
+        {{ form.appointment_duration_minutes }}
+        {% if form.appointment_duration_minutes.errors %}<p class="text-red-600 text-xs mt-1">{{ form.appointment_duration_minutes.errors.0 }}</p>{% endif %}
+      </div>
+      <div>
+        <label class="block text-sm font-semibold text-ink mb-1.5">Buffer time between appointments</label>
+        {{ form.buffer_minutes }}
+        {% if form.buffer_minutes.errors %}<p class="text-red-600 text-xs mt-1">{{ form.buffer_minutes.errors.0 }}</p>{% endif %}
+      </div>
+      <div>
+        <label class="block text-sm font-semibold text-ink mb-1.5">Max bookings per day</label>
+        {{ form.max_bookings_per_day }}
+        <p class="text-xs text-gray-400 mt-1">Leave blank for unlimited.</p>
+        {% if form.max_bookings_per_day.errors %}<p class="text-red-600 text-xs mt-1">{{ form.max_bookings_per_day.errors.0 }}</p>{% endif %}
+      </div>
+    </div>
+  </details>
+
+  <!-- Adjusted availability — informational, points back at the calendar
+       tools that actually do this (ScheduleException already keeps any
+       date touched there from being overwritten by the weekly template). -->
+  <div class="flex items-start gap-2.5 rounded-xl border border-gray-200 px-4 py-3 text-xs text-gray-500">
+    <svg class="w-4 h-4 shrink-0 text-gray-400 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+    <p><strong class="text-ink-soft font-semibold">Adjusted availability:</strong> to change hours for one specific date, use Add/Edit/Delete on that day in the calendar — it always overrides the weekly template below for that date.</p>
+  </div>
+
+  <div class="flex gap-3 pt-2">
+    <button type="submit" class="flex-1 bg-brand-600 text-white font-semibold py-3 rounded-xl hover:bg-brand-700 transition">
+      Save Settings
+    </button>
+    <button type="button" onclick="closeModal()" class="flex-1 border border-gray-300 text-gray-700 font-semibold py-3 rounded-xl hover:bg-gray-50 transition">
+      Cancel
+    </button>
+  </div>
+</form>
+{% endblock %}

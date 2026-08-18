@@ -177,6 +177,9 @@
   <!-- Modal Root Container -->
   <div id="modal-root"></div>
 
+  <!-- Popover Root Container: cursor-anchored, no backdrop (context-menu style) -->
+  <div id="popover-root"></div>
+
   {% block body %}{% endblock %}
 
   {% block extra_js %}{% endblock %}
@@ -298,6 +301,77 @@
       if (event.detail.target.id === 'modal-root') {
         openModal();
       }
+    });
+
+    // Cursor-anchored popover (context-menu style): unlike the modal above,
+    // this has no backdrop and appears right where the trigger was clicked
+    // (clamped to stay on-screen), instead of centered/bottom-sheet. Used by
+    // the doctor/secretary schedule's day-click popover.
+    let popoverTrigger = null;
+    let popoverAnchor = { x: 0, y: 0 };
+
+    function capturePopoverAnchor(evt) {
+      popoverAnchor = { x: evt.clientX, y: evt.clientY };
+      popoverTrigger = evt.currentTarget || evt.target;
+    }
+
+    function positionPopover() {
+      const card = document.getElementById('day-popover-card');
+      if (!card) return;
+      const margin = 8;
+      const rect = card.getBoundingClientRect();
+      let x = popoverAnchor.x;
+      let y = popoverAnchor.y;
+      if (x + rect.width + margin > window.innerWidth) {
+        x = Math.max(margin, window.innerWidth - rect.width - margin);
+      }
+      if (y + rect.height + margin > window.innerHeight) {
+        y = Math.max(margin, window.innerHeight - rect.height - margin);
+      }
+      card.style.left = x + 'px';
+      card.style.top = y + 'px';
+      card.classList.add('open');
+      const focusables = getFocusable(card);
+      (focusables[0] || card).focus();
+    }
+
+    function closePopover() {
+      const card = document.getElementById('day-popover-card');
+      if (!card) {
+        document.getElementById('popover-root').innerHTML = '';
+        return;
+      }
+      card.classList.remove('open');
+      setTimeout(() => {
+        document.getElementById('popover-root').innerHTML = '';
+        if (popoverTrigger && document.body.contains(popoverTrigger)) {
+          popoverTrigger.focus();
+        }
+        popoverTrigger = null;
+      }, 150); // Match transition duration
+    }
+
+    document.body.addEventListener('htmx:afterSettle', function(event) {
+      if (event.detail.target.id === 'popover-root') {
+        positionPopover();
+      }
+    });
+
+    // Close when clicking anywhere outside the card — there's no full-screen
+    // backdrop element to hang this off of (that's the whole point), so just
+    // check whether the click landed outside the card itself.
+    document.addEventListener('click', function(event) {
+      const card = document.getElementById('day-popover-card');
+      if (!card || !card.classList.contains('open')) return;
+      if (!card.contains(event.target)) {
+        closePopover();
+      }
+    });
+
+    document.addEventListener('keydown', function(event) {
+      const card = document.getElementById('day-popover-card');
+      if (!card || !card.classList.contains('open')) return;
+      if (event.key === 'Escape') closePopover();
     });
 
     // Account popover dropdowns (top-right avatar on desktop, bottom-tab "Menu" on mobile) —

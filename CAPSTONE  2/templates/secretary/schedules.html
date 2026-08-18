@@ -7,6 +7,7 @@
   You are not currently assigned to a doctor. Please contact the administrator.
 </div>
 {% else %}
+<<<<<<< Updated upstream
 <style>
   /* Mobile / narrowed-window default: stack profile -> calendar -> details */
   .doctor-schedule-layout {
@@ -88,34 +89,44 @@
       </form>
       {% endif %}
     </div>
+=======
+<div class="h-full flex flex-col">
+  <!-- Calendar (full calendar-app view, matches the Google Calendar main
+       screen) vs Availability & Settings (doctor profile/coverage +
+       Repeat Weekly editor) — mirrors the same tab split
+       templates/doctor/schedule_list.html uses. -->
+  <div class="flex gap-6 border-b border-gray-200 mb-4 shrink-0 overflow-x-auto whitespace-nowrap [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" data-swipe-tabs>
+    <a href="?tab=calendar" class="pb-3 text-sm font-medium border-b-2 -mb-px transition-colors shrink-0 {% if active_tab == 'calendar' %}border-brand-600 text-brand-600 font-semibold{% else %}border-transparent text-gray-400 hover:text-gray-600{% endif %}">Calendar</a>
+    <a href="?tab=availability" class="pb-3 text-sm font-medium border-b-2 -mb-px transition-colors shrink-0 {% if active_tab == 'availability' %}border-brand-600 text-brand-600 font-semibold{% else %}border-transparent text-gray-400 hover:text-gray-600{% endif %}">Availability &amp; Settings</a>
+>>>>>>> Stashed changes
   </div>
 
-  <!-- Big calendar -->
-  <div class="area-calendar">
-    {% include "secretary/_schedule_grid_readonly.html" %}
+  {% if active_tab == 'availability' %}
+  <div class="max-w-3xl md:max-w-6xl space-y-3">
+    {% include "secretary/_schedule_template_editor.html" %}
   </div>
-
-  <!-- Selected day details: server-rendered panel with add/edit/remove
-       controls for the assigned doctor's slots. Clicking a calendar day
-       swaps in that day's panel via htmx (see _schedule_grid_readonly.html). -->
-  {% include "secretary/_schedule_day_panel.html" %}
-
+  {% else %}
+  <!-- Calendar: doctor profile/coverage card + mini calendar sidebar next
+       to the big grid, filling the remaining viewport height on desktop
+       (like Google Calendar) — full height is a desktop-only enhancement,
+       mobile keeps its normal page scroll with the grid's own responsive
+       sizing, same as before. Clicking a day opens the manage-capable
+       Selected Day panel as a popover (see _schedule_day_popover.html)
+       instead of it living as a persistent sidebar panel. -->
+  <div class="flex flex-col md:flex-1 md:min-h-0 md:flex-row gap-5">
+    {% if view == 'week' %}
+      {% include "secretary/_schedule_grid_week.html" %}
+    {% elif view == 'day' %}
+      {% include "secretary/_schedule_grid_day.html" %}
+    {% else %}
+      {% include "secretary/_schedule_grid_month.html" with calendar_weeks=calendar_weeks_with_slots %}
+    {% endif %}
+    <div class="self-start flex flex-col gap-5 w-full md:w-80 shrink-0">
+      {% include "secretary/_schedule_profile_card.html" %}
+      {% include "secretary/_schedule_mini_calendar.html" %}
+    </div>
+  </div>
+  {% endif %}
 </div>
-
-<script>
-(function () {
-  // Highlight the clicked day. Delegated so it keeps working after htmx
-  // swaps the calendar (Prev/Next or the post-save out-of-band refresh);
-  // the panel content itself is loaded server-side via the cell's hx-get.
-  document.addEventListener('click', function (e) {
-    var cell = e.target.closest('[data-day-cell]');
-    if (!cell) return;
-    document.querySelectorAll('[data-day-cell].ring-2').forEach(function (el) {
-      el.classList.remove('ring-2', 'ring-brand-400');
-    });
-    cell.classList.add('ring-2', 'ring-brand-400');
-  });
-})();
-</script>
 {% endif %}
 {% endblock %}

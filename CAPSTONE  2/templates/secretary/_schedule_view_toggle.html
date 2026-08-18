@@ -1,25 +1,33 @@
 {% comment %}
-Month | Week | Day switcher for the secretary's availability calendar.
+Month / Week / Day switcher for the secretary's availability calendar,
+styled as a Google-Calendar-style dropdown ("Month ▾") rather than a
+segmented button group — mirrors templates/doctor/_schedule_view_toggle.html.
 Included by all three grid templates with the current `view` and an
 `anchor` date (ISO) to carry into the next view.
 {% endcomment %}
-<div class="flex items-center rounded-lg bg-softgray p-0.5 shrink-0">
-  <button type="button"
-          hx-get="{% url 'secretary:schedule_grid_partial' %}?view=month&year={{ anchor|slice:':4' }}&month={{ anchor|slice:'5:7' }}"
-          hx-target="#secretary-schedule-grid" hx-swap="outerHTML"
-          class="px-2.5 py-1 rounded-md text-xs font-medium transition cursor-pointer {% if view == 'month' %}bg-white shadow-soft-sm text-ink{% else %}text-gray-500 hover:text-ink{% endif %}">
-    Month
-  </button>
-  <button type="button"
-          hx-get="{% url 'secretary:schedule_grid_partial' %}?view=week&date={{ anchor }}"
-          hx-target="#secretary-schedule-grid" hx-swap="outerHTML"
-          class="px-2.5 py-1 rounded-md text-xs font-medium transition cursor-pointer {% if view == 'week' %}bg-white shadow-soft-sm text-ink{% else %}text-gray-500 hover:text-ink{% endif %}">
-    Week
-  </button>
-  <button type="button"
-          hx-get="{% url 'secretary:schedule_grid_partial' %}?view=day&date={{ anchor }}"
-          hx-target="#secretary-schedule-grid" hx-swap="outerHTML"
-          class="px-2.5 py-1 rounded-md text-xs font-medium transition cursor-pointer {% if view == 'day' %}bg-white shadow-soft-sm text-ink{% else %}text-gray-500 hover:text-ink{% endif %}">
-    Day
-  </button>
-</div>
+<details class="relative view-switcher shrink-0">
+  <summary class="list-none flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-softgray text-ink text-sm font-medium hover:bg-gray-200 transition cursor-pointer select-none">
+    {% if view == 'month' %}Month{% elif view == 'week' %}Week{% else %}Day{% endif %}
+    <svg class="w-3.5 h-3.5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+  </summary>
+  <div class="absolute right-0 z-20 mt-1.5 w-32 bg-white rounded-xl border border-gray-200 shadow-soft-lg py-1.5">
+    <button type="button"
+            hx-get="{% url 'secretary:schedule_grid_partial' %}?view=month&year={{ anchor|slice:':4' }}&month={{ anchor|slice:'5:7' }}"
+            hx-target="#secretary-schedule-grid" hx-swap="outerHTML"
+            class="w-full text-left px-3.5 py-2 text-sm cursor-pointer {% if view == 'month' %}font-semibold text-brand-700{% else %}text-ink-soft hover:bg-softgray{% endif %}">
+      Month
+    </button>
+    <button type="button"
+            hx-get="{% url 'secretary:schedule_grid_partial' %}?view=week&date={{ anchor }}"
+            hx-target="#secretary-schedule-grid" hx-swap="outerHTML"
+            class="w-full text-left px-3.5 py-2 text-sm cursor-pointer {% if view == 'week' %}font-semibold text-brand-700{% else %}text-ink-soft hover:bg-softgray{% endif %}">
+      Week
+    </button>
+    <button type="button"
+            hx-get="{% url 'secretary:schedule_grid_partial' %}?view=day&date={{ anchor }}"
+            hx-target="#secretary-schedule-grid" hx-swap="outerHTML"
+            class="w-full text-left px-3.5 py-2 text-sm cursor-pointer {% if view == 'day' %}font-semibold text-brand-700{% else %}text-ink-soft hover:bg-softgray{% endif %}">
+      Day
+    </button>
+  </div>
+</details>

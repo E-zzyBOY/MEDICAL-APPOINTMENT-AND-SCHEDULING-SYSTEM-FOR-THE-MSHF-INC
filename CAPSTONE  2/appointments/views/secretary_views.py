@@ -6,6 +6,7 @@ from django.contrib import messages
 from django.http import JsonResponse, HttpResponse, HttpResponseNotAllowed
 from django.db import transaction
 from datetime import date, datetime, timedelta
+import calendar as calendar_module
 from django.db.models import Q, Count, Case, When, Value, IntegerField, F, DateField
 from accounts.decorators import role_required
 from appointments.models import Appointment, Schedule, TIME_NULLS_FIRST
@@ -643,7 +644,19 @@ def _schedule_calendar_context(doctor, year=None, month=None):
 
 @role_required('secretary')
 def view_all_schedules(request):
+    """Main 'Doctor Profile & Schedule' page: a Calendar tab (doctor
+    profile/coverage card + mini calendar in the sidebar, full-height grid,
+    click a day to manage its slots in a popover) and an Availability &
+    Settings tab (just the recurring weekly template editor) — mirrors the
+    same Calendar/Availability split doctor_views.schedule_list uses,
+    adapted for the secretary's ASSIGNED/ACTIVE doctor instead of
+    request.user."""
+    from appointments.views.doctor_views import (
+        _resolve_grid_view, _resolve_calendar_month, _compute_schedule_month,
+        _week_grid_context, _day_grid_context,
+    )
     doctor = _active_doctor(request)
+<<<<<<< Updated upstream
     schedules = Schedule.objects.filter(doctor=doctor).order_by('specific_date', 'start_time') if doctor else Schedule.objects.none()
     context = {'schedules': schedules, 'doctor': doctor}
     context.update(_schedule_calendar_context(doctor))
@@ -665,6 +678,62 @@ def view_all_schedules(request):
         'coverages': SecretaryCoverage.objects.filter(involvement)
                                               .select_related('secretary', 'doctor'),
     })
+=======
+    if doctor:
+        services.sync_generated_schedule_for_doctor(doctor)
+
+    active_tab = request.GET.get('tab')
+    active_tab = active_tab if active_tab in ('calendar', 'availability') else 'calendar'
+    selected_date_str = request.GET.get('date') or date.today().isoformat()
+
+    context = {'doctor': doctor, 'active_tab': active_tab, 'selected_date': selected_date_str}
+
+    if active_tab == 'calendar':
+        try:
+            anchor = datetime.strptime(selected_date_str, '%Y-%m-%d').date()
+        except ValueError:
+            anchor = date.today()
+
+        # Mini-calendar month context is independent of which grid view
+        # (month/week/day) is on screen, same as the doctor's page.
+        year, month = _resolve_calendar_month(request, selected_date_str)
+        context.update({
+            'calendar_weeks': _compute_schedule_month(doctor, year, month) if doctor else [],
+            'calendar_year': year, 'calendar_month': month,
+            'calendar_month_name': calendar_module.month_name[month],
+            'today_iso': date.today().isoformat(),
+        })
+
+        view = _resolve_grid_view(request.GET.get('view'))
+        context['view'] = view
+        if view == 'week':
+            context.update(_week_grid_context(doctor, anchor) if doctor else {'view': 'week', 'week_days': []})
+        elif view == 'day':
+            context.update(_day_grid_context(doctor, anchor) if doctor else {'view': 'day', 'day_slots': []})
+        else:
+            context['calendar_weeks_with_slots'] = _schedule_calendar_context(doctor, year, month)['calendar_weeks']
+
+        # Doctor profile card (sidebar, above the mini calendar): coverage
+        # section needs the colleagues she can hand her doctor to, plus
+        # every active coverage that involves her (she covers someone, or
+        # someone covers HER doctor).
+        my_doctor = _assigned_doctor(request.user)
+        involvement = Q(secretary=request.user)
+        if my_doctor:
+            involvement |= Q(doctor=my_doctor)
+        context.update({
+            'primary_doctor': my_doctor,
+            'colleagues': CustomUser.objects.filter(role='secretary', is_active=True)
+                                            .exclude(pk=request.user.pk)
+                                            .order_by('first_name', 'last_name'),
+            'coverages': SecretaryCoverage.objects.filter(involvement)
+                                                  .select_related('secretary', 'doctor'),
+        })
+    elif doctor:
+        from appointments.views.doctor_views import _template_editor_context
+        context.update(_template_editor_context(doctor))
+
+>>>>>>> Stashed changes
     return render(request, 'secretary/schedules.html', context)
 
 
@@ -683,7 +752,7 @@ def _grid_html_for_view(request, doctor, view, anchor, oob=False):
         template = 'secretary/_schedule_grid_day.html'
     else:
         context.update(_schedule_calendar_context(doctor, anchor.year, anchor.month))
-        template = 'secretary/_schedule_grid_readonly.html'
+        template = 'secretary/_schedule_grid_month.html'
     return render_to_string(template, context, request=request)
 
 
@@ -706,7 +775,30 @@ def schedule_grid_partial(request):
         year, month = today.year, today.month
     context = {'doctor': doctor}
     context.update(_schedule_calendar_context(doctor, year, month))
-    return render(request, 'secretary/_schedule_grid_readonly.html', context)
+    return render(request, 'secretary/_schedule_grid_month.html', context)
+
+
+@role_required('secretary')
+def schedule_mini_calendar_partial(request):
+    """Re-renders the desktop sidebar's compact 'jump to date' mini
+    calendar (month nav only — day clicks navigate the main grid widget
+    directly, see secretary/_schedule_mini_calendar.html). Mirrors
+    doctor_views.schedule_mini_calendar_partial, scoped to the active doctor."""
+    from appointments.views.doctor_views import (
+        _resolve_grid_view, _resolve_calendar_month, _compute_schedule_month,
+    )
+    doctor = _active_doctor(request)
+    selected_date_str = request.GET.get('date', '')
+    view = _resolve_grid_view(request.GET.get('view'))
+    year, month = _resolve_calendar_month(request, selected_date_str)
+    return render(request, 'secretary/_schedule_mini_calendar.html', {
+        'calendar_weeks': _compute_schedule_month(doctor, year, month) if doctor else [],
+        'calendar_year': year, 'calendar_month': month,
+        'calendar_month_name': calendar_module.month_name[month],
+        'today_iso': date.today().isoformat(),
+        'selected_date': selected_date_str,
+        'view': view,
+    })
 
 
 def _panel_date(raw):
@@ -726,8 +818,17 @@ def _day_panel_context(doctor, the_date, *, add_form=None, edit_form=None,
     Doctor Profile & Schedule page. Mirrors the doctor's own day-detail
     sidebar but acts on the ASSIGNED doctor's slots. `grid_view` records
     which calendar view (month/week/day) the panel was opened from, so a
-    slot change can refresh that same view."""
+    slot change can refresh that same view. Also includes that day's
+    booked appointments (read-only, listed individually) so clicking a day
+    shows the same broken-out occupied times the doctor's own popover
+    does, instead of just one undifferentiated availability block."""
     from appointments.views.doctor_views import _format_date_str
+    panel_appts = list(
+        Appointment.objects.filter(
+            doctor=doctor, appointment_date=the_date, appointment_time__isnull=False,
+            status__in=['Scheduled', 'Confirmed', 'Rescheduled'],
+        ).select_related('patient').order_by('appointment_time')
+    ) if doctor else []
     return {
         'doctor': doctor,
         'panel_date_iso': the_date.isoformat(),
@@ -735,6 +836,7 @@ def _day_panel_context(doctor, the_date, *, add_form=None, edit_form=None,
         'panel_slots': list(
             Schedule.objects.filter(doctor=doctor, specific_date=the_date).order_by('start_time')
         ) if doctor else [],
+        'panel_appts': panel_appts,
         'panel_is_past': the_date < date.today(),
         'add_form': add_form or ScheduleForm(initial={'specific_date': the_date}),
         'edit_form': edit_form,
@@ -770,6 +872,24 @@ def schedule_day_panel(request):
     the_date = _panel_date(request.GET.get('date'))
     grid_view = _resolve_grid_view(request.GET.get('view'))
     return _render_day_panel(request, doctor, the_date, grid_view=grid_view)
+
+
+@role_required('secretary')
+def schedule_day_popover(request):
+    """Opens the manage-capable Selected Day panel as a small popover
+    anchored at the clicked day — like clicking a date in Google Calendar
+    — instead of it living as a persistent sidebar panel. Every add/edit/
+    delete action inside still targets #day-details by id and swaps in
+    place (see schedule_slot_add/_edit/_delete), so the popover just
+    updates its own content — no separate popover-specific CRUD logic."""
+    from appointments.views.doctor_views import _resolve_grid_view
+    doctor = _active_doctor(request)
+    the_date = _panel_date(request.GET.get('date'))
+    grid_view = _resolve_grid_view(request.GET.get('view'))
+    return render(
+        request, 'secretary/_schedule_day_popover.html',
+        _day_panel_context(doctor, the_date, grid_view=grid_view),
+    )
 
 
 @role_required('secretary')
@@ -879,6 +999,152 @@ def schedule_slot_delete(request, pk):
     )
 
 
+<<<<<<< Updated upstream
+=======
+@role_required('secretary')
+def schedule_settings(request):
+    """Secretary version of the doctor's derived-booking-rules settings —
+    acts on the assigned/active doctor, mirrors doctor_views.schedule_settings."""
+    doctor = _active_doctor(request)
+    if not doctor:
+        return redirect(f"{reverse('secretary:schedule_view')}?tab=availability")
+    settings_row = DoctorScheduleSettings.for_doctor(doctor)
+    if request.method == 'POST':
+        form = DoctorScheduleSettingsForm(request.POST, instance=settings_row)
+        if form.is_valid():
+            form.save()
+            services.sync_generated_schedule_for_doctor(doctor, force=True)
+            _notify(doctor, f"{request.user.get_full_name()} (secretary) updated your scheduling settings.")
+            messages.success(request, 'Schedule settings updated.')
+            if request.htmx:
+                response = render(request, 'secretary/_schedule_settings_modal.html', {'form': form, 'doctor': doctor})
+                response['HX-Redirect'] = reverse('secretary:schedule_view') + '?tab=availability'
+                return response
+            return redirect(f"{reverse('secretary:schedule_view')}?tab=availability")
+    else:
+        form = DoctorScheduleSettingsForm(instance=settings_row)
+
+    context = {'form': form, 'doctor': doctor, 'title': 'Schedule Settings'}
+    if request.htmx:
+        return render(request, 'secretary/_schedule_settings_modal.html', context)
+    return render(request, 'secretary/schedule_settings_form.html', context)
+
+
+@role_required('secretary')
+def schedule_template_add(request):
+    """Secretary adds a recurring weekly block to the active doctor's
+    'Repeat weekly' template. Mirrors doctor_views.schedule_template_add."""
+    if request.method != 'POST':
+        return HttpResponseNotAllowed(['POST'])
+    doctor = _active_doctor(request)
+    if not doctor:
+        return redirect(f"{reverse('secretary:schedule_view')}?tab=availability")
+    form = ScheduleTemplateForm(request.POST)
+    if form.is_valid():
+        new_block = form.save(commit=False)
+        overlap = ScheduleTemplate.objects.filter(
+            doctor=doctor, weekday=new_block.weekday,
+            start_time__lt=new_block.end_time, end_time__gt=new_block.start_time,
+        ).exists()
+        if overlap:
+            messages.error(request, 'That overlaps with an existing block on that day of the week.')
+        else:
+            new_block.doctor = doctor
+            new_block.save()
+            services.sync_generated_schedule_for_doctor(doctor, force=True)
+            _notify(
+                doctor,
+                f"{request.user.get_full_name()} (secretary) updated your weekly availability template "
+                f"({new_block.get_weekday_display()} {new_block.start_time.strftime('%I:%M %p')}"
+                f"–{new_block.end_time.strftime('%I:%M %p')})."
+            )
+            messages.success(request, f'Added to {new_block.get_weekday_display()}.')
+    else:
+        messages.error(request, 'End time must be after start time.')
+
+    if request.htmx:
+        response = HttpResponse('')
+        response['HX-Redirect'] = reverse('secretary:schedule_view') + '?tab=availability'
+        return response
+    return redirect(f"{reverse('secretary:schedule_view')}?tab=availability")
+
+
+@role_required('secretary')
+def schedule_template_delete(request, pk):
+    """Mirrors doctor_views.schedule_template_delete, scoped to the active doctor."""
+    if request.method != 'POST':
+        return HttpResponseNotAllowed(['POST'])
+    doctor = _active_doctor(request)
+    block = get_object_or_404(ScheduleTemplate, pk=pk, doctor=doctor)
+    weekday_display = block.get_weekday_display()
+    block.delete()
+    services.sync_generated_schedule_for_doctor(doctor, force=True)
+    _notify(doctor, f"{request.user.get_full_name()} (secretary) removed a weekly availability block on {weekday_display}.")
+    messages.success(request, f'Removed from {weekday_display}.')
+    if request.htmx:
+        response = HttpResponse('')
+        response['HX-Redirect'] = reverse('secretary:schedule_view') + '?tab=availability'
+        return response
+    return redirect(f"{reverse('secretary:schedule_view')}?tab=availability")
+
+
+@role_required('secretary')
+def schedule_template_duplicate(request):
+    """Mirrors doctor_views.schedule_template_duplicate, scoped to the active doctor."""
+    if request.method != 'POST':
+        return HttpResponseNotAllowed(['POST'])
+    doctor = _active_doctor(request)
+    if not doctor:
+        return redirect(f"{reverse('secretary:schedule_view')}?tab=availability")
+    try:
+        source_weekday = int(request.POST.get('source_weekday', ''))
+    except (TypeError, ValueError):
+        messages.error(request, 'Invalid source day.')
+        return redirect(f"{reverse('secretary:schedule_view')}?tab=availability")
+
+    target_weekdays = []
+    for raw in request.POST.getlist('target_weekdays'):
+        try:
+            target_weekdays.append(int(raw))
+        except (TypeError, ValueError):
+            continue
+
+    source_blocks = list(ScheduleTemplate.objects.filter(doctor=doctor, weekday=source_weekday))
+    if not source_blocks:
+        messages.error(request, 'That day has no blocks to duplicate.')
+    else:
+        copied_to = []
+        for target in target_weekdays:
+            if target == source_weekday:
+                continue
+            for block in source_blocks:
+                overlap = ScheduleTemplate.objects.filter(
+                    doctor=doctor, weekday=target,
+                    start_time__lt=block.end_time, end_time__gt=block.start_time,
+                ).exists()
+                if not overlap:
+                    ScheduleTemplate.objects.create(
+                        doctor=doctor, weekday=target,
+                        start_time=block.start_time, end_time=block.end_time,
+                    )
+                    if target not in copied_to:
+                        copied_to.append(target)
+        if copied_to:
+            services.sync_generated_schedule_for_doctor(doctor, force=True)
+            names = ', '.join(dict(ScheduleTemplate.WEEKDAY_CHOICES)[w] for w in copied_to)
+            _notify(doctor, f"{request.user.get_full_name()} (secretary) duplicated weekly availability to {names}.")
+            messages.success(request, f'Duplicated to {names}.')
+        else:
+            messages.error(request, 'Nothing was duplicated — every target day already had a conflicting block.')
+
+    if request.htmx:
+        response = HttpResponse('')
+        response['HX-Redirect'] = reverse('secretary:schedule_view') + '?tab=availability'
+        return response
+    return redirect(f"{reverse('secretary:schedule_view')}?tab=availability")
+
+
+>>>>>>> Stashed changes
 def _accessible_patient_ids(request):
     """Patients the secretary may see: only those who have (or had) an
     appointment with the doctor she's currently working as."""

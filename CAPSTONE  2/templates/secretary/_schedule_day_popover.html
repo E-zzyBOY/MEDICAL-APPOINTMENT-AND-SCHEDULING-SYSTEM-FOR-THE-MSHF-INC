@@ -1,0 +1,17 @@
+{% comment %}
+Positions the Selected Day panel (secretary/_schedule_day_panel.html,
+id="day-details") as a popover anchored at the clicked day — like
+clicking a date in Google Calendar — instead of it living as a persistent
+sidebar panel. This wrapper only handles positioning/open state
+(capturePopoverAnchor()/positionPopover()/closePopover() in base.html);
+every add/edit/delete action inside the panel still targets #day-details
+by id and swaps in place, so the popover just updates its own content
+without needing separate popover-specific CRUD endpoints.
+{% endcomment %}
+<div id="day-popover-card" class="fixed z-50 opacity-0 scale-95 pointer-events-none origin-top-left transition-all" style="left:0; top:0; transition-duration:150ms;"
+     role="dialog" aria-modal="false" aria-label="{{ panel_date_display }}">
+  {% include "secretary/_schedule_day_panel.html" %}
+</div>
+<style>
+  #day-popover-card.open { opacity: 1 !important; transform: scale(1) !important; pointer-events: auto !important; }
+</style>

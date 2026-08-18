@@ -1189,7 +1189,7 @@ def walkin_register(request):
 
     context = {
         'form': form, 'assigned_doctor': doctor,
-        'title': 'Register Walk-In Patient',
+        'title': 'Register Walk-In Patient', 'content_class': 'max-w-2xl',
     }
     template = 'secretary/_walkin_register_modal.html' if request.htmx else 'secretary/walkin_register.html'
     return render(request, template, context)

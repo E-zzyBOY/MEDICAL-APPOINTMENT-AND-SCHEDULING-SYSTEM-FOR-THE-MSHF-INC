@@ -36,7 +36,13 @@ oob=True to refresh in place after a slot change.
       </div>
       <p class="font-semibold text-ink text-sm md:text-base whitespace-nowrap">{{ range_display }}</p>
     </div>
-    {% include "secretary/_schedule_view_toggle.html" with view='day' anchor=selected_date %}
+    <div class="flex items-center gap-3 shrink-0">
+      {% include "secretary/_schedule_view_toggle.html" with view='day' anchor=selected_date %}
+      <a href="{% url 'secretary:schedule_view' %}?tab=availability"
+         class="shrink-0 whitespace-nowrap text-center px-4 py-2 bg-green-600 text-white rounded-xl text-sm font-medium hover:bg-green-700 transition cursor-pointer">
+        + Set Availability
+      </a>
+    </div>
   </div>
 
   <div class="shrink-0 flex items-center gap-2 px-4 md:px-6 pt-4">

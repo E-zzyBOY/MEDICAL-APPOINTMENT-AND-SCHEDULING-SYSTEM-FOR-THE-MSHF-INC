@@ -36,7 +36,13 @@ copy of this grid back in out-of-band ('oob').
       </div>
       <p class="font-semibold text-ink text-base whitespace-nowrap">{{ calendar_month_name }} {{ calendar_year }}</p>
     </div>
-    {% include "secretary/_schedule_view_toggle.html" with view='month' anchor=today_iso %}
+    <div class="flex items-center gap-3 shrink-0">
+      {% include "secretary/_schedule_view_toggle.html" with view='month' anchor=today_iso %}
+      <a href="{% url 'secretary:schedule_view' %}?tab=availability"
+         class="shrink-0 whitespace-nowrap text-center px-4 py-2 bg-green-600 text-white rounded-xl text-sm font-medium hover:bg-green-700 transition cursor-pointer">
+        + Set Availability
+      </a>
+    </div>
   </div>
 
   <!-- Weekday header -->

@@ -34,7 +34,13 @@ when today falls inside the displayed week.
       </div>
       <p class="font-semibold text-ink text-sm md:text-base whitespace-nowrap">{{ range_display }}</p>
     </div>
-    {% include "secretary/_schedule_view_toggle.html" with view='week' anchor=selected_date %}
+    <div class="flex items-center gap-3 shrink-0">
+      {% include "secretary/_schedule_view_toggle.html" with view='week' anchor=selected_date %}
+      <a href="{% url 'secretary:schedule_view' %}?tab=availability"
+         class="shrink-0 whitespace-nowrap text-center px-4 py-2 bg-green-600 text-white rounded-xl text-sm font-medium hover:bg-green-700 transition cursor-pointer">
+        + Set Availability
+      </a>
+    </div>
   </div>
 
   <!-- Day-header strip: click a day to preview it -->
